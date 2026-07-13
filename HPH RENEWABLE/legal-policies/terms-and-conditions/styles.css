@@ -1,6 +1,5 @@
 body{
     margin: 0;
-    background-color: black;
 }
 
 html{
@@ -71,13 +70,12 @@ a:link{
 
 /*DESKTOP VIEW ONLY*/
 .desktop{
-    background-color: rgb(255, 255, 255);
     width: 100%;
 
     .top-blur{
         width: 100%;
         height: 300px;
-        background-color: rgb(0, 0, 0);
+        background-color: rgb(255, 255, 255);
         position: fixed;
         -webkit-backdrop-filter: blur(15px);
         
@@ -117,14 +115,14 @@ a:link{
                 text-decoration: none;
 
                 .nav-title{
-                    color: white;
+                    color: rgb(0, 0, 0);
                     font-family: inter;
                     font-size: 13px; 
                 }
             }
 
             .schedule-btn{
-                background-color: rgb(255, 255, 255);
+                background-color: rgb(0, 0, 0);
                 box-sizing: border-box;
                 padding-left: 26px;
                 padding-right: 26px;
@@ -132,7 +130,8 @@ a:link{
                 display: flex;
                 justify-content: center;
                 align-items: center;
-                color: rgb(0, 0, 0);
+                
+                color: rgb(255, 255, 255);
                 font-family: inter;
                 font-size: 13px;
                 border-radius: 4px;
@@ -141,120 +140,84 @@ a:link{
         }
     }
 
-    .landing-content{
+    .content-container{
         width: 100%;
-        height: 100%;
+        height: fit-content;
+        display: grid;
+        justify-content: center;
         box-sizing: border-box;
-        padding-bottom: 200px;
+        padding-bottom: 670px;
 
-        .text-content{
-            width: 100%;
-            height: auto;
-            position: absolute;
-            z-index: 2;
-            bottom: 0;
-            box-sizing: border-box;
-            display: flex;
-            justify-content: center;
-            padding-bottom: 60px;
+        .content{
+            width: 600px;
+            height: fit-content;
+            margin-top: 200px;
 
-            .text-container{
-                width: 90%;
-                height: auto;
-                color: white;
+            .text-container1{
+                width: 600px;
+                height: fit-content;
+                display: grid;
+                gap: 8px;
+                border-bottom: 1px solid #E5E5E7;
+                box-sizing: border-box;
+                padding-bottom: 32px;
+                margin-bottom: 100px;
 
-                .content{
-                    width: 600px;
-                    height: auto;
-                    display: grid;
-                    gap: 12px;
-
-                    .flex-box{
-                        display: flex;
-                        width: auto;
-                        gap: 16px;
-                        align-items: center;
-
-                        .img{
-                            width: 200px;
-                            height: 100%;
-                            object-fit: contain;
-                        }
-
-                        .divider{
-                            height: 28px;
-                            width: 1px;
-                            background-color: white;
-                        }
-
-                        .sub-title{
-                            font-family: inter;
-                            font-weight: 500;
-                        }
-                    } 
-
-                    .details{
+                .main-title{
+                    .title1{
+                        font-size: 32px;
+                        color: #000000;
                         font-family: inter;
-                        font-weight: 300;
-                        color: #A6A6A5;
+                        font-weight: 600;
+                        
+                    }
+                }
+
+                .sub-title{
+                    .title2{
+                        font-size: 16px;
+                        color: #000000;
+                        font-family: inter;
+                        font-weight: 600;
+                        
                     }
 
-                    .btn-flex{
-                        display: flex;
-                        gap: 16px;
-
-                        .btn-1{
-                            width: 200px;
-                            height: fit-content;
-                            background-color: white;
-                            box-sizing: border-box;
-                            padding-left: 42px;
-                            padding-right: 42px;
-                            padding-top: 8px;
-                            padding-bottom: 8px;
-                            margin-top: 32px;
-                            border-radius: 4px;
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-
-                            font-family: inter;
-                            color: rgb(0, 0, 0);
-                            font-size: 14px;
-                            font-weight: 500;
-                        }
-
-                        .btn-2{
-                            width: 200px;
-                            height: fit-content;
-                            background-color: transparent;
-                            border: 1px solid #E5E5E7;
-                            box-sizing: border-box;
-                            padding-left: 42px;
-                            padding-right: 42px;
-                            padding-top: 8px;
-                            padding-bottom: 8px;
-                            margin-top: 32px;
-                            border-radius: 4px;
-                            display: flex;
-                            justify-content: center;
-                            align-items: center;
-
-                            font-family: inter;
-                            color: rgb(255, 255, 255);
-                            font-size: 14px;
-                            font-weight: 500;
-                        }
+                    .date{
+                        font-size: 10px;
+                        color: #757575;
+                        font-family: inter;
+                        font-weight: 400;
+                        
                     }
                 }
             }
-        }
 
+            .text-container2{
+                width: 600px;
+                height: fit-content;
+                display: grid;
+                gap: 8px;
+                box-sizing: border-box;
+                padding-bottom: 32px;
+                margin-top: 32px;
 
-        .landing{
-            width: 100%;
-            height: 100vh;
-            object-fit: cover;
+                .title{
+                    font-size: 16px;
+                    color: #000000;
+                    font-family: inter;
+                    font-weight: 600;
+                    
+                }
+
+                .details{
+                    font-size: 14px;
+                    color: #757575;
+                    font-family: inter;
+                    font-weight: 400;
+                    line-height: 26px;
+                    
+                }
+            }
         }
     }
 
@@ -265,6 +228,7 @@ a:link{
         background-color: #ffffff;
         display: flex;
         justify-content: center;
+        border-top: 1px solid #E5E5E7;
 
         .flex-box{
             width: 90%;
@@ -302,7 +266,7 @@ a:link{
 
                 .grid-box{
                     display: grid;
-                    gap: 16px;
+                    gap: 6px;
                         
                     .link{
                         display: grid;
