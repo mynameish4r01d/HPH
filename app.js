@@ -38,20 +38,11 @@ function myFunction() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 //slider - home
 let slideIndex = 1;
-showSlides(slideIndex);
+if (document.getElementsByClassName("mySlides").length) {
+  showSlides(slideIndex);
+}
 
 // Next/previous controls
 function plusSlides(n) {
@@ -67,6 +58,7 @@ function showSlides(n) {
   let i;
   let slides = document.getElementsByClassName("mySlides");
   let dots = document.getElementsByClassName("dot");
+  if (!slides.length) return;
   if (n > slides.length) {slideIndex = 1}
   if (n < 1) {slideIndex = slides.length}
   for (i = 0; i < slides.length; i++) {
@@ -88,27 +80,19 @@ function showSlides(n) {
 
 
 
+// Mobile hamburger menu — only wires up on pages that have a `.menu` toggle and `.dropdown` panel
+const menuToggle = document.querySelector(".menu");
+const dropdown = document.querySelector(".dropdown");
 
-
-
-
-document.querySelector(".menu").addEventListener("click", toggleMenu);
-document.getElementsByClassName("dropdown")[0].addEventListener("click", toggleMenu);
-
-    let menuLink = document.querySelector(".menu a");
-    let dropDown = document.querySelector('ul.dropdown');
-    let header = document.querySelector("header");
-    let isOpen = 0;
+if (menuToggle && dropdown) {
+    let isOpen = false;
 
     function toggleMenu() {
-        if(isOpen == 0) {
-            menuLink.classList.toggle("active");
-            header.classList.add("black");
-            isOpen++;
-        }
-        else {
-            menuLink.classList.toggle("active");
-            header.classList.remove("black");
-            isOpen--;
-        }
+        isOpen = !isOpen;
+        menuToggle.classList.toggle("active", isOpen);
+        dropdown.classList.toggle("open", isOpen);
+        document.body.classList.toggle("menu-open", isOpen);
     }
+
+    menuToggle.addEventListener("click", toggleMenu);
+}

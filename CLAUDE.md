@@ -2,32 +2,54 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Overview
+## What this is
 
-This is a static, framework-free multi-brand marketing website (plain HTML/CSS/JS, no build step, no package manager). It's deployed via GitHub Pages — the `CNAME` file at the repo root points the custom domain `hphtechsolutions.com` at this repo. There is no bundler, dev server, linter, or test suite; pages are opened directly as static files or served via GitHub Pages.
+A static, hand-written HTML/CSS/JS marketing site with no build system, no package manager, and no test suite. There is no `package.json`, no bundler, no framework. Every page is a plain `.html` file paired with its own `styles.css`, linked directly via `<link>`/`<script>` tags.
 
-## Development workflow
+## Running it locally
 
-- There are no build/lint/test commands — this repo has no `package.json`. Edit HTML/CSS/JS files directly.
-- To preview locally, open an `index.html` file directly in a browser, or serve the repo root with any static file server (e.g. `python3 -m http.server`) so relative paths resolve correctly.
-- Changes are deployed by pushing to `main`; GitHub Pages serves directly from the repo root using the `CNAME` domain.
+There is no dev server or build step. Open the HTML files directly in a browser, or serve the directory with any static file server, e.g.:
+
+```
+python3 -m http.server 8000
+```
+
+Then navigate to `http://localhost:8000/index.html`.
 
 ## Site structure
 
-The repo root (`index.html`, `app.js`, `styles.css`) is a landing/splash page that links out to two independent sub-sites, each a self-contained brand:
+The repo root is a landing page (`index.html`, `app.js`, `styles.css`) that links out to two independent sub-sites, each a self-contained mini-site with its own home/about/etc. pages:
 
-- `HPH TECHNICAL SOLUTIONS/` — brand site with `home/`, `about/`, `milestones/` sections.
-- `HPH RENEWABLE/` — brand site with `home/`, `about/`, `contact/`, `products/` (including nested `product-pages/content1/page1|2|3/`), and `legal-policies/` (privacy-policy, return-and-refund-policy, terms-and-conditions).
+- `HPH TECHNICAL SOLUTIONS/` — pages: `home`, `about`, `milestones`
+- `HPH RENEWABLE/` — pages: `home`, `about`, `products` (with nested `product-pages/content1/page1|2|3`), `contact`, `legal-policies` (`terms-and-conditions`, `privacy-policy`, `return-and-refund-policy`)
 
-Each **page** lives in its own directory containing an `index.html` and a page-scoped `styles.css`. Shared/media assets for a page live in a local `elements/` subfolder (images, videos). There is a root-level shared `app.js` used by all pages across both brands (see below) — some brand folders also have their own local copy/variant of `app.js` (e.g. `HPH RENEWABLE/app.js`), so check which script a given `index.html` actually references before assuming shared behavior.
+Each page is a directory containing `index.html` + `styles.css`, and often an `elements/` subfolder holding page-local images/videos referenced by relative path.
 
-Global/shared brand assets (logos, favicon) live in a `global-elements/` or `global elements/` folder per brand — **note the inconsistent naming** (`HPH RENEWABLE/global-elements/` uses a hyphen, `HPH TECHNICAL SOLUTIONS/global elements/` uses a space). Match whichever convention the specific brand folder already uses; don't rename existing files/folders without updating every relative link that references them.
+**JS sharing is inconsistent between the two sub-sites** — don't assume one pattern applies to both:
+- `HPH RENEWABLE` has its own copy of `app.js` (`HPH RENEWABLE/app.js`) that its pages reference via `../app.js`.
+- `HPH TECHNICAL SOLUTIONS` has no local `app.js`; its pages reach up to the repo-root `app.js` via `../../app.js`.
 
-## Key conventions
+Global asset folder naming also differs between sub-sites (not a typo to "fix" without checking both):
+- `HPH RENEWABLE/global-elements/` (hyphenated)
+- `HPH TECHNICAL SOLUTIONS/global elements/` (space)
+- repo root: `global elements/` (space)
 
-- **Relative paths everywhere.** Every page links CSS, JS, favicons, and internal nav links via relative paths (e.g. `../../app.js`, `../about/index.html`). When adding or moving a page, carefully recount `../` segments — there is no root-relative (`/...`) linking and no path aliasing.
-- **Per-page `<head>` boilerplate is duplicated** across every `index.html` (Google Material Symbols font, Inter font via Google Fonts preconnect, viewport meta, favicon link, `<script defer src="...app.js">`). When editing this boilerplate (e.g. changing the font setup), it must be updated consistently across all pages that share the same intent — there's no shared template/include mechanism.
-- **Root `app.js` responsibilities** (shared across pages that reference it): an `IntersectionObserver`-driven scroll-reveal animation (toggles `.show` on elements with class `.hidden`), a hamburger-menu toggle (`myFunction`/`toggleMenu` via `.menu`/`.dropdown`/`header` classes), and a manual before/after-style image/content slider (`showSlides`/`plusSlides`/`currentSlide` operating on `.mySlides`/`.dot` elements). Not every page uses every feature — `document.querySelector(...)` calls in `app.js` will throw if a page's HTML lacks the expected elements, so when reusing `app.js` on a new page, ensure the matching markup (`.menu`, `.dropdown`, `header`, `.mySlides`/`.dot` if using the slider) exists, or scope/guard the code.
-- **CSS pattern:** desktop (`.desktop`) and mobile (`.mobile`) layouts are maintained as separate DOM trees/rulesets in the same stylesheet, switched via a `max-width: 750px` media query (mobile shown, desktop hidden below that breakpoint). Follow this same desktop/mobile split when adding new sections rather than trying to make one ruleset responsive.
-- Nested CSS (e.g. `.desktop { .content { ... } }` in `styles.css`) is used directly — this relies on native CSS nesting support in modern browsers, not a preprocessor.
-- External "Get in Touch" / contact CTAs link out to a Google Form (`https://forms.gle/...`); there is no backend or form-handling code in this repo.
+When adding a new page inside a sub-site, match that sub-site's existing relative-path depth and JS/asset-folder convention rather than copying from the other sub-site.
+
+## Shared front-end patterns
+
+`app.js` (and `HPH RENEWABLE/app.js`, kept in sync manually) provides the same behavior across all pages:
+
+- **Scroll-reveal animation**: elements with class `hidden` are observed via `IntersectionObserver`; `show` is toggled on/off as they enter/leave the viewport. The corresponding CSS (`.hidden`/`.show` in each page's `styles.css`, derived from the root `styles.css`) defines the blur/translate/opacity transition. Siblings under a `.logo` container get staggered `transition-delay` via `:nth-child` for a cascading reveal effect.
+- **Image slider**: `showSlides()` / `plusSlides()` / `currentSlide()` drive a manual slideshow over elements with class `mySlides` and dot indicators with class `dot`.
+- **Hamburger/dropdown menu**: `toggleMenu()` toggles a `.menu a` active state and a `header.black` class; wired up via a listener on `.menu` and the first `.dropdown` element. Note this listener setup assumes both elements exist in the DOM — pages without a `.menu`/`.dropdown` element will throw on load if `app.js` is included unmodified.
+
+**Desktop/mobile split**: layout is done via two top-level containers per page, `<div class="desktop">...</div>` and `<div class="mobile">...</div>`, toggled by a `@media (max-width: 750px)` query in each page's `styles.css` (desktop hidden, mobile shown below that width). **The `.mobile` containers are currently empty placeholders across every page in the repo** — mobile layouts have not been built out yet. Don't assume mobile support exists when making changes; flag it if a task depends on it.
+
+CSS uses native nested selectors (e.g. `.desktop { .content { .text-container { ... } } }` in `styles.css`) rather than a preprocessor — there is no Sass/Less build step, so this relies on browser-native CSS nesting support.
+
+## Conventions to follow
+
+- Each page's CSS lives in a `styles.css` next to its `index.html`; there is no shared/global stylesheet imported across pages beyond what's copy-pasted from the root `styles.css` patterns (`.hidden`/`.show`, desktop/mobile toggle, font/icon `<link>` tags in `<head>`).
+- Google Fonts (Inter) and Material Symbols Rounded icons are loaded per-page via the same `<link>` block copied at the top of every `<head>` — replicate this block rather than inventing a new font-loading approach.
+- Images/videos live in an `elements/` folder alongside the page that uses them, not in a shared media directory.
