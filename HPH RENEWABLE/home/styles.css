@@ -117,16 +117,48 @@ a:link{
                 }
             }
 
-            .text-container{
+            .nav-group{
                 display: flex;
+                align-items: center;
                 gap: 30px;
-                text-decoration: none;
 
-                .nav-item{
-                    position: relative;
+                .text-container{
+                    display: flex;
+                    gap: 30px;
+                    text-decoration: none;
+
+                    .nav-item{
+                        position: relative;
+                    }
+
+                    .nav-title{
+                        position: relative;
+                        z-index: 2;
+                        color: white;
+                        font-family: inter;
+                        font-size: 13px;
+                        padding-bottom: 4px;
+                        transition: color 0.3s ease;
+                    }
+
+                    .nav-title::after{
+                        content: "";
+                        position: absolute;
+                        left: 0;
+                        bottom: 0;
+                        width: 100%;
+                        height: 1px;
+                        background-color:#7D8187;
+                        transform: scaleX(0);
+                        transition: transform 0.25s ease;
+                    }
+
+                    .nav-item:hover .nav-title::after{
+                        transform: scaleX(1);
+                    }
                 }
 
-                .nav-title{
+                .nav-link{
                     position: relative;
                     z-index: 2;
                     color: white;
@@ -136,23 +168,27 @@ a:link{
                     transition: color 0.3s ease;
                 }
 
-                .nav-title::after{
+                .nav-link::after{
                     content: "";
                     position: absolute;
                     left: 0;
                     bottom: 0;
                     width: 100%;
                     height: 1px;
-                    background-color:#7D8187;
+                    background-color: #7D8187;
                     transform: scaleX(0);
                     transition: transform 0.25s ease;
                 }
 
-                .nav-item:hover .nav-title::after{
+                .nav-link:hover::after{
                     transform: scaleX(1);
                 }
 
-                &:hover ~ .mega-panel{
+                /* Only an actual Discover/Products/Support hover should open
+                   the mega-panel — Portfolio is a plain link with no panel
+                   content of its own, so it's excluded via :has(.nav-item:hover)
+                   rather than reacting to any hover inside this group. */
+                &:has(.nav-item:hover) ~ .mega-panel{
                     opacity: 1;
                     visibility: visible;
                     clip-path: inset(0 0 0% 0);
@@ -194,7 +230,7 @@ a:link{
                 z-index: 0;
             }
 
-            &:has(.text-container:hover, .mega-panel:hover) .nav-overlay{
+            &:has(.nav-item:hover, .mega-panel:hover) .nav-overlay{
                 opacity: 1;
                 visibility: visible;
             }
@@ -289,9 +325,14 @@ a:link{
         }
     }
 
-    .nav-bar:has(.text-container:hover, .mega-panel:hover){
-        .nav-title{
-            color: #1A1A1A;
+    .nav-bar:has(.nav-item:hover, .mega-panel:hover){
+        .nav-title, .nav-link{
+            /* The base white color is set 6 levels deep
+               (.desktop .nav-bar .item-container .nav-group .text-container
+               .nav-title), which out-specifies this state-toggle rule on
+               plain selector weight alone — !important keeps this override
+               reliable regardless of how deeply nested the base rule is. */
+            color: #1A1A1A !important;
         }
 
         .logo .img{

@@ -21,12 +21,11 @@
 
   <link rel="icon" type="image/x-icon" href="../global-elements/favicon.png">
 
-    <title>HPH RENEWABLE — Mission</title>
+    <title>HPH RENEWABLE</title>
 
     <!--JAVA SCRIPT-->
     <script defer src="../app.js"></script>
-    <script defer src="script.js"></script>
-
+<s></s>
 </head>
 <body>
 
@@ -154,73 +153,33 @@
             </div>
         </div>
 
-        <nav class="scroll-dots" aria-label="Section navigation">
-            <a href="#hero" aria-label="Intro"></a>
-            <a href="#mission" aria-label="Mission"></a>
-            <a href="#vision" aria-label="Vision"></a>
-            <a href="#advocacy" aria-label="Advocacy"></a>
-            <a href="#closing" aria-label="Get started"></a>
-        </nav>
 
-        <section class="panel hero" id="hero">
-            <div class="panel-content">
-                <div class="eyebrow logo hidden">Our Mission</div>
-
-                <div class="hero-title">
-                    <div class="line logo hidden">Energy That</div>
-                    <div class="line logo hidden">Answers to No One.</div>
+        <div class="portfolio-section">
+            <div class="portfolio-stats">
+                <div class="portfolio-stat">
+                    <div class="portfolio-label">Micro Inverter</div>
+                    <div class="portfolio-label-accent"></div>
+                    <div class="portfolio-count loading" id="countInverter">&mdash;</div>
                 </div>
 
-                <div class="hero-sub logo hidden">Affordable, accessible renewable power — built for every Filipino home.</div>
-            </div>
+                <div class="portfolio-stat-divider"></div>
 
-            <div class="scroll-cue">
-                <span class="material-symbols-rounded">expand_more</span>
-            </div>
-        </section>
-
-        <section class="panel" id="mission">
-            <div class="numeral">01</div>
-
-            <div class="panel-content">
-                <div class="eyebrow logo hidden">01 — Mission</div>
-                <div class="statement logo hidden">We make renewable energy as affordable and accessible as we can — for every home, every business, every community we serve.</div>
-            </div>
-        </section>
-
-        <section class="panel" id="vision">
-            <div class="numeral">02</div>
-
-            <div class="panel-content">
-                <div class="eyebrow logo hidden">02 — Vision</div>
-                <div class="statement logo hidden">A Philippines where every rooftop makes its own power — free from rising rates, and run entirely on sunlight.</div>
-            </div>
-        </section>
-
-        <section class="panel" id="advocacy">
-            <div class="numeral">03</div>
-
-            <div class="panel-content">
-                <div class="eyebrow logo hidden">03 — Advocacy</div>
-                <div class="statement logo hidden">We're fighting for Filipino energy independence — helping communities take back control of their power, and <span class="accent">take the greed from the grid</span>.</div>
-            </div>
-        </section>
-
-        <section class="panel closing" id="closing">
-            <div class="panel-content">
-                <div class="closing-title logo hidden">A Better Tomorrow, Today.</div>
-
-                <div class="btn-flex logo hidden">
-                    <a href="../products/index.html" style="width: fit-content;">
-                        <div class="btn-1">Explore Products</div>
-                    </a>
-
-                    <a href="../contact/index.html" style="width: fit-content;">
-                        <div class="btn-2">Get in Touch</div>
-                    </a>
+                <div class="portfolio-stat">
+                    <div class="portfolio-label">Solar Panel</div>
+                    <div class="portfolio-label-accent"></div>
+                    <div class="portfolio-count loading" id="countPanel">&mdash;</div>
                 </div>
             </div>
-        </section>
+
+            <div class="portfolio-status-row">
+                <div class="portfolio-status-dot" id="statusDot"></div>
+                <span id="statusText">Loading&hellip;</span>
+            </div>
+
+            <div class="portfolio-error" id="errorMessage"></div>
+        </div>
+
+
 
         <div class="bottom-content">
             <div class="footer-top">
@@ -230,53 +189,66 @@
 
             <div class="flex-box">
                 <div class="text-container">
-                    <div class="title">Company</div>
+                    <div class="title">Navigation</div>
 
                     <div class="divider"></div>
 
                     <div class="footer-nav">
-                        <a href="../home/index.html" class="footer-link">Home</a>
-                        <a href="../about/index.html" class="footer-link">About</a>
-                        <a href="../mission/index.html" class="footer-link">Mission</a>
+                        <a href="../about/index.html" class="footer-link">Discover</a>
                         <a href="../products/index.html" class="footer-link">Products</a>
-                        <a href="../contact/index.html" class="footer-link">Contact</a>
+                        <a href="../contact/index.html" class="footer-link">Support</a>
                     </div>
                 </div>
 
                 <div class="text-container">
-                    <div class="title">Contact Information</div>
+                    <div class="title">Product Pages</div>
+
+                    <div class="divider"></div>
+
+                    <div class="footer-nav">
+                        <a href="../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" class="footer-link">MX2250 Micro Inverter</a>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" class="footer-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" class="footer-link">MAU5000 Elite AC Coupled Unit</a>
+                    </div>
+
+                    <div class="title" style="margin-top: 32px;">Walkthrough Guides</div>
+
+                    <div class="divider"></div>
+
+                    <div class="footer-nav">
+                        <a href="#" class="footer-link">How to Setup the TSUN App</a>
+                    </div>
+
+                    <div class="title" style="margin-top: 32px;">Keynote Presentations</div>
+
+                    <div class="divider"></div>
+
+                    <div class="footer-nav">
+                        <a href="#" class="footer-link">Sales Presentation</a>
+                    </div>
+                </div>
+
+                <div class="text-container">
+                    <div class="title">Support Email</div>
 
                     <div class="divider"></div>
 
                     <div class="grid-box">
-
                         <div class="link">
-                            <div class="title2">Email</div>
                             <a href="https://mail.google.com/mail/u/0/#inbox?compose=CllgCHrjDqNvDhdtbQlHknQfbkCRCdpSTdLrZvtfPjFThnTXhzxPkGPBXLCqbhVGjfFlNjXkpfg" target="_blank">
                                 <div class="details">inquiries@hphtechsolutions.com</div>
                             </a>
                         </div>
-
-                        <div class="link">
-                            <div class="title2">Contact No.</div>
-                            <div class="details">+63 2880 84735</div>
-                            <div class="details">+63 2852 31142</div>
-                        </div>
                     </div>
-                </div>
 
-                <div class="text-container">
-                    <div class="title">Office Location</div>
+                    <div class="title" style="margin-top: 32px;">Contact Number</div>
 
                     <div class="divider"></div>
 
                     <div class="grid-box">
-
                         <div class="link">
-                            <div class="title2">Google Maps</div>
-                            <a href="https://maps.app.goo.gl/1cWTWwXiwHLpkzpp6" target="_blank">
-                                <div class="details">Unit 111 17 Vatican Building, Vatican Street BFRV, Las Piñas City, Las Piñas, Philippines</div>
-                            </a>
+                            <div class="details">(+63) 2 880 84735</div>
+                            <div class="details">(+63) 2 852 31142</div>
                         </div>
                     </div>
                 </div>
@@ -291,6 +263,17 @@
                         <a href="../legal-policies/privacy-policy/index.html" class="footer-link">Privacy Policy</a>
                         <a href="../legal-policies/return-and-refund-policy/index.html" class="footer-link">Return and Refund Policy</a>
                         <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="footer-link">Confidentiality Agreement (NDA)</a>
+                    </div>
+                </div>
+
+                <div class="text-container">
+                    <div class="title">TSUN Smart App Download</div>
+
+                    <div class="divider"></div>
+
+                    <div class="footer-nav">
+                        <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="footer-link">Google Playstore (Android)</a>
+                        <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="footer-link">App Store (IOS)</a>
                     </div>
                 </div>
             </div>
@@ -320,47 +303,33 @@
 
         <ul class="dropdown">
             <li><a href="../about/index.html">About</a></li>
-            <li><a href="">Mission</a></li>
+            <li><a href="../mission/index.html">Mission</a></li>
             <li><a href="../products/index.html">Products</a></li>
             <li><a href="../contact/index.html">Contact</a></li>
             <li><a href="../portfolio/index.html">Portfolio</a></li>
             <li><a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" class="dropdown-cta">Schedule a Visit</a></li>
         </ul>
 
-        <section class="mobile-panel mobile-hero">
-            <div class="mobile-eyebrow">Our Mission</div>
-            <div class="mobile-hero-title">Energy That Answers to No One.</div>
-            <div class="mobile-hero-sub">Affordable, accessible renewable power — built for every Filipino home.</div>
-        </section>
-
-        <section class="mobile-panel">
-            <div class="mobile-eyebrow">01 — Mission</div>
-            <div class="mobile-statement">We make renewable energy as affordable and accessible as we can — for every home, every business, every community we serve.</div>
-        </section>
-
-        <section class="mobile-panel">
-            <div class="mobile-eyebrow">02 — Vision</div>
-            <div class="mobile-statement">A Philippines where every rooftop makes its own power — free from rising rates, and run entirely on sunlight.</div>
-        </section>
-
-        <section class="mobile-panel">
-            <div class="mobile-eyebrow">03 — Advocacy</div>
-            <div class="mobile-statement">We're fighting for Filipino energy independence — helping communities take back control of their power, and <span class="mobile-accent">take the greed from the grid</span>.</div>
-        </section>
-
-        <section class="mobile-panel mobile-closing">
-            <div class="mobile-closing-title">A Better Tomorrow, Today.</div>
-
-            <div class="mobile-btn-flex">
-                <a href="../products/index.html">
-                    <div class="mobile-btn-1">Explore Products</div>
-                </a>
-
-                <a href="../contact/index.html">
-                    <div class="mobile-btn-2">Get in Touch</div>
-                </a>
+        <div class="mobile-portfolio-section">
+            <div class="mobile-portfolio-stat">
+                <div class="mobile-portfolio-label">Micro Inverter</div>
+                <div class="mobile-portfolio-label-accent"></div>
+                <div class="mobile-portfolio-count loading" id="mobileCountInverter">&mdash;</div>
             </div>
-        </section>
+
+            <div class="mobile-portfolio-stat">
+                <div class="mobile-portfolio-label">Solar Panel</div>
+                <div class="mobile-portfolio-label-accent"></div>
+                <div class="mobile-portfolio-count loading" id="mobileCountPanel">&mdash;</div>
+            </div>
+
+            <div class="mobile-portfolio-status-row">
+                <div class="mobile-portfolio-status-dot" id="mobileStatusDot"></div>
+                <span id="mobileStatusText">Loading&hellip;</span>
+            </div>
+
+            <div class="mobile-portfolio-error" id="mobileErrorMessage"></div>
+        </div>
 
         <div class="mobile-footer">
             <div class="mobile-footer-top">
@@ -369,44 +338,29 @@
             </div>
 
             <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Company</div>
+                <div class="mobile-footer-title">Navigation</div>
                 <div class="mobile-footer-divider"></div>
                 <div class="mobile-footer-nav">
-                    <a href="../home/index.html" class="mobile-footer-link">Home</a>
-                    <a href="../about/index.html" class="mobile-footer-link">About</a>
-                    <a href="../mission/index.html" class="mobile-footer-link">Mission</a>
+                    <a href="../about/index.html" class="mobile-footer-link">Discover</a>
                     <a href="../products/index.html" class="mobile-footer-link">Products</a>
-                    <a href="../contact/index.html" class="mobile-footer-link">Contact</a>
+                    <a href="../contact/index.html" class="mobile-footer-link">Support</a>
                 </div>
             </div>
 
             <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Contact Information</div>
+                <div class="mobile-footer-title">Support Email</div>
                 <div class="mobile-footer-divider"></div>
 
                 <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Email</div>
                     <a href="https://mail.google.com/mail/u/0/#inbox?compose=CllgCHrjDqNvDhdtbQlHknQfbkCRCdpSTdLrZvtfPjFThnTXhzxPkGPBXLCqbhVGjfFlNjXkpfg" target="_blank">
                         <div class="mobile-footer-detail">inquiries@hphtechsolutions.com</div>
                     </a>
                 </div>
 
+                <div class="mobile-footer-label" style="margin-top: 14px;">Contact No.</div>
                 <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Contact No.</div>
-                    <div class="mobile-footer-detail">+63 2880 84735</div>
-                    <div class="mobile-footer-detail">+63 2852 31142</div>
-                </div>
-            </div>
-
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Office Location</div>
-                <div class="mobile-footer-divider"></div>
-
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Google Maps</div>
-                    <a href="https://maps.app.goo.gl/1cWTWwXiwHLpkzpp6" target="_blank">
-                        <div class="mobile-footer-detail">Unit 111 17 Vatican Building, Vatican Street BFRV, Las Piñas City, Las Piñas, Philippines</div>
-                    </a>
+                    <div class="mobile-footer-detail">(+63) 2 880 84735</div>
+                    <div class="mobile-footer-detail">(+63) 2 852 31142</div>
                 </div>
             </div>
 
@@ -418,6 +372,15 @@
                     <a href="../legal-policies/privacy-policy/index.html" class="mobile-footer-link">Privacy Policy</a>
                     <a href="../legal-policies/return-and-refund-policy/index.html" class="mobile-footer-link">Return and Refund Policy</a>
                     <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="mobile-footer-link">Confidentiality Agreement (NDA)</a>
+                </div>
+            </div>
+
+            <div class="mobile-footer-section">
+                <div class="mobile-footer-title">TSUN Smart App Download</div>
+                <div class="mobile-footer-divider"></div>
+                <div class="mobile-footer-nav">
+                    <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="mobile-footer-link">Google Playstore (Android)</a>
+                    <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="mobile-footer-link">App Store (IOS)</a>
                 </div>
             </div>
 
@@ -482,6 +445,175 @@
                 link.setAttribute("rel", "noopener");
             }
         });
+    </script>
+
+    <script>
+        // Live-counts Micro Inverter and Solar Panel serial numbers straight
+        // from the "HPH Renewable Master Database" Google Sheet — the same
+        // sheet the installation-report form writes to.
+        const SHEET_ID = "1I7w59tsa54pBLcBUs2T55pb-8lvfLKzCe0in_eY41WY";
+        const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+        const LIVE_REFRESH_MS = 5000;
+
+        // Each metric: which sheet column to read, which DOM elements to fill
+        // in (desktop + mobile), and the exact token shape that counts as a
+        // valid serial number for it. A cell can contain several serials
+        // separated by a space, comma, slash, or line break — each matching
+        // token is counted as its own entry.
+        const METRICS = [
+            {
+                column: "Micro Inverter SN",
+                els: [document.getElementById("countInverter"), document.getElementById("mobileCountInverter")],
+                // "Y" + 15 alphanumeric characters, e.g. "Y0019A57121D00D2"
+                pattern: /^Y[0-9A-Z]{15}$/i,
+            },
+            {
+                column: "Solar Panel SN",
+                els: [document.getElementById("countPanel"), document.getElementById("mobileCountPanel")],
+                // "Z" + 18 alphanumeric characters, e.g. "Z2026300G1210029683"
+                pattern: /^Z[0-9A-Z]{18}$/i,
+            },
+        ];
+
+        const statusDots = [document.getElementById("statusDot"), document.getElementById("mobileStatusDot")];
+        const statusTexts = [document.getElementById("statusText"), document.getElementById("mobileStatusText")];
+        const errorMessages = [document.getElementById("errorMessage"), document.getElementById("mobileErrorMessage")];
+
+        function parsePortfolioCSV(text) {
+            const rows = [];
+            let row = [];
+            let field = "";
+            let inQuotes = false;
+
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i];
+                const next = text[i + 1];
+
+                if (inQuotes) {
+                    if (char === '"' && next === '"') {
+                        field += '"';
+                        i++;
+                    } else if (char === '"') {
+                        inQuotes = false;
+                    } else {
+                        field += char;
+                    }
+                } else {
+                    if (char === '"') {
+                        inQuotes = true;
+                    } else if (char === ",") {
+                        row.push(field);
+                        field = "";
+                    } else if (char === "\n" || char === "\r") {
+                        if (char === "\r" && next === "\n") i++;
+                        row.push(field);
+                        rows.push(row);
+                        row = [];
+                        field = "";
+                    } else {
+                        field += char;
+                    }
+                }
+            }
+
+            if (field.length > 0 || row.length > 0) {
+                row.push(field);
+                rows.push(row);
+            }
+
+            return rows.filter(r => r.length > 1 || (r.length === 1 && r[0] !== ""));
+        }
+
+        function countPortfolioTokens(cellText, pattern) {
+            if (!cellText) return 0;
+            return cellText
+                .split(/[^A-Za-z0-9]+/)
+                .filter(token => pattern.test(token))
+                .length;
+        }
+
+        async function loadPortfolioCounts() {
+            METRICS.forEach(m => m.els.forEach(el => el && el.classList.add("loading")));
+            statusDots.forEach(d => d && d.classList.remove("error"));
+            statusTexts.forEach(t => t && (t.textContent = "Loading…"));
+            errorMessages.forEach(e => e && e.classList.remove("show"));
+
+            try {
+                const res = await fetch(`${CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
+                if (!res.ok) throw new Error(`Sheet request failed (HTTP ${res.status})`);
+
+                const csvText = await res.text();
+                const rows = parsePortfolioCSV(csvText);
+
+                if (rows.length === 0) throw new Error("Sheet returned no data");
+
+                const header = rows[0];
+                const dataRows = rows.slice(1);
+
+                METRICS.forEach(metric => {
+                    const colIndex = header.findIndex(
+                        h => h.trim().toLowerCase() === metric.column.toLowerCase()
+                    );
+
+                    if (colIndex === -1) {
+                        throw new Error(`Column "${metric.column}" not found in sheet`);
+                    }
+
+                    const count = dataRows.reduce(
+                        (total, r) => total + countPortfolioTokens(r[colIndex], metric.pattern),
+                        0
+                    );
+
+                    metric.els.forEach(el => {
+                        if (!el) return;
+                        el.textContent = count.toLocaleString();
+                        el.classList.remove("loading");
+                    });
+                });
+
+                statusDots.forEach(d => d && d.classList.remove("paused"));
+                statusTexts.forEach(t => t && (t.textContent = `Live — updated ${new Date().toLocaleTimeString()}`));
+            } catch (err) {
+                METRICS.forEach(m => m.els.forEach(el => {
+                    if (!el) return;
+                    el.textContent = "!";
+                    el.classList.remove("loading");
+                }));
+                statusDots.forEach(d => d && d.classList.add("error"));
+                statusTexts.forEach(t => t && (t.textContent = "Failed to load"));
+                errorMessages.forEach(e => {
+                    if (!e) return;
+                    e.textContent = err.message;
+                    e.classList.add("show");
+                });
+            }
+        }
+
+        let portfolioLiveTimer = null;
+
+        function startPortfolioLive() {
+            if (portfolioLiveTimer) return;
+            loadPortfolioCounts();
+            portfolioLiveTimer = setInterval(loadPortfolioCounts, LIVE_REFRESH_MS);
+        }
+
+        function stopPortfolioLive() {
+            if (!portfolioLiveTimer) return;
+            clearInterval(portfolioLiveTimer);
+            portfolioLiveTimer = null;
+            statusDots.forEach(d => d && d.classList.add("paused"));
+            statusTexts.forEach(t => t && (t.textContent = "Paused — tab hidden"));
+        }
+
+        document.addEventListener("visibilitychange", () => {
+            if (document.hidden) {
+                stopPortfolioLive();
+            } else {
+                startPortfolioLive();
+            }
+        });
+
+        startPortfolioLive();
     </script>
 
 </body>

@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Serial Number Counter (Test)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #FFFFFF;
+        font-family: 'Inter', sans-serif;
+        color: #1A1A1A;
+        padding: 24px;
+    }
+
+    .content {
+        width: 100%;
+        max-width: 560px;
+        text-align: center;
+    }
+
+    .stats-grid {
+        display: flex;
+        align-items: stretch;
+        justify-content: center;
+        gap: 40px;
+    }
+
+    .stat {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .stat-divider {
+        width: 1px;
+        background-color: #E5E5E7;
+        flex-shrink: 0;
+    }
+
+    .label {
+        font-family: inter;
+        font-weight: 600;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #8A8A8A;
+    }
+
+    .label-accent {
+        width: 28px;
+        height: 2px;
+        border-radius: 1px;
+        background-color: #1A1A1A;
+        margin: 14px auto 22px;
+    }
+
+    .count {
+        font-size: 64px;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: #0A0A0A;
+        font-variant-numeric: tabular-nums;
+        transition: opacity 0.2s ease;
+    }
+
+    .count.loading {
+        opacity: 0.25;
+    }
+
+    .divider {
+        width: 100%;
+        height: 1px;
+        background-color: #E5E5E7;
+        margin: 48px 0 20px;
+    }
+
+    .status-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-family: inter;
+        font-size: 12px;
+        color: #ADADAD;
+    }
+
+    .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: #2ECC71;
+        flex-shrink: 0;
+        box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.5);
+        animation: pulse 2s infinite;
+    }
+
+    .status-dot.error {
+        background-color: #E0483E;
+        box-shadow: none;
+        animation: none;
+    }
+
+    .status-dot.paused {
+        background-color: #C9C9C9;
+        box-shadow: none;
+        animation: none;
+    }
+
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0.45); }
+        70% { box-shadow: 0 0 0 6px rgba(46, 204, 113, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(46, 204, 113, 0); }
+    }
+
+    .error-message {
+        margin-top: 12px;
+        font-family: inter;
+        font-size: 12px;
+        color: #E0483E;
+        display: none;
+    }
+
+    .error-message.show {
+        display: block;
+    }
+
+    @media (max-width: 500px) {
+        .stats-grid {
+            flex-direction: column;
+            gap: 32px;
+        }
+
+        .stat-divider {
+            width: 100%;
+            height: 1px;
+        }
+
+        .count {
+            font-size: 56px;
+        }
+    }
+</style>
+</head>
+<body>
+
+<div class="content">
+    <div class="stats-grid">
+        <div class="stat">
+            <div class="label">Micro Inverter</div>
+            <div class="label-accent"></div>
+            <div class="count loading" id="countInverter">&mdash;</div>
+        </div>
+
+        <div class="stat-divider"></div>
+
+        <div class="stat">
+            <div class="label">Solar Panel</div>
+            <div class="label-accent"></div>
+            <div class="count loading" id="countPanel">&mdash;</div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="status-row">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Loading&hellip;</span>
+    </div>
+
+    <div class="error-message" id="errorMessage"></div>
+</div>
+
+<script>
+    const SHEET_ID = "1I7w59tsa54pBLcBUs2T55pb-8lvfLKzCe0in_eY41WY";
+    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    const LIVE_REFRESH_MS = 5000;
+
+    // Each metric: which sheet column to read, which DOM element to fill in,
+    // and the exact token shape that counts as a valid serial number for it.
+    // A cell can contain several serials separated by a space, comma,
+    // slash, or line break (paragraph break) — each matching token is
+    // counted as its own entry.
+    const METRICS = [
+        {
+            column: "Micro Inverter SN",
+            el: document.getElementById("countInverter"),
+            // "Y" + 15 alphanumeric characters, e.g. "Y0019A57121D00D2"
+            pattern: /^Y[0-9A-Z]{15}$/i,
+        },
+        {
+            column: "Solar Panel SN",
+            el: document.getElementById("countPanel"),
+            // "Z" + 18 alphanumeric characters, e.g. "Z2026300G1210029683"
+            pattern: /^Z[0-9A-Z]{18}$/i,
+        },
+    ];
+
+    const statusDot = document.getElementById("statusDot");
+    const statusText = document.getElementById("statusText");
+    const errorMessage = document.getElementById("errorMessage");
+
+    function parseCSV(text) {
+        const rows = [];
+        let row = [];
+        let field = "";
+        let inQuotes = false;
+
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            const next = text[i + 1];
+
+            if (inQuotes) {
+                if (char === '"' && next === '"') {
+                    field += '"';
+                    i++;
+                } else if (char === '"') {
+                    inQuotes = false;
+                } else {
+                    field += char;
+                }
+            } else {
+                if (char === '"') {
+                    inQuotes = true;
+                } else if (char === ",") {
+                    row.push(field);
+                    field = "";
+                } else if (char === "\n" || char === "\r") {
+                    if (char === "\r" && next === "\n") i++;
+                    row.push(field);
+                    rows.push(row);
+                    row = [];
+                    field = "";
+                } else {
+                    field += char;
+                }
+            }
+        }
+
+        if (field.length > 0 || row.length > 0) {
+            row.push(field);
+            rows.push(row);
+        }
+
+        return rows.filter(r => r.length > 1 || (r.length === 1 && r[0] !== ""));
+    }
+
+    // Splits a cell on any run of non-alphanumeric characters (commas,
+    // paragraph breaks, spaces, slashes, etc.) so a single cell containing
+    // several serial numbers is counted as several entries, then keeps only
+    // the tokens matching the given metric's SN format.
+    function countTokens(cellText, pattern) {
+        if (!cellText) return 0;
+        return cellText
+            .split(/[^A-Za-z0-9]+/)
+            .filter(token => pattern.test(token))
+            .length;
+    }
+
+    async function loadCount() {
+        METRICS.forEach(m => m.el.classList.add("loading"));
+        statusDot.classList.remove("error");
+        statusText.textContent = "Loading…";
+        errorMessage.classList.remove("show");
+
+        try {
+            const res = await fetch(`${CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
+            if (!res.ok) throw new Error(`Sheet request failed (HTTP ${res.status})`);
+
+            const csvText = await res.text();
+            const rows = parseCSV(csvText);
+
+            if (rows.length === 0) throw new Error("Sheet returned no data");
+
+            const header = rows[0];
+            const dataRows = rows.slice(1);
+
+            METRICS.forEach(metric => {
+                const colIndex = header.findIndex(
+                    h => h.trim().toLowerCase() === metric.column.toLowerCase()
+                );
+
+                if (colIndex === -1) {
+                    throw new Error(`Column "${metric.column}" not found in sheet`);
+                }
+
+                const count = dataRows.reduce(
+                    (total, r) => total + countTokens(r[colIndex], metric.pattern),
+                    0
+                );
+
+                metric.el.textContent = count.toLocaleString();
+                metric.el.classList.remove("loading");
+            });
+
+            statusDot.classList.remove("paused");
+            statusText.textContent = `Live — updated ${new Date().toLocaleTimeString()}`;
+        } catch (err) {
+            METRICS.forEach(m => {
+                m.el.textContent = "!";
+                m.el.classList.remove("loading");
+            });
+            statusDot.classList.add("error");
+            statusText.textContent = "Failed to load";
+            errorMessage.textContent = err.message;
+            errorMessage.classList.add("show");
+        }
+    }
+
+    let liveTimer = null;
+
+    function startLive() {
+        if (liveTimer) return;
+        loadCount();
+        liveTimer = setInterval(loadCount, LIVE_REFRESH_MS);
+    }
+
+    function stopLive() {
+        if (!liveTimer) return;
+        clearInterval(liveTimer);
+        liveTimer = null;
+        statusDot.classList.add("paused");
+        statusText.textContent = "Paused — tab hidden";
+    }
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            stopLive();
+        } else {
+            startLive();
+        }
+    });
+
+    startLive();
+</script>
+
+</body>
+</html>
