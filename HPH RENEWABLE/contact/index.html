@@ -66,6 +66,8 @@
                     </div>
                 </a>
 
+                <div class="nav-overlay"></div>
+
                 <div class="mega-panel">
                     <div class="mega-panel-inner">
                         <div class="mega-content mega-content-about active">
@@ -404,6 +406,8 @@
 
             megaContents.forEach((content) => content.classList.remove("active"));
             next.classList.add("active");
+            next.style.opacity = "0";
+            next.offsetHeight;
 
             megaInner.style.height = "auto";
             const endHeight = megaInner.getBoundingClientRect().height;
@@ -412,6 +416,7 @@
 
             requestAnimationFrame(() => {
                 megaInner.style.height = endHeight + "px";
+                next.style.opacity = "1";
             });
         }
 
