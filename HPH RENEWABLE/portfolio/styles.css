@@ -19,6 +19,10 @@ a:link{
     height: 100%;
 }
 
+.copy-contact{
+    cursor: pointer;
+}
+
 .hidden {
     opacity: 0;
     filter: blur(6px);
@@ -90,6 +94,7 @@ a:link{
 
 /*DESKTOP VIEW ONLY*/
 .desktop{
+    background-color: rgb(255, 255, 255);
     width: 100%;
 
     .top-blur{
@@ -319,7 +324,7 @@ a:link{
                     .mega-heading{
                         font-size: 12px;
                         font-weight: 400;
-                        letter-spacing: normal;
+                        letter-spacing: -0.03em;
                         text-transform: none;
                         color: #7D8187;
                         margin-bottom: 0px;
@@ -438,94 +443,67 @@ a:link{
     .bottom-content{
         width: 100%;
         box-sizing: border-box;
-        padding: 64px 0 40px;
-        background-color: #FAFAFA;
-        border-top: 1px solid #E5E5E7;
         display: flex;
         flex-direction: column;
-        align-items: center;
-
-        .footer-top{
-            width: 90%;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 56px;
-
-            .footer-logo{
-                height: 16px;
-                width: auto;
-                object-fit: contain;
-            }
-
-            .footer-tagline{
-                font-family: inter;
-                font-weight: 400;
-                font-size: 12px;
-                color: #ADADAD;
-                padding-left: 16px;
-                border-left: 1px solid #E5E5E7;
-            }
-        }
+        align-items: start;
+        padding-top: 82px;
+        padding-left: 100px;
+        padding-right: 100px;
+        padding-bottom: 32px;
 
         .flex-box{
-            width: 90%;
+            width: fit-content;
             height: auto;
             box-sizing: border-box;
             padding-top: 0;
             display: flex;
-            gap: 72px;
+            gap: 82px;
 
             .text-container{
-                width: auto;
+                width: fit-content;
                 height: auto;
-                flex: 1;
 
                 .title{
                     font-family: inter;
-                    font-weight: 600;
+                    font-weight: 500;
                     font-size: 11px;
-                    letter-spacing: 0.08em;
-                    text-transform: uppercase;
-                    color: #8A8A8A;
+                    letter-spacing: -0.03em;
+                    color: #000000;
+                    margin-bottom: 12px;
                 }
 
-                .divider{
-                    width: 28px;
-                    height: 2px;
-                    border-radius: 1px;
-                    background-color: #1A1A1A;
-                    margin-top: 14px;
-                    margin-bottom: 22px;
+                .title-spaced{
+                    margin-top: 42px;
                 }
 
                 .title2{
                     font-family: inter;
-                    font-weight: 400;
+                    font-weight: 500;
                     font-size: 12px;
                     color: #ADADAD;
                 }
 
                 .grid-box{
                     display: grid;
-                    gap: 16px;
+                    gap: 12px;
 
                     .link{
                         display: grid;
-                        gap: 2px;
+                        gap: 12px;
 
                         .details{
                             font-family: inter;
                             font-weight: 400;
                             font-size: 12px;
-                            margin-top: 6px;
-                            color: black;
+                            margin-top: 0px;
+                            color: #757575;
                             transition: color 0.2s ease;
+                            letter-spacing: -0.03em;
                         }
 
                         .title3{
                             font-family: inter;
-                            font-weight: 400;
+                            font-weight: 500;
                             font-size: 12px;
                             color: #000000;
                             text-decoration: solid underline;
@@ -540,7 +518,7 @@ a:link{
 
                 .footer-nav{
                     display: grid;
-                    gap: 14px;
+                    gap: 12px;
 
                     .footer-link{
                         font-family: inter;
@@ -560,7 +538,7 @@ a:link{
 
         .bottom-bar{
             width: 90%;
-            margin-top: 48px;
+            margin-top: 200px;
 
             .bottom-divider{
                 width: 100%;
@@ -574,7 +552,6 @@ a:link{
                 font-weight: 400;
                 font-size: 12px;
                 color: #ADADAD;
-                text-align: center;
             }
         }
     }
@@ -787,28 +764,6 @@ body.menu-open{
         background-color: #FAFAFA;
         border-top: 1px solid #E5E5E7;
 
-        .mobile-footer-top{
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 40px;
-
-            .mobile-footer-logo{
-                height: 14px;
-                width: auto;
-                object-fit: contain;
-            }
-
-            .mobile-footer-tagline{
-                font-family: inter;
-                font-weight: 400;
-                font-size: 11px;
-                color: #ADADAD;
-                padding-left: 12px;
-                border-left: 1px solid #E5E5E7;
-            }
-        }
-
         .mobile-footer-section{
             margin-bottom: 32px;
 
@@ -816,18 +771,16 @@ body.menu-open{
                 font-family: inter;
                 font-weight: 600;
                 font-size: 12px;
-                letter-spacing: 0.06em;
-                text-transform: uppercase;
+                letter-spacing: -0.03em;
                 color: #8A8A8A;
+                margin-bottom: 16px;
             }
         }
 
-        .mobile-footer-divider{
-            width: 24px;
-            height: 2px;
-            border-radius: 1px;
-            background-color: #1A1A1A;
-            margin-top: 10px;
+        .mobile-bottom-divider{
+            width: 100%;
+            height: 1px;
+            background-color: #E5E5E7;
             margin-bottom: 16px;
         }
 

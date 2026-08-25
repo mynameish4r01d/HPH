@@ -19,6 +19,10 @@ a:link{
     height: 100%;
 }
 
+.copy-contact{
+    cursor: pointer;
+}
+
 .hidden {
     opacity: 0;
     filter: blur(6px);
@@ -80,6 +84,7 @@ a:link{
         background-color: rgb(0, 0, 0);
         position: fixed;
         -webkit-backdrop-filter: blur(15px);
+        z-index: 6;
         
         /* Mask controls the visibility of the blur effect layer */
         mask-image: linear-gradient(to bottom, transparent 0%, black 100%);
@@ -261,7 +266,7 @@ a:link{
                     width: 90%;
                     margin: 0 auto;
                     box-sizing: border-box;
-                    padding: 120px 0 40px;
+                    padding: 160px 0 100px;
                     overflow: hidden;
                     transition: height 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
                 }
@@ -279,7 +284,7 @@ a:link{
 
                 .mega-col{
                     display: grid;
-                    gap: 6px;
+                    gap: 12px;
                     align-content: start;
 
                     .mega-heading{
@@ -309,7 +314,7 @@ a:link{
                     .mega-heading{
                         font-size: 12px;
                         font-weight: 400;
-                        letter-spacing: normal;
+                        letter-spacing: -0.03em;
                         text-transform: none;
                         color: #7D8187;
                         margin-bottom: 0px;
@@ -345,11 +350,88 @@ a:link{
         }
     }
 
+    /* System dark-mode theme for the page background, the mega-panel
+       dropdown, and the footer ("bottom bar") — each is a light surface
+       with its own explicit background, so each needs a dark variant. The
+       resting nav bar itself sits on the hero photo's fixed blur/overlay,
+       which stays dark in both themes and is left untouched since it isn't
+       a theme surface color. */
+    @media (prefers-color-scheme: dark){
+        /* Page background: mirrors the same #FFFFFF -> #0C0C0C mapping used
+           for the mega-panel and footer surfaces below. */
+        &{
+            background-color: #0C0C0C !important;
+        }
+
+        /* No base-state override for .nav-title/.nav-link/.schedule-btn here:
+           the top-blur + hero backdrop behind the resting nav bar is always
+           black regardless of system theme, so the light-mode base colors
+           (white text, white button) already have correct contrast in dark
+           mode too. Only the mega-panel dropdown's own surface actually
+           changes color between themes, so only it needs a dark variant. */
+        .nav-bar{
+            .mega-panel{
+                background-color: rgba(12, 12, 12, 0.97) !important;
+
+                .mega-link{
+                    color: #EBEBEB !important;
+                }
+
+                .mega-link:hover{
+                    color: #ADADAD !important;
+                }
+            }
+        }
+
+        /* .nav-bar.nav-bar (class repeated) deliberately outweighs the
+           always-on light-mode hover override just above, which has the
+           exact same selector shape and !important — without the extra
+           specificity bump the two tie and the browser's tie-break didn't
+           consistently favor this later rule in testing. */
+        .nav-bar.nav-bar:has(.nav-item:hover, .mega-panel:hover){
+            .nav-title, .nav-link{
+                color: #EBEBEB !important;
+            }
+
+            .logo .img{
+                filter: none !important;
+            }
+
+            .schedule-btn{
+                background-color: #EBEBEB !important;
+                color: #0C0C0C !important;
+            }
+        }
+
+        /* Footer surface: mirrors the mega-panel's light-to-dark mapping
+           (#FFFFFF -> #0C0C0C background, #000000 -> #FFFFFF text). Mid-tone
+           grays (#ADADAD on .title2/.copyright, #E5E5E7 borders elsewhere)
+           already read fine against a dark surface and are left alone. */
+        .bottom-content{
+            background-color: #0C0C0C !important;
+
+            .title, .title3{
+                color: #FFFFFF !important;
+            }
+
+            .footer-link, .details{
+                color: #9E9E9E !important;
+            }
+
+            .footer-link:hover{
+                color: #FFFFFF !important;
+            }
+
+            .bottom-divider{
+                background-color: #2A2A2A !important;
+            }
+        }
+    }
+
     .landing-content{
         width: 100%;
         height: 100%;
         box-sizing: border-box;
-        padding-bottom: 200px;
 
         .text-content{
             width: 100%;
@@ -466,94 +548,67 @@ a:link{
     .bottom-content{
         width: 100%;
         box-sizing: border-box;
-        padding: 64px 0 40px;
-        background-color: #FAFAFA;
-        border-top: 1px solid #E5E5E7;
         display: flex;
         flex-direction: column;
-        align-items: center;
-
-        .footer-top{
-            width: 90%;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 56px;
-
-            .footer-logo{
-                height: 16px;
-                width: auto;
-                object-fit: contain;
-            }
-
-            .footer-tagline{
-                font-family: inter;
-                font-weight: 400;
-                font-size: 12px;
-                color: #ADADAD;
-                padding-left: 16px;
-                border-left: 1px solid #E5E5E7;
-            }
-        }
+        align-items: start;
+        padding-top: 82px;
+        padding-left: 100px;
+        padding-right: 100px;
+        padding-bottom: 32px;
 
         .flex-box{
-            width: 90%;
+            width: fit-content;
             height: auto;
             box-sizing: border-box;
             padding-top: 0;
             display: flex;
-            gap: 72px;
+            gap: 82px;
 
             .text-container{
-                width: auto;
+                width: fit-content;
                 height: auto;
-                flex: 1;
 
                 .title{
                     font-family: inter;
-                    font-weight: 600;
+                    font-weight: 500;
                     font-size: 11px;
-                    letter-spacing: 0.08em;
-                    text-transform: uppercase;
-                    color: #8A8A8A;
+                    letter-spacing: -0.03em;
+                    color: #000000;
+                    margin-bottom: 12px;
                 }
 
-                .divider{
-                    width: 28px;
-                    height: 2px;
-                    border-radius: 1px;
-                    background-color: #1A1A1A;
-                    margin-top: 14px;
-                    margin-bottom: 22px;
+                .title-spaced{
+                    margin-top: 42px;
                 }
 
                 .title2{
                     font-family: inter;
-                    font-weight: 400;
+                    font-weight: 500;
                     font-size: 12px;
                     color: #ADADAD;
                 }
 
                 .grid-box{
                     display: grid;
-                    gap: 16px;
+                    gap: 12px;
 
                     .link{
                         display: grid;
-                        gap: 2px;
+                        gap: 12px;
 
                         .details{
                             font-family: inter;
                             font-weight: 400;
                             font-size: 12px;
-                            margin-top: 6px;
-                            color: black;
+                            margin-top: 0px;
+                            color: #757575;
                             transition: color 0.2s ease;
+                            letter-spacing: -0.03em;
                         }
 
                         .title3{
                             font-family: inter;
-                            font-weight: 400;
+                            font-weight: 500;
                             font-size: 12px;
                             color: #000000;
                             text-decoration: solid underline;
@@ -568,7 +623,7 @@ a:link{
 
                 .footer-nav{
                     display: grid;
-                    gap: 14px;
+                    gap: 12px;
 
                     .footer-link{
                         font-family: inter;
@@ -588,7 +643,7 @@ a:link{
 
         .bottom-bar{
             width: 90%;
-            margin-top: 48px;
+            margin-top: 200px;
 
             .bottom-divider{
                 width: 100%;
@@ -602,7 +657,6 @@ a:link{
                 font-weight: 400;
                 font-size: 12px;
                 color: #ADADAD;
-                text-align: center;
             }
         }
     }
@@ -785,28 +839,6 @@ body.menu-open{
         background-color: #FAFAFA;
         border-top: 1px solid #E5E5E7;
 
-        .mobile-footer-top{
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 40px;
-
-            .mobile-footer-logo{
-                height: 14px;
-                width: auto;
-                object-fit: contain;
-            }
-
-            .mobile-footer-tagline{
-                font-family: inter;
-                font-weight: 400;
-                font-size: 11px;
-                color: #ADADAD;
-                padding-left: 12px;
-                border-left: 1px solid #E5E5E7;
-            }
-        }
-
         .mobile-footer-section{
             margin-bottom: 32px;
 
@@ -814,18 +846,16 @@ body.menu-open{
                 font-family: inter;
                 font-weight: 600;
                 font-size: 12px;
-                letter-spacing: 0.06em;
-                text-transform: uppercase;
+                letter-spacing: -0.03em;
                 color: #8A8A8A;
+                margin-bottom: 16px;
             }
         }
 
-        .mobile-footer-divider{
-            width: 24px;
-            height: 2px;
-            border-radius: 1px;
-            background-color: #1A1A1A;
-            margin-top: 10px;
+        .mobile-bottom-divider{
+            width: 100%;
+            height: 1px;
+            background-color: #E5E5E7;
             margin-bottom: 16px;
         }
 

@@ -19,6 +19,10 @@ a:link{
     height: 100%;
 }
 
+.copy-contact{
+    cursor: pointer;
+}
+
 .hidden {
     opacity: 0;
     filter: blur(6px);
@@ -91,6 +95,7 @@ a:link{
 
 /*DESKTOP VIEW ONLY*/
 .desktop{
+    background-color: rgb(255, 255, 255);
     width: 100%;
 
     .top-blur{
@@ -320,7 +325,7 @@ a:link{
                     .mega-heading{
                         font-size: 12px;
                         font-weight: 400;
-                        letter-spacing: normal;
+                        letter-spacing: -0.03em;
                         text-transform: none;
                         color: #7D8187;
                         margin-bottom: 0px;

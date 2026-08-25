@@ -139,12 +139,12 @@
                             </div>
                             <div class="mega-col">
                                 <div class="mega-heading">Contact Number</div>
-                                <a href="#" class="mega-link">(+63) 2 880 84735</a>
-                                <a href="#" class="mega-link">(+63) 2 852 31142</a>
+                                <a href="#" class="mega-link copy-contact" role="button" tabindex="0">(+63) 2 880 84735</a>
+                                <a href="#" class="mega-link copy-contact" role="button" tabindex="0">(+63) 2 852 31142</a>
                             </div>
                             <div class="mega-col">
                                 <div class="mega-heading">Support Email</div>
-                                <a href="#" class="mega-link">inquiries@hphtechsolutions.com</a>
+                                <a href="https://mail.google.com/mail/?view=cm&fs=1&to=inquiries@hphtechsolutions.com" target="_blank" rel="noopener" class="mega-link">inquiries@hphtechsolutions.com</a>
                             </div>
                         </div>
                     </div>
@@ -430,6 +430,23 @@
                 link.setAttribute("target", "_blank");
                 link.setAttribute("rel", "noopener");
             }
+        });
+
+        document.querySelectorAll(".copy-contact").forEach((el) => {
+            const originalText = el.textContent;
+
+            function copyNumber(e) {
+                e.preventDefault();
+                navigator.clipboard.writeText(originalText.trim()).then(() => {
+                    el.textContent = "Copied!";
+                    setTimeout(() => { el.textContent = originalText; }, 1200);
+                });
+            }
+
+            el.addEventListener("click", copyNumber);
+            el.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" || e.key === " ") copyNumber(e);
+            });
         });
     </script>
 
