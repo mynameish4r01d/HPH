@@ -103,8 +103,8 @@
                                 <a href="../products/product-pages/content1/page3/index.html" class="mega-link">MAU5000 Elite</a>
 
                                 <div class="mega-heading" style="margin-top: 32px;">Battery Expansion</div>
-                                <a href="#" class="mega-link">B4000 Elite</a>
-                                <a href="#" class="mega-link">B5000 Elite</a>
+                                <a href="../products/product-pages/content2/page1/index.html" class="mega-link">B4000 Elite</a>
+                                <a href="../products/product-pages/content2/page2/index.html" class="mega-link">B5000 Elite</a>
                             </div>
                             <div class="mega-col">
                                 <div class="mega-heading">Youtube Videos</div>
@@ -136,7 +136,7 @@
                                 <a href="https://maps.app.goo.gl/okz2G6zCGjfVaTua7" class="mega-link">Unit 111 17 Vatican Building, <br>BF ResortVillage, Talon Dos, <br>Laspinas City</a>
 
                                 <div class="mega-heading" style="margin-top: 32px;">Support</div>
-                                <a href="#" class="mega-link">Frequently Asked Questions</a>
+                                <a href="../faq/index.html" class="mega-link">Frequently Asked Questions</a>
                             </div>
                             <div class="mega-col">
                                 <div class="mega-heading">Contact Number</div>
@@ -179,7 +179,7 @@
 
                             <div class="text-container2">
                                 <div class="logo hidden">
-                                    <div class="title">MS2250</div>
+                                    <div class="title">MX2250</div>
                                 </div>
 
                                 <div class="logo hidden">
@@ -214,7 +214,7 @@
 
                             <div class="text-container2">
                                 <div class="logo hidden">
-                                    <div class="title">MSU4000 elite</div>
+                                    <div class="title">MSU4000 Elite</div>
                                 </div>
 
                                 <div class="logo hidden">
@@ -250,7 +250,7 @@
 
                             <div class="text-container2">
                                 <div class="logo hidden">
-                                    <div class="title">MAU5000 elite</div>
+                                    <div class="title">MAU5000 Elite</div>
                                 </div>
 
                                 <div class="logo hidden">
@@ -425,7 +425,7 @@
                 <div class="mobile-product-photo">
                     <img src="elements/element1.png" alt="" class="mobile-product-img">
                 </div>
-                <div class="mobile-product-title">MS2250</div>
+                <div class="mobile-product-title">MX2250</div>
                 <div class="mobile-p">A high-efficiency microinverter designed to connect with four solar panels. Engineered with state-of-the-art topology, a modular build, and full aluminum die-casting for outstanding heat dissipation and reliability, it ensures safe and reliable energy conversion at the module level.</div>
 
                 <div class="mobile-btn-flex">
@@ -443,7 +443,7 @@
                 <div class="mobile-product-photo">
                     <img src="elements/element2.png" alt="" class="mobile-product-img">
                 </div>
-                <div class="mobile-product-title">MSU4000 elite</div>
+                <div class="mobile-product-title">MSU4000 Elite</div>
                 <div class="mobile-p">A versatile AC-coupled energy storage systems, perfect for upgrading existing grid-tied setups or powering new microinverter-based installations.</div>
 
                 <div class="mobile-btn-flex">
@@ -461,7 +461,7 @@
                 <div class="mobile-product-photo">
                     <img src="elements/element3.png" alt="" class="mobile-product-img">
                 </div>
-                <div class="mobile-product-title">MAU5000 elite</div>
+                <div class="mobile-product-title">MAU5000 Elite</div>
                 <div class="mobile-p">A premier AC-coupled energy storage system designed to effortlessly upgrade existing grid-tied setups or power new solar installations in combination with microinverters.</div>
 
                 <div class="mobile-btn-flex">
@@ -586,6 +586,9 @@
 
         navItems.forEach((item, i) => {
             item.addEventListener("mouseenter", () => activateContent(i));
+
+            const link = item.querySelector("a");
+            if (link) link.addEventListener("click", (e) => e.preventDefault());
         });
 
         document.querySelectorAll(".mega-panel .mega-link").forEach((link) => {

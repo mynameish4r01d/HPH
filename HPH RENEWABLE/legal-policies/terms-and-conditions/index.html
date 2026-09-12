@@ -103,8 +103,8 @@
                                 <a href="../../products/product-pages/content1/page3/index.html" class="mega-link">MAU5000 Elite</a>
 
                                 <div class="mega-heading" style="margin-top: 32px;">Battery Expansion</div>
-                                <a href="#" class="mega-link">B4000 Elite</a>
-                                <a href="#" class="mega-link">B5000 Elite</a>
+                                <a href="../../products/product-pages/content2/page1/index.html" class="mega-link">B4000 Elite</a>
+                                <a href="../../products/product-pages/content2/page2/index.html" class="mega-link">B5000 Elite</a>
                             </div>
                             <div class="mega-col">
                                 <div class="mega-heading">Youtube Videos</div>
@@ -136,7 +136,7 @@
                                 <a href="https://maps.app.goo.gl/okz2G6zCGjfVaTua7" class="mega-link">Unit 111 17 Vatican Building, <br>BF ResortVillage, Talon Dos, <br>Laspinas City</a>
 
                                 <div class="mega-heading" style="margin-top: 32px;">Support</div>
-                                <a href="#" class="mega-link">Frequently Asked Questions</a>
+                                <a href="../../faq/index.html" class="mega-link">Frequently Asked Questions</a>
                             </div>
                             <div class="mega-col">
                                 <div class="mega-heading">Contact Number</div>
@@ -568,6 +568,9 @@
 
         navItems.forEach((item, i) => {
             item.addEventListener("mouseenter", () => activateContent(i));
+
+            const link = item.querySelector("a");
+            if (link) link.addEventListener("click", (e) => e.preventDefault());
         });
 
         document.querySelectorAll(".mega-panel .mega-link").forEach((link) => {

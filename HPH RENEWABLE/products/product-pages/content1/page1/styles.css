@@ -160,23 +160,6 @@ a:link{
                         font-size: 13px;
                         padding-bottom: 4px;
                     }
-
-                    .nav-title::after{
-                        content: "";
-                        position: absolute;
-                        left: 0;
-                        bottom: 0;
-                        width: 100%;
-                        height: 1px;
-                        background-color: rgb(0, 0, 0);
-                        transform: scaleX(0);
-                        transform-origin: left;
-                        transition: transform 0.25s ease;
-                    }
-
-                    .nav-item:hover .nav-title::after{
-                        transform: scaleX(1);
-                    }
                 }
 
                 .nav-link{
@@ -186,23 +169,6 @@ a:link{
                     font-family: inter;
                     font-size: 13px;
                     padding-bottom: 4px;
-                }
-
-                .nav-link::after{
-                    content: "";
-                    position: absolute;
-                    left: 0;
-                    bottom: 0;
-                    width: 100%;
-                    height: 1px;
-                    background-color: rgb(0, 0, 0);
-                    transform: scaleX(0);
-                    transform-origin: left;
-                    transition: transform 0.25s ease;
-                }
-
-                .nav-link:hover::after{
-                    transform: scaleX(1);
                 }
 
                 &:has(.nav-item:hover) ~ .mega-panel{
@@ -351,60 +317,148 @@ a:link{
         .flex-box{
             width: 90%;
             height: fit-content;
-            margin-top: 140px;
+            margin-top: 115px;
             display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
 
             .box1{
                 width: 100%;
                 height: 82vh;
-                overflow-y: hidden;
-                display: flex;
-                flex-direction: row;
-                overflow-x: auto; 
-                gap: 12px;
-                scroll-snap-type: y mandatory; 
-                scrollbar-width: none; /* Firefox */
-                -ms-overflow-style: none; /* IE/Edge */
+                box-sizing: border-box;
 
-                /* Hides scrollbars for Chrome, Safari, and Opera */
-                .scroll-container::-webkit-scrollbar {
-                display: none;
-                }
-
-                .panel{
+                .carousel{
+                    position: relative;
                     width: 100%;
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    background-color: #E5E5E7;
+                    height: 100%;
+                    overflow: hidden;
+                    border-radius: 6px;
+                    border: 1px solid rgba(0, 0, 0, 0.22);
                     box-sizing: border-box;
 
-                    img{
-                        width: 300px;
-                        height: auto;
-                        object-fit: contain;
-                        background-color: #E5E5E7;
-                        box-sizing: border-box;
-                        border: 1px solid #E5E5E7;
+                    .carousel-track{
+                        display: flex;
+                        width: 100%;
+                        height: 100%;
+                        transition: transform 0.4s ease;
                     }
 
-                    video{
-                        width: 95%;
-                        height: auto;
-                        object-fit: cover;
-                        scroll-snap-align: start; 
-                        scroll-snap-stop: always;
-                        border: 1px solid #E5E5E7;
+                    .carousel-slide{
+                        flex: 0 0 100%;
+                        width: 100%;
+                        height: 100%;
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        background-color: #E5E5E7;
+                        box-sizing: border-box;
+
+                        img{
+                            width: 100%;
+                            height: 100%;
+                            object-fit: cover;
+                        }
+
+                        video{
+                            width: 100%;
+                            height: 100%;   
+                            object-fit: cover;
+                        }
+                    }
+
+                    .carousel-slide.carousel-placeholder{
+                        .carousel-placeholder-label{
+                            font-family: inter;
+                            font-weight: 500;
+                            font-size: 16px;
+                            line-height: 1.4;
+                            text-align: center;
+                        }
+                    }
+
+                    .carousel-placeholder-2{
+                        background-color: #FBE4D8;
+                        .carousel-placeholder-label{ color: #B36B3D; }
+                    }
+
+                    .carousel-placeholder-3{
+                        background-color: #D8E6FB;
+                        .carousel-placeholder-label{ color: #3D6BB3; }
+                    }
+
+                    .carousel-placeholder-4{
+                        background-color: #DFEFD8;
+                        .carousel-placeholder-label{ color: #4C8A3D; }
+                    }
+
+                    .carousel-arrow{
+                        position: absolute;
+                        top: 50%;
+                        transform: translateY(-50%);
+                        width: 44px;
+                        height: 44px;
+                        border-radius: 50%;
+                        border: none;
+                        background-color: rgba(255, 255, 255, 0.9);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        cursor: pointer;
+                        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+                        transition: background-color 0.2s ease;
+
+                        .material-symbols-rounded{
+                            font-size: 24px;
+                            color: #111111;
+                        }
+
+                        &:hover{
+                            background-color: #ffffff;
+                        }
+                    }
+
+                    .carousel-arrow-prev{
+                        left: 20px;
+                    }
+
+                    .carousel-arrow-next{
+                        right: 20px;
+                    }
+
+                    .carousel-dots{
+                        position: absolute;
+                        bottom: 20px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        display: flex;
+                        gap: 8px;
+
+                        .carousel-dot{
+                            width: 8px;
+                            height: 8px;
+                            border-radius: 50%;
+                            background-color: rgba(0, 0, 0, 0.25);
+                            cursor: pointer;
+                            transition: background-color 0.2s ease;
+                            border: none;
+                            padding: 0;
+
+                            &.active{
+                                background-color: #111111;
+                            }
+                        }
                     }
                 }
             }
 
             .box2{
-                width: 500px;
+                width: 430px;
                 height: 80vh;
                 box-sizing: border-box;
-                padding-left: 40px;
+                padding-left: 0px;
                 padding-right: 0px;
+                text-align: start;
 
                 display: grid;
                 gap: 12px;
@@ -424,43 +478,54 @@ a:link{
                         font-family: inter;
                         font-weight: 400;
                         font-size: 10px;
+                        color: #007AFF;
+                    }
+
+                    .price{
+                        font-family: inter;
+                        font-weight: 500;
+                        font-size: 13px;
                         color: #000000;
+                        margin-top: 8px;
                     }
 
                     .details{
                         font-family: inter;
                         font-weight: 400;
-                        font-size: 12px;
+                        font-size: 10px;
                         color: #757575;
                         margin-top: 32px;
                     }
 
-                    .divider{
-                        width: 100%;
-                        height: 1px;
-                        background-color: #E5E5E7;
-                        margin-top: 22px;
-                        margin-bottom: 62px;
-                    }
-
                     .grid-box{
                         width: 100%;
-                        height: 40vh;
+                        height: 90%;
                         overflow-x: hidden;
                         display: grid;
                         align-content: start;
-                        gap: 42px;
+                        gap: 12px;
+                        margin-top: 26px;
                         box-sizing: border-box;
+
+
 
                         .box{
                             width: 100%;
                             height: fit-content;
+                            box-sizing: border-box;
+                            padding-left: 16px;
+                            padding-right: 16px;
+                            padding-top: 16px;
+                            padding-bottom: 16px;
+                            border: 1px solid #00000012;
+                            border-radius: 6px;
+                            transition: 0.3s;
 
 
                             .title{
                                 font-family: inter;
                                 font-weight: 500;
-                                font-size: 20px;
+                                font-size: 14px;
                                 color: #000000;
                                 box-sizing: border-box;
                                 padding-bottom: 10px;
@@ -468,18 +533,19 @@ a:link{
 
                             .flex{
                                 display: flex;
-                                gap: 32px;
+                                gap: 22px;
                                 margin-top: 0px;
 
 
                                 .box3{
-                                    width: 130px;
+                                    width: 112px;
                                     height: fit-content;
+                                    margin-top: 12px;
 
                                     .sub-title{
                                         font-family: inter;
                                         font-weight: 500;
-                                        font-size: 12px;
+                                        font-size: 10px;
                                         color: #757575;
                                         box-sizing: border-box;
                                     }
@@ -487,7 +553,7 @@ a:link{
                                     .title{
                                         font-family: inter;
                                         font-weight: 500;
-                                        font-size: 12px;
+                                        font-size: 10px;
                                         color: #000000;
                                         box-sizing: border-box;
                                     }
@@ -502,18 +568,18 @@ a:link{
 
                             .flex2{
                                 display: flex;
-                                gap: 32px;
+                                gap: 22px;
                                 margin-top: 6px;
 
 
                                 .box3{
-                                    width: 130px;
+                                    width: 112px;
                                     height: fit-content;
 
                                     .sub-title{
                                         font-family: inter;
                                         font-weight: 500;
-                                        font-size: 12px;
+                                        font-size: 10px;
                                         color: #757575;
                                         box-sizing: border-box;
                                     }
@@ -521,18 +587,17 @@ a:link{
                                     .title{
                                         font-family: inter;
                                         font-weight: 500;
-                                        font-size: 12px;
+                                        font-size: 10px;
                                         color: #000000;
                                         box-sizing: border-box;
                                     }
                                 }
-
-                                .box{
-                                    width: 180px;
-                                    height: 50px;
-                                    background-color: #757575;
-                                }
                             }
+                        }
+
+                        .box:hover{
+                            border: 1px solid #000000;
+                            background-color: #0000000c;
                         }
                     }
                 }
@@ -540,14 +605,12 @@ a:link{
                 .btn-container{
                     width: 100%;
                     height: fit-content;
-                    margin-top: 0px;
-                    align-self: flex-end;
                     display: block;
 
 
                     .btn{
                         width: 100%;
-                        height: 44px;
+                        height: 40px;
                         background-color: #000000;
                         display: flex;
                         justify-content: center;
@@ -556,7 +619,7 @@ a:link{
 
                         color: white;
                         font-family: inter;
-                        font-size: 13px;
+                        font-size: 12px;
                         font-weight: 500;
                     }
                 }
@@ -746,21 +809,100 @@ body.menu-open{
         box-sizing: border-box;
         padding: 100px 24px 110px;
 
-        .mobile-product-photo{
+        .mobile-carousel{
+            position: relative;
             width: 100%;
             height: 240px;
-            box-sizing: border-box;
-            padding: 32px;
             border-radius: 6px;
-            background-color: #E5E5E7;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            border: 1px solid rgba(0, 0, 0, 0.92);
+            box-sizing: border-box;
+            overflow: hidden;
 
-            .mobile-product-img{
+            .mobile-carousel-track{
+                display: flex;
                 width: 100%;
                 height: 100%;
-                object-fit: contain;
+                transition: transform 0.4s ease;
+            }
+
+            .mobile-carousel-slide{
+                flex: 0 0 100%;
+                width: 100%;
+                height: 100%;
+                box-sizing: border-box;
+                background-color: #E5E5E7;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                .mobile-product-img{
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+            }
+
+            .mobile-carousel-slide.mobile-carousel-placeholder{
+                background-color: #FBE4D8;
+
+                .mobile-carousel-placeholder-label{
+                    font-family: inter;
+                    font-weight: 500;
+                    font-size: 14px;
+                    line-height: 1.4;
+                    color: #B36B3D;
+                    text-align: center;
+                }
+            }
+
+            .mobile-carousel-arrow{
+                position: absolute;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                border: none;
+                background-color: rgba(255, 255, 255, 0.9);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+
+                .material-symbols-rounded{
+                    font-size: 20px;
+                    color: #111111;
+                }
+            }
+
+            .mobile-carousel-arrow-prev{
+                left: 12px;
+            }
+
+            .mobile-carousel-arrow-next{
+                right: 12px;
+            }
+
+            .mobile-carousel-dots{
+                position: absolute;
+                bottom: 12px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                gap: 6px;
+
+                .mobile-carousel-dot{
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 50%;
+                    background-color: rgba(0, 0, 0, 0.25);
+                    border: none;
+                    padding: 0;
+
+                    &.active{
+                        background-color: #111111;
+                    }
+                }
             }
         }
 
@@ -778,6 +920,14 @@ body.menu-open{
             font-size: 13px;
             color: #757575;
             margin-top: 4px;
+        }
+
+        .mobile-price{
+            font-family: inter;
+            font-weight: 500;
+            font-size: 14px;
+            color: #000000;
+            margin-top: 8px;
         }
 
         .mobile-p{

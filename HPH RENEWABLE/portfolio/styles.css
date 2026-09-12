@@ -159,23 +159,6 @@ a:link{
                         font-size: 13px;
                         padding-bottom: 4px;
                     }
-
-                    .nav-title::after{
-                        content: "";
-                        position: absolute;
-                        left: 0;
-                        bottom: 0;
-                        width: 100%;
-                        height: 1px;
-                        background-color: rgb(0, 0, 0);
-                        transform: scaleX(0);
-                        transform-origin: left;
-                        transition: transform 0.25s ease;
-                    }
-
-                    .nav-item:hover .nav-title::after{
-                        transform: scaleX(1);
-                    }
                 }
 
                 .nav-link{
@@ -185,23 +168,6 @@ a:link{
                     font-family: inter;
                     font-size: 13px;
                     padding-bottom: 4px;
-                }
-
-                .nav-link::after{
-                    content: "";
-                    position: absolute;
-                    left: 0;
-                    bottom: 0;
-                    width: 100%;
-                    height: 1px;
-                    background-color: rgb(0, 0, 0);
-                    transform: scaleX(0);
-                    transform-origin: left;
-                    transition: transform 0.25s ease;
-                }
-
-                .nav-link:hover::after{
-                    transform: scaleX(1);
                 }
 
                 &:has(.nav-item:hover) ~ .mega-panel{
