@@ -1,0 +1,354 @@
+/* Built-in "Schedule a Visit" form — loaded by schedule-visit.js on every
+   HPH Renewable page. Desktop: centered panel. Mobile: full-screen sheet that
+   slides up, matching the mobile menu's motion. */
+
+.sv-dialog{
+    --sv-bg: rgb(255, 255, 255);
+    --sv-text: #1A1A1A;
+    --sv-muted: #757575;
+    --sv-subtle: #7D8187;
+    --sv-border: #E5E5E7;
+    --sv-field: rgb(255, 255, 255);
+    --sv-accent: #1A1A1A;
+    --sv-on-accent: rgb(255, 255, 255);
+    --sv-error: #E0483E;
+    --sv-ease: cubic-bezier(0.32, 0.72, 0, 1);
+
+    color-scheme: light;
+
+    width: min(600px, calc(100% - 32px));
+    max-width: none;
+    max-height: calc(100vh - 64px);
+    max-height: calc(100dvh - 64px);
+    margin: auto;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    box-sizing: border-box;
+    background-color: var(--sv-bg);
+    color: var(--sv-text);
+    font-family: inter;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.3s ease, transform 0.4s var(--sv-ease), overlay 0.4s allow-discrete, display 0.4s allow-discrete;
+
+    &:not([open]){
+        display: none;
+    }
+
+    &[open]{
+        opacity: 1;
+        transform: none;
+    }
+
+    &::backdrop{
+        background-color: rgba(0, 0, 0, 0);
+        -webkit-backdrop-filter: blur(0px);
+        backdrop-filter: blur(0px);
+        transition: background-color 0.3s ease, backdrop-filter 0.3s ease, overlay 0.4s allow-discrete, display 0.4s allow-discrete;
+    }
+
+    &[open]::backdrop{
+        background-color: rgba(0, 0, 0, 0.35);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
+    }
+
+    .sv-header{
+        flex-shrink: 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 20px 12px 28px;
+
+        .sv-heading{
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .sv-close{
+            width: 44px;
+            height: 44px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: none;
+            color: var(--sv-text);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            -webkit-tap-highlight-color: transparent;
+
+            .material-symbols-rounded{
+                font-size: 24px;
+            }
+        }
+    }
+
+    .sv-body{
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        padding: 0 28px 28px;
+    }
+
+    .sv-intro{
+        margin: 0 0 24px;
+        font-size: 14px;
+        line-height: 1.55;
+        color: var(--sv-muted);
+    }
+
+    .sv-grid{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px 16px;
+    }
+
+    .sv-field{
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+
+        &.sv-span{
+            grid-column: 1 / -1;
+        }
+
+        .sv-label{
+            font-size: 12px;
+            color: var(--sv-subtle);
+        }
+
+        .sv-optional{
+            color: #ADADAD;
+        }
+
+        input, select, textarea{
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 44px;
+            padding: 0 12px;
+            border: 1px solid var(--sv-border);
+            border-radius: 4px;
+            background-color: var(--sv-field);
+            color: var(--sv-text);
+            font-family: inter;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            -webkit-appearance: none;
+            appearance: none;
+
+            &::placeholder{
+                color: #ADADAD;
+            }
+
+            &:focus{
+                border-color: var(--sv-accent);
+                box-shadow: 0 0 0 3px rgba(125, 129, 135, 0.18);
+            }
+        }
+
+        select{
+            padding-right: 36px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%237D8187' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+        }
+
+        textarea{
+            padding: 12px;
+            resize: vertical;
+            line-height: 1.5;
+        }
+
+        .sv-hint{
+            min-height: 0;
+            font-size: 12px;
+            color: var(--sv-error);
+        }
+
+        .sv-hint:empty{
+            display: none;
+        }
+
+        &.sv-invalid{
+            input, select, textarea{
+                border-color: var(--sv-error);
+            }
+        }
+    }
+
+    .sv-trap{
+        position: absolute;
+        left: -9999px;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+    }
+
+    .sv-consent{
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        margin-top: 24px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--sv-muted);
+        cursor: pointer;
+
+        input{
+            flex-shrink: 0;
+            width: 18px;
+            height: 18px;
+            margin: 1px 0 0;
+            accent-color: var(--sv-accent);
+        }
+
+        a{
+            color: var(--sv-text);
+            text-decoration: underline !important;
+        }
+
+        &.sv-invalid{
+            color: var(--sv-error);
+        }
+    }
+
+    .sv-error{
+        margin: 16px 0 0;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--sv-error);
+    }
+
+    .sv-submit{
+        width: 100%;
+        height: 48px;
+        margin-top: 24px;
+        border: none;
+        border-radius: 4px;
+        background-color: var(--sv-accent);
+        color: var(--sv-on-accent);
+        font-family: inter;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: opacity 0.2s ease;
+
+        &:disabled{
+            opacity: 0.6;
+            cursor: default;
+        }
+    }
+
+    .sv-success{
+        padding: 32px 0 8px;
+        text-align: center;
+
+        .sv-success-icon{
+            font-size: 48px;
+            color: var(--sv-accent);
+        }
+
+        .sv-success-title{
+            margin-top: 12px;
+            font-size: 22px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+
+        .sv-success-text{
+            margin: 8px auto 0;
+            max-width: 360px;
+            font-size: 14px;
+            line-height: 1.55;
+            color: var(--sv-muted);
+        }
+    }
+
+    [hidden]{
+        display: none !important;
+    }
+
+    @media (prefers-color-scheme: dark){
+        --sv-bg: #0C0C0C;
+        --sv-text: #EBEBEB;
+        --sv-muted: #9E9E9E;
+        --sv-subtle: #9E9E9E;
+        --sv-border: #2A2A2A;
+        --sv-field: #141414;
+        --sv-accent: #EBEBEB;
+        --sv-on-accent: #0C0C0C;
+        color-scheme: dark;
+
+        .sv-field select{
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%239E9E9E' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        }
+    }
+
+    /* Phones: full-screen sheet that slides up from the bottom. */
+    @media only screen and (max-width:750px){
+        width: 100%;
+        height: 100%;
+        max-height: none;
+        margin: 0;
+        border-radius: 0;
+        box-shadow: none;
+        transform: translateY(100%);
+
+        &[open]{
+            transform: none;
+        }
+
+        .sv-header{
+            padding: calc(10px + env(safe-area-inset-top)) 10px 8px 24px;
+        }
+
+        .sv-body{
+            padding: 0 24px calc(32px + env(safe-area-inset-bottom));
+        }
+
+        .sv-grid{
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+        &, &::backdrop{
+            transition-duration: 0s !important;
+        }
+    }
+}
+
+@starting-style{
+    .sv-dialog[open]{
+        opacity: 0;
+        transform: translateY(16px);
+    }
+
+    .sv-dialog[open]::backdrop{
+        background-color: rgba(0, 0, 0, 0);
+        -webkit-backdrop-filter: blur(0px);
+        backdrop-filter: blur(0px);
+    }
+}
+
+@media only screen and (max-width:750px){
+    @starting-style{
+        .sv-dialog[open]{
+            transform: translateY(100%);
+        }
+    }
+}
+
+body.sv-open{
+    overflow: hidden;
+}

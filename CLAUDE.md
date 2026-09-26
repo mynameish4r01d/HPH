@@ -21,7 +21,7 @@ Then navigate to `http://localhost:8000/index.html`.
 The repo root is a landing page (`index.html`, `app.js`, `styles.css`) that links out to two independent sub-sites, each a self-contained mini-site with its own home/about/etc. pages:
 
 - `HPH TECHNICAL SOLUTIONS/` — pages: `home`, `about`, `milestones`
-- `HPH RENEWABLE/` — pages: `home`, `about`, `products` (with nested `product-pages/content1/page1|2|3`), `contact`, `legal-policies` (`terms-and-conditions`, `privacy-policy`, `return-and-refund-policy`)
+- `HPH RENEWABLE/` — pages: `home`, `about`, `products/product-pages/content1/page1|2|3` and `content2/page1|2` (individual product pages only — there is no all-products listing page; the product lineup is reached through the nav menu), `contact`, `legal-policies` (`terms-and-conditions`, `privacy-policy`, `return-and-refund-policy`)
 
 Each page is a directory containing `index.html` + `styles.css`, and often an `elements/` subfolder holding page-local images/videos referenced by relative path.
 
@@ -47,6 +47,14 @@ When adding a new page inside a sub-site, match that sub-site's existing relativ
 **Desktop/mobile split**: layout is done via two top-level containers per page, `<div class="desktop">...</div>` and `<div class="mobile">...</div>`, toggled by a `@media (max-width: 750px)` query in each page's `styles.css` (desktop hidden, mobile shown below that width). **The `.mobile` containers are currently empty placeholders across every page in the repo** — mobile layouts have not been built out yet. Don't assume mobile support exists when making changes; flag it if a task depends on it.
 
 CSS uses native nested selectors (e.g. `.desktop { .content { .text-container { ... } } }` in `styles.css`) rather than a preprocessor — there is no Sass/Less build step, so this relies on browser-native CSS nesting support.
+
+## "Schedule a Visit" form (HPH RENEWABLE, Firebase)
+
+Every HPH RENEWABLE page loads `HPH RENEWABLE/schedule-visit.js` (an ES module, `<script type="module">` right after the `app.js` tag). It intercepts clicks on any link to the old Schedule a Visit Google Form (`forms.gle/orQuM7UsENUJpYNd6`) and opens a built-in dialog form instead (styles in `HPH RENEWABLE/schedule-visit.css`). Submissions are written to Firestore, collection `visitRequests`, using the web config in `HPH RENEWABLE/firebase-config.js`; the Firebase SDK is loaded from gstatic only on first submit.
+
+- Keep the Schedule a Visit links pointing at the Google Form URL — that's both the hook the script matches on and the fallback if Firebase isn't configured (placeholder `projectId` starting with `YOUR_`) or the module fails to load.
+- Security rules live in `/firestore.rules` (public may create validated requests only; no public reads). If you add or rename a form field, update both `schedule-visit.js` and the field list in `firestore.rules`, or every submission will be rejected.
+- ES modules don't load over `file://` — test the form through a local server (`python3 -m http.server`).
 
 ## Conventions to follow
 

@@ -25,6 +25,7 @@
 
     <!--JAVA SCRIPT-->
     <script defer src="../../app.js"></script>
+    <script type="module" src="../../schedule-visit.js"></script>
 
 </head>
 <body>
@@ -373,7 +374,6 @@
 
                     <div class="footer-nav">
                         <a href="../../about/index.html" class="footer-link">Discover</a>
-                        <a href="../../products/index.html" class="footer-link">Products</a>
                         <a href="../../contact/index.html" class="footer-link">Support</a>
                         <a href="../../portfolio/index.html" class="footer-link">Portfolio</a>
                         <a  href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" class="footer-link">Schedule a Visit</a>
@@ -388,148 +388,225 @@
     </div>
 
 
-
-
-
     <div class="mobile">
         <div class="mobile-nav">
             <a href="../../home/index.html" class="mobile-logo">
-                <img src="../../global-elements/HPH Renewable Black.png" alt="" class="img">
+                <img src="../../global-elements/HPH Renewable White.png" alt="HPH Renewable" class="img">
             </a>
 
-            <div class="menu">
-                <span class="material-symbols-rounded icon-menu">menu</span>
-                <span class="material-symbols-rounded icon-close">close</span>
-            </div>
+            <button type="button" class="menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+                <span class="menu-line"></span>
+                <span class="menu-line"></span>
+            </button>
         </div>
 
-        <ul class="dropdown">
-            <li><a href="../../about/index.html">About</a></li>
-            <li><a href="../../mission/index.html">Mission</a></li>
-            <li><a href="../../products/index.html">Products</a></li>
-            <li><a href="../../contact/index.html">Contact</a></li>
-            <li><a href="../../portfolio/index.html">Portfolio</a></li>
-            <li><a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" class="dropdown-cta">Schedule a Visit</a></li>
-        </ul>
+        <nav class="dropdown" id="mobile-menu" aria-label="Main menu">
+            <div class="dropdown-inner">
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Discover
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../../about/index.html" class="menu-link">About Us</a>
 
-        <div class="mobile-content">
-            <div class="mobile-page-title">Terms and Conditions</div>
-            <div class="mobile-page-sub">HPH Technical Solutions Inc. · Last updated: July 10, 2026</div>
+                        <div class="menu-heading">Legal Policies</div>
+                        <a href="../../legal-policies/terms-and-conditions/index.html" class="menu-link">Terms and Conditions</a>
+                        <a href="../../legal-policies/privacy-policy/index.html" class="menu-link">Privacy Policy</a>
+                        <a href="../../legal-policies/return-and-refund-policy/index.html" class="menu-link">Return and Refund Policy</a>
+                        <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="menu-link">Confidentiality Agreement (NDA)</a>
+                    </div>
+                </details>
 
-            <div class="mobile-p">Welcome to HPH Technical Solutions Inc. ("HPH," "we," "us," or "our"). These Terms and Conditions ("Terms") govern your access to and use of our website at https://hphtechsolutions.com/ (the "Site"), and your purchase of solar energy products and installation services from us.<br><br>By accessing the Site, placing an order, or making a payment through our payment portal, you agree to be bound by these Terms. If you do not agree, please do not use the Site or our services.<br><br>Legal Name: HPH Technical Solutions Inc.<br><br>Business Address: Unit 111, 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City, Philippines<br><br>Email: inquiries@hphtechsolutions.com<br>Phone: +63 28804 8735<br>SEC Registration No.: CS201322022</div>
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Products
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <div class="menu-heading">Products</div>
+                        <a href="../../products/product-pages/content1/page1/index.html" class="menu-link">MX2250</a>
+                        <a href="../../products/product-pages/content1/page2/index.html" class="menu-link">MSU4000 Elite</a>
+                        <a href="../../products/product-pages/content1/page3/index.html" class="menu-link">MAU5000 Elite</a>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">2. Definitions</div>
-                <div class="mobile-p">Products means solar panels, inverters, batteries, mounting systems, and related solar energy equipment sold by HPH.<br><br>Services means the installation, commissioning, and related technical services provided by HPH at a customer's home or business premises.<br><br>Order means a request to purchase Products and/or Services submitted through the Site, in person, or via a formal quotation accepted by the customer.<br><br>You or Customer means the individual or entity purchasing Products or Services from HPH.</div>
+                        <div class="menu-heading">Battery Expansion</div>
+                        <a href="../../products/product-pages/content2/page1/index.html" class="menu-link">B4000 Elite</a>
+                        <a href="../../products/product-pages/content2/page2/index.html" class="menu-link">B5000 Elite</a>
+
+                        <div class="menu-heading">Product Data Sheets</div>
+                        <a href="../../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="menu-link">MX2250 Micro Inverter</a>
+                        <a href="../../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                        <a href="../../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MAU5000 Elite AC Coupled Unit</a>
+
+                        <div class="menu-heading">TSUN Smart App</div>
+                        <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="menu-link">Google Play Store (Android)</a>
+                        <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="menu-link">Apple App Store (iOS)</a>
+                    </div>
+                </details>
+
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Support
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../../contact/index.html" class="menu-link">Contact Us</a>
+                        <a href="../../faq/index.html" class="menu-link">Frequently Asked Questions</a>
+
+                        <div class="menu-heading">Contact Number</div>
+                        <a href="tel:+63288084735" class="menu-link">(+63) 2 880 84735</a>
+                        <a href="tel:+63285231142" class="menu-link">(+63) 2 852 31142</a>
+
+                        <div class="menu-heading">Support Email</div>
+                        <a href="mailto:inquiries@hphtechsolutions.com" class="menu-link">inquiries@hphtechsolutions.com</a>
+
+                        <div class="menu-heading">Office Address</div>
+                        <a href="https://maps.app.goo.gl/okz2G6zCGjfVaTua7" target="_blank" rel="noopener" class="menu-link">Unit 111 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City</a>
+                    </div>
+                </details>
+
+                <a href="../../portfolio/index.html" class="menu-title">Portfolio</a>
+
+                <a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" rel="noopener" class="menu-cta">Schedule a Visit</a>
             </div>
+        </nav>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">3. Products and Services</div>
-                <div class="mobile-p">3.1. HPH sells solar energy Products and provides installation Services for residential and commercial properties in the Philippines.<br><br>3.2. Product specifications, images, and descriptions on the Site are provided for general reference. Actual system design (panel count, inverter sizing, mounting configuration) may vary based on a technical site assessment.<br><br>3.3. Installation Services are subject to a site survey. HPH reserves the right to revise a quotation if actual site conditions (roof type, structural capacity, electrical setup, shading, access) differ materially from what was initially assessed or disclosed.</div>
-            </div>
+        <main class="mobile-main">
+            <div class="mobile-eyebrow">HPH Technical Solutions Inc.</div>
+            <h1 class="mobile-page-title hidden">Terms and Conditions</h1>
+            <div class="mobile-page-meta">Last updated: July 10, 2026</div>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">4. Orders, Quotations, and Payment</div>
-                <div class="mobile-p">4.1. A binding Order is created once you accept a written quotation and make the required payment (full payment or deposit, as agreed).<br><br>4.2. Card payments (Visa/Mastercard) are processed through PayMongo, a licensed third-party payment gateway. HPH does not store your full card details; these are handled directly by PayMongo in accordance with its own security standards and terms.<br><br>4.3. All prices are quoted in Philippine Pesos (PHP) and are inclusive of applicable taxes unless stated otherwise.<br><br>4.4. For installation projects, payment is typically structured as: (a) a deposit to confirm scheduling and materials procurement, and (b) balance payment(s) tied to project milestones or completion, as specified in your quotation/contract.<br><br>4.5. HPH will not proceed with procurement or installation scheduling until the applicable deposit or payment has been confirmed.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">1. Introduction</h2>
+                <p class="mobile-p">Welcome to HPH Technical Solutions Inc. ("HPH," "we," "us," or "our"). These Terms and Conditions ("Terms") govern your access to and use of our website at https://hphtechsolutions.com/ (the "Site"), and your purchase of solar energy products and installation services from us. By accessing the Site, placing an order, or making a payment through our payment portal, you agree to be bound by these Terms. If you do not agree, please do not use the Site or our services. <br/><br/> Legal Name: HPH Technical Solutions Inc.<br/><br/> Business Address: Unit 111, 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City, Philippines<br/><br/> Email: inquiries@hphtechsolutions.com<br/> Phone: +63 28804 8735<br/> SEC Registration No.: CS201322022</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">5. Scheduling, Site Access, and Customer Obligations</div>
-                <div class="mobile-p">5.1. You agree to provide safe and reasonable access to the installation site, accurate information about the property (roof condition, electrical panel, structural details), and any permits or homeowner association clearances required on your end.<br><br>5.2. Installation timelines communicated by HPH are estimates and may be affected by weather, permitting delays, supplier lead times, or site conditions outside our control.<br><br>5.3. Any modifications to the agreed scope of work after an Order is confirmed may result in adjusted pricing and timelines, subject to your written approval.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">2. Definitions</h2>
+                <p class="mobile-p">Products means solar panels, inverters, batteries, mounting systems, and related solar energy equipment sold by HPH. Services means the installation, commissioning, and related technical services provided by HPH at a customer's home or business premises. Order means a request to purchase Products and/or Services submitted through the Site, in person, or via a formal quotation accepted by the customer. You or Customer means the individual or entity purchasing Products or Services from HPH.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">6. Warranty</div>
-                <div class="mobile-p">6.1. Products are covered by a manufacturer and/or HPH-backed warranty of up to twelve (12) years for both solar panels and microinverters, as stated in your product documentation or quotation. Solar panels and microinverters are also designed with an expected operational lifespan of up to twenty-five (25) years.<br><br>6.2. Installation workmanship is covered under HPH's installation warranty for the period stated in your contract.<br><br>6.3. Full warranty terms, coverage, and claims process are set out in our separate Return and Refund Policy, which forms part of these Terms.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">3. Products and Services</h2>
+                <p class="mobile-p">3.1. HPH sells solar energy Products and provides installation Services for residential and commercial properties in the Philippines.<br/><br/> 3.2. Product specifications, images, and descriptions on the Site are provided for general reference. Actual system design (panel count, inverter sizing, mounting configuration) may vary based on a technical site assessment.<br/><br/> 3.3. Installation Services are subject to a site survey. HPH reserves the right to revise a quotation if actual site conditions (roof type, structural capacity, electrical setup, shading, access) differ materially from what was initially assessed or disclosed.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">7. Limitation of Liability</div>
-                <div class="mobile-p">7.1. To the extent permitted by law, HPH's liability for any claim arising from the sale or installation of Products/Services is limited to the repair, replacement, or the amount paid for the affected Product or Service, whichever is applicable under the warranty terms.<br><br>7.2. HPH is not liable for indirect, incidental, or consequential damages, including loss of income or business interruption, except where such limitation is not permitted under Philippine law (including the Consumer Act, Republic Act No. 7394).<br><br>7.3. Nothing in these Terms limits your statutory rights under Philippine consumer protection law.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">4. Orders, Quotations, and Payment</h2>
+                <p class="mobile-p">4.1. A binding Order is created once you accept a written quotation and make the required payment (full payment or deposit, as agreed).<br/><br/> 4.2. Card payments (Visa/Mastercard) are processed through PayMongo, a licensed third-party payment gateway. HPH does not store your full card details; these are handled directly by PayMongo in accordance with its own security standards and terms.<br/><br/> 4.3. All prices are quoted in Philippine Pesos (PHP) and are inclusive of applicable taxes unless stated otherwise.<br/><br/> 4.4. For installation projects, payment is typically structured as: (a) a deposit to confirm scheduling and materials procurement, and (b) balance payment(s) tied to project milestones or completion, as specified in your quotation/contract.<br/><br/> 4.5. HPH will not proceed with procurement or installation scheduling until the applicable deposit or payment has been confirmed.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">8. Intellectual Property</div>
-                <div class="mobile-p">All content on the Site — including logos, text, graphics, and product designs — is owned by or licensed to HPH and may not be copied, reproduced, or used without our prior written consent.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">5. Scheduling, Site Access, and Customer Obligations</h2>
+                <p class="mobile-p">5.1. You agree to provide safe and reasonable access to the installation site, accurate information about the property (roof condition, electrical panel, structural details), and any permits or homeowner association clearances required on your end.<br/><br/> 5.2. Installation timelines communicated by HPH are estimates and may be affected by weather, permitting delays, supplier lead times, or site conditions outside our control.<br/><br/> 5.3. Any modifications to the agreed scope of work after an Order is confirmed may result in adjusted pricing and timelines, subject to your written approval.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">9. Cancellations and Termination</div>
-                <div class="mobile-p">9.1. See our Return and Refund Policy for cancellation terms specific to orders and deposits.<br><br>9.2. HPH reserves the right to decline or cancel an Order (with a full refund of any payment made for the cancelled portion) where site conditions make installation unsafe or infeasible, or where required permits/clearances cannot be obtained.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">6. Warranty</h2>
+                <p class="mobile-p">6.1. Products are covered by a manufacturer and/or HPH-backed warranty of up to twelve (12) years for both solar panels and microinverters, as stated in your product documentation or quotation. Solar panels and microinverters are also designed with an expected operational lifespan of up to twenty-five (25) years.<br/><br/> 6.2. Installation workmanship is covered under HPH's installation warranty for the period stated in your contract.<br/><br/> 6.3. Full warranty terms, coverage, and claims process are set out in our separate Return and Refund Policy, which forms part of these Terms.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">10. Governing Law and Dispute Resolution</div>
-                <div class="mobile-p">10.1. These Terms are governed by the laws of the Republic of the Philippines, including but not limited to the Consumer Act (RA 7394), the E-Commerce Act (RA 8792), and the Data Privacy Act (RA 10173).<br><br>10.2. Any disputes shall first be addressed through good-faith negotiation. If unresolved, disputes shall be subject to the jurisdiction of the proper courts of Las Piñas City, Philippines, without prejudice to any right to file a complaint with the Department of Trade and Industry (DTI) or other appropriate government agency.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">7. Limitation of Liability</h2>
+                <p class="mobile-p">7.1. To the extent permitted by law, HPH's liability for any claim arising from the sale or installation of Products/Services is limited to the repair, replacement, or the amount paid for the affected Product or Service, whichever is applicable under the warranty terms.<br/><br/> 7.2. HPH is not liable for indirect, incidental, or consequential damages, including loss of income or business interruption, except where such limitation is not permitted under Philippine law (including the Consumer Act, Republic Act No. 7394).<br/><br/> 7.3. Nothing in these Terms limits your statutory rights under Philippine consumer protection law.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">11. Changes to These Terms</div>
-                <div class="mobile-p">We may update these Terms from time to time. Changes will be posted on this page with an updated "Last updated" date. Continued use of the Site or our Services after changes are posted constitutes acceptance of the revised Terms.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">8. Intellectual Property</h2>
+                <p class="mobile-p">All content on the Site — including logos, text, graphics, and product designs — is owned by or licensed to HPH and may not be copied, reproduced, or used without our prior written consent.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">12. Contact Us</div>
-                <div class="mobile-p">For questions about these Terms, please contact us at:<br>HPH Technical Solutions Inc. Unit 111, 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City<br><br>Email: inquiries@hphtechsolutions.com<br>Phone: +63 28804 8735</div>
-            </div>
-        </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">9. Cancellations and Termination</h2>
+                <p class="mobile-p">9.1. See our Return and Refund Policy for cancellation terms specific to orders and deposits.<br/><br/> 9.2. HPH reserves the right to decline or cancel an Order (with a full refund of any payment made for the cancelled portion) where site conditions make installation unsafe or infeasible, or where required permits/clearances cannot be obtained.</p>
+            </section>
 
-        <div class="mobile-footer">
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Company</div>
-                <div class="mobile-footer-nav">
-                    <a href="../../home/index.html" class="mobile-footer-link">Home</a>
-                    <a href="../../about/index.html" class="mobile-footer-link">About</a>
-                    <a href="../../mission/index.html" class="mobile-footer-link">Mission</a>
-                    <a href="../../products/index.html" class="mobile-footer-link">Products</a>
-                    <a href="../../contact/index.html" class="mobile-footer-link">Contact</a>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">10. Governing Law and Dispute Resolution</h2>
+                <p class="mobile-p">10.1. These Terms are governed by the laws of the Republic of the Philippines, including but not limited to the Consumer Act (RA 7394), the E-Commerce Act (RA 8792), and the Data Privacy Act (RA 10173).<br/><br/> 10.2. Any disputes shall first be addressed through good-faith negotiation. If unresolved, disputes shall be subject to the jurisdiction of the proper courts of Las Piñas City, Philippines, without prejudice to any right to file a complaint with the Department of Trade and Industry (DTI) or other appropriate government agency.</p>
+            </section>
+
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">11. Changes to These Terms</h2>
+                <p class="mobile-p">We may update these Terms from time to time. Changes will be posted on this page with an updated "Last updated" date. Continued use of the Site or our Services after changes are posted constitutes acceptance of the revised Terms.</p>
+            </section>
+
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">12. Contact Us</h2>
+                <p class="mobile-p">For questions about these Terms, please contact us at:<br/> HPH Technical Solutions Inc. Unit 111, 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City<br/><br/>Email: inquiries@hphtechsolutions.com<br/> Phone: +63 28804 8735</p>
+            </section>
+        </main>
+
+        <footer class="mobile-footer">
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Products
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="../../products/product-pages/content1/page1/index.html" class="mobile-footer-link">MX2250</a>
+                    <a href="../../products/product-pages/content1/page2/index.html" class="mobile-footer-link">MSU4000 Elite</a>
+                    <a href="../../products/product-pages/content1/page3/index.html" class="mobile-footer-link">MAU5000 Elite</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Contact Information</div>
-
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Email</div>
-                    <a href="https://mail.google.com/mail/?view=cm&fs=1&to=inquiries@hphtechsolutions.com" target="_blank" rel="noopener">
-                        <div class="mobile-footer-detail">inquiries@hphtechsolutions.com</div>
-                    </a>
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Product Data Sheets
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="../../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MX2250 Micro Inverter</a>
+                    <a href="../../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                    <a href="../../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MAU5000 Elite AC Coupled Unit</a>
                 </div>
+            </details>
 
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Contact No.</div>
-                    <div class="mobile-footer-detail">+63 2880 84735</div>
-                    <div class="mobile-footer-detail">+63 2852 31142</div>
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Contact
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="mailto:inquiries@hphtechsolutions.com" class="mobile-footer-link">inquiries@hphtechsolutions.com</a>
+                    <a href="tel:+63288084735" class="mobile-footer-link">(+63) 2 880 84735</a>
+                    <a href="tel:+63285231142" class="mobile-footer-link">(+63) 2 852 31142</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Office Location</div>
-
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Google Maps</div>
-                    <a href="https://maps.app.goo.gl/1cWTWwXiwHLpkzpp6" target="_blank">
-                        <div class="mobile-footer-detail">Unit 111 17 Vatican Building, Vatican Street BFRV, Las Piñas City, Las Piñas, Philippines</div>
-                    </a>
-                </div>
-            </div>
-
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Legal Policies</div>
-                <div class="mobile-footer-nav">
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Legal Policies
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
                     <a href="../../legal-policies/terms-and-conditions/index.html" class="mobile-footer-link">Terms and Conditions</a>
                     <a href="../../legal-policies/privacy-policy/index.html" class="mobile-footer-link">Privacy Policy</a>
                     <a href="../../legal-policies/return-and-refund-policy/index.html" class="mobile-footer-link">Return and Refund Policy</a>
                     <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="mobile-footer-link">Confidentiality Agreement (NDA)</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-bottom-bar">
-                <div class="mobile-bottom-divider"></div>
-                <div class="mobile-copyright">&copy; 2026 HPH Renewable. All rights reserved.</div>
-            </div>
-        </div>
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    TSUN Smart App
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="mobile-footer-link">Google Playstore (Android)</a>
+                    <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="mobile-footer-link">App Store (iOS)</a>
+                </div>
+            </details>
+
+            <div class="mobile-copyright">&copy; 2026 HPH Renewable. All rights reserved.</div>
+        </footer>
     </div>
+
+
+
+
+
+
 
     <script>
         const navItems = document.querySelectorAll(".nav-bar .nav-item");
@@ -605,6 +682,23 @@
                 if (e.key === "Enter" || e.key === " ") copyNumber(e);
             });
         });
+        // ===== MOBILE MENU =====
+        // Mobile menu: app.js toggles the open/active classes; this keeps the
+        // button's accessible state in sync and lets Escape close the menu.
+        const mobileMenuBtn = document.querySelector(".mobile .menu");
+
+        mobileMenuBtn.addEventListener("click", () => {
+            const open = mobileMenuBtn.getAttribute("aria-expanded") !== "true";
+            mobileMenuBtn.setAttribute("aria-expanded", open);
+            mobileMenuBtn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && mobileMenuBtn.getAttribute("aria-expanded") === "true") {
+                mobileMenuBtn.click();
+            }
+        });
+        // ===== END MOBILE MENU =====
     </script>
 
 </body>

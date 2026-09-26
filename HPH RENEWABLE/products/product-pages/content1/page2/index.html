@@ -25,6 +25,7 @@
 
     <!--JAVA SCRIPT-->
     <script defer src="../../../../app.js"></script>
+    <script type="module" src="../../../../schedule-visit.js"></script>
 
 </head>
 <body>
@@ -316,55 +317,116 @@
     </div>
 
 
-
-
-
     <div class="mobile">
         <div class="mobile-nav">
             <a href="../../../../home/index.html" class="mobile-logo">
-                <img src="../../../../global-elements/HPH Renewable Black.png" alt="" class="img">
+                <img src="../../../../global-elements/HPH Renewable White.png" alt="HPH Renewable" class="img">
             </a>
 
-            <div class="menu">
-                <span class="material-symbols-rounded icon-menu">menu</span>
-                <span class="material-symbols-rounded icon-close">close</span>
-            </div>
+            <button type="button" class="menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+                <span class="menu-line"></span>
+                <span class="menu-line"></span>
+            </button>
         </div>
 
-        <ul class="dropdown">
-            <li><a href="../../../../about/index.html">About</a></li>
-            <li><a href="../../../../mission/index.html">Mission</a></li>
-            <li><a href="../../../../products/index.html">Products</a></li>
-            <li><a href="../../../../contact/index.html">Contact</a></li>
-            <li><a href="../../../../portfolio/index.html">Portfolio</a></li>
-            <li><a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" class="dropdown-cta">Schedule a Visit</a></li>
-        </ul>
+        <nav class="dropdown" id="mobile-menu" aria-label="Main menu">
+            <div class="dropdown-inner">
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Discover
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../../../../about/index.html" class="menu-link">About Us</a>
 
-        <div class="mobile-content">
+                        <div class="menu-heading">Legal Policies</div>
+                        <a href="../../../../legal-policies/terms-and-conditions/index.html" class="menu-link">Terms and Conditions</a>
+                        <a href="../../../../legal-policies/privacy-policy/index.html" class="menu-link">Privacy Policy</a>
+                        <a href="../../../../legal-policies/return-and-refund-policy/index.html" class="menu-link">Return and Refund Policy</a>
+                        <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="menu-link">Confidentiality Agreement (NDA)</a>
+                    </div>
+                </details>
+
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Products
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <div class="menu-heading">Products</div>
+                        <a href="../../../../products/product-pages/content1/page1/index.html" class="menu-link">MX2250</a>
+                        <a href="../../../../products/product-pages/content1/page2/index.html" class="menu-link">MSU4000 Elite</a>
+                        <a href="../../../../products/product-pages/content1/page3/index.html" class="menu-link">MAU5000 Elite</a>
+
+                        <div class="menu-heading">Battery Expansion</div>
+                        <a href="../../../../products/product-pages/content2/page1/index.html" class="menu-link">B4000 Elite</a>
+                        <a href="../../../../products/product-pages/content2/page2/index.html" class="menu-link">B5000 Elite</a>
+
+                        <div class="menu-heading">Product Data Sheets</div>
+                        <a href="../../../../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="menu-link">MX2250 Micro Inverter</a>
+                        <a href="../../../../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                        <a href="../../../../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MAU5000 Elite AC Coupled Unit</a>
+
+                        <div class="menu-heading">TSUN Smart App</div>
+                        <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="menu-link">Google Play Store (Android)</a>
+                        <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="menu-link">Apple App Store (iOS)</a>
+                    </div>
+                </details>
+
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Support
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../../../../contact/index.html" class="menu-link">Contact Us</a>
+                        <a href="../../../../faq/index.html" class="menu-link">Frequently Asked Questions</a>
+
+                        <div class="menu-heading">Contact Number</div>
+                        <a href="tel:+63288084735" class="menu-link">(+63) 2 880 84735</a>
+                        <a href="tel:+63285231142" class="menu-link">(+63) 2 852 31142</a>
+
+                        <div class="menu-heading">Support Email</div>
+                        <a href="mailto:inquiries@hphtechsolutions.com" class="menu-link">inquiries@hphtechsolutions.com</a>
+
+                        <div class="menu-heading">Office Address</div>
+                        <a href="https://maps.app.goo.gl/okz2G6zCGjfVaTua7" target="_blank" rel="noopener" class="menu-link">Unit 111 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City</a>
+                    </div>
+                </details>
+
+                <a href="../../../../portfolio/index.html" class="menu-title">Portfolio</a>
+
+                <a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" rel="noopener" class="menu-cta">Schedule a Visit</a>
+            </div>
+        </nav>
+
+        <main class="mobile-main mobile-product-page">
             <div class="mobile-carousel">
                 <div class="mobile-carousel-track">
-                    <div class="mobile-carousel-slide">
-                        <img src="../../../elements/element2.png" alt="MSU4000 Elite" class="mobile-product-img">
-                    </div>
-                    <div class="mobile-carousel-slide mobile-carousel-placeholder-2">
-                        <video class="mobile-product-img" muted loop playsinline>
-                            <source src="elements/video/element2.mp4" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
-                    </div>
-                    <div class="mobile-carousel-slide mobile-carousel-placeholder mobile-carousel-placeholder-3">
-                        <div class="mobile-carousel-placeholder-label">Video 3<br>Placeholder</div>
-                        <!-- Drop in the clip: set the src below, then delete this placeholder div's
-                             sibling <div class="mobile-carousel-placeholder-label"> and uncomment the video.
-                        <video class="mobile-product-img" muted loop playsinline>
-                            <source src="elements/video/element1.mp4" type="video/mp4">
-                            Your browser does not support the video tag.
-                        </video>
-                        -->
-                    </div>
-                    <div class="mobile-carousel-slide mobile-carousel-placeholder mobile-carousel-placeholder-4">
-                        <div class="mobile-carousel-placeholder-label">Photo 4<br>Placeholder</div>
-                    </div>
+                <div class="mobile-carousel-slide">
+                    <img src="elements/photo/element1.png" alt="MSU4000 Elite" class="mobile-product-img">
+                </div>
+                <div class="mobile-carousel-slide">
+                    <video class="mobile-product-img" muted loop playsinline>
+                        <source src="elements/video/element2.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <div class="mobile-carousel-slide">
+                    <img src="elements/photo/element3.png" alt="MSU4000 Elite" class="mobile-product-img">
+                </div>
+                <div class="mobile-carousel-slide">
+                    <img src="elements/photo/element4.png" alt="MSU4000 Elite" class="mobile-product-img">
+                </div>
+                <div class="mobile-carousel-slide">
+                    <video class="mobile-product-img" muted loop playsinline>
+                        <source src="elements/video/element5.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <div class="mobile-carousel-slide">
+                    <video class="mobile-product-img" muted loop playsinline>
+                        <source src="elements/video/element6.mp4" type="video/mp4">
+                    </video>
+                </div>
                 </div>
 
                 <button type="button" class="mobile-carousel-arrow mobile-carousel-arrow-prev" aria-label="Previous photo">
@@ -377,60 +439,55 @@
                 <div class="mobile-carousel-dots"></div>
             </div>
 
-            <div class="mobile-page-title">MSU4000 Elite</div>
-            <div class="mobile-page-sub">Micro Hybrid Storage Unit</div>
-            <div class="mobile-price">Starting at ₱XX,XXX</div>
-            <div class="mobile-p">A premier AC-coupled energy storage system designed to effortlessly upgrade existing grid-tied setups or power new solar installations in combination with microinverters.</div>
+            <div class="mobile-product-head">
+                <div class="mobile-eyebrow">Micro Hybrid Storage Unit</div>
+                <h1 class="mobile-page-title">MSU4000 Elite</h1>
+                <div class="mobile-price">Starting at ₱XX,XXX</div>
+            </div>
 
-            <div class="mobile-divider"></div>
-
-            <div class="mobile-spec-group">
-                <div class="mobile-spec-group-title">Power</div>
-                <div class="mobile-spec-row">
+            <section class="mobile-spec-group">
+                <h2 class="mobile-spec-group-title">Power</h2>
+                <div class="mobile-spec-grid">
                     <div class="mobile-spec"><div class="mobile-spec-label">Capacity</div><div class="mobile-spec-value">4000Wh</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Battery type</div><div class="mobile-spec-value">LiFe PO4</div></div>
-                </div>
-                <div class="mobile-spec-row">
                     <div class="mobile-spec"><div class="mobile-spec-label">Output Power</div><div class="mobile-spec-value">2250W</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Frequesncy</div><div class="mobile-spec-value">50 / 60Hz</div></div>
                 </div>
-            </div>
+            </section>
 
-            <div class="mobile-spec-group">
-                <div class="mobile-spec-group-title">Features</div>
-                <div class="mobile-spec-row">
+            <section class="mobile-spec-group">
+                <h2 class="mobile-spec-group-title">Features</h2>
+                <div class="mobile-spec-grid">
                     <div class="mobile-spec"><div class="mobile-spec-label">Remote Monitoring</div><div class="mobile-spec-value">Tsun Mobile App</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Go Beyond 5kWh</div><div class="mobile-spec-value">Upgrade up to 25kWh</div></div>
-                </div>
-                <div class="mobile-spec-row">
                     <div class="mobile-spec"><div class="mobile-spec-label">Scale</div><div class="mobile-spec-value">Up to 100kWh</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Hybrid | On-Off Grid</div><div class="mobile-spec-value">Power always ready</div></div>
-                </div>
-                <div class="mobile-spec-row">
                     <div class="mobile-spec"><div class="mobile-spec-label">Dust & Water Rating</div><div class="mobile-spec-value">IP67 Rating</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Cooling</div><div class="mobile-spec-value">Natural Convection</div></div>
-                </div>
-                <div class="mobile-spec-row">
                     <div class="mobile-spec"><div class="mobile-spec-label">Safe</div><div class="mobile-spec-value">Operates at a lower voltage</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Upgrade Ready</div><div class="mobile-spec-value">Expandable with B5000 lite</div></div>
                 </div>
-            </div>
+            </section>
 
-            <div class="mobile-spec-group">
-                <div class="mobile-spec-group-title">Warranty & Lifespan</div>
-                <div class="mobile-spec-row">
+            <section class="mobile-spec-group">
+                <h2 class="mobile-spec-group-title">Warranty & Lifespan</h2>
+                <div class="mobile-spec-grid">
                     <div class="mobile-spec"><div class="mobile-spec-label">Warranty</div><div class="mobile-spec-value">12 Years</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Lifespan</div><div class="mobile-spec-value">10,000 Charging Cycles</div></div>
                 </div>
-            </div>
-        </div>
+            </section>
+        </main>
 
         <div class="mobile-btn-bar">
-            <a href="https://forms.gle/az9nPPyePhkD5ABq6" target="_blank" class="mobile-btn-container">
-                <div class="mobile-btn">Join The Waitlist</div>
-            </a>
+            <a href="https://forms.gle/az9nPPyePhkD5ABq6" target="_blank" rel="noopener" class="mobile-btn-solid">Join The Waitlist</a>
         </div>
     </div>
+
+
+
+
+
+
 
     <script>
         const navItems = document.querySelectorAll(".nav-bar .nav-item");
@@ -601,6 +658,16 @@
                 render(false);
                 updateMedia();
 
+                // Swipe left/right on touch screens.
+                let touchX = null;
+                carousel.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+                carousel.addEventListener("touchend", (e) => {
+                    if (touchX === null) return;
+                    const dx = e.changedTouches[0].clientX - touchX;
+                    touchX = null;
+                    if (count > 1 && Math.abs(dx) > 40) step(dx < 0 ? 1 : -1);
+                });
+
                 prevBtn.addEventListener("click", () => step(-1));
                 nextBtn.addEventListener("click", () => step(1));
             });
@@ -625,6 +692,23 @@
                 if (e.key === "Enter" || e.key === " ") copyNumber(e);
             });
         });
+        // ===== MOBILE MENU =====
+        // Mobile menu: app.js toggles the open/active classes; this keeps the
+        // button's accessible state in sync and lets Escape close the menu.
+        const mobileMenuBtn = document.querySelector(".mobile .menu");
+
+        mobileMenuBtn.addEventListener("click", () => {
+            const open = mobileMenuBtn.getAttribute("aria-expanded") !== "true";
+            mobileMenuBtn.setAttribute("aria-expanded", open);
+            mobileMenuBtn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && mobileMenuBtn.getAttribute("aria-expanded") === "true") {
+                mobileMenuBtn.click();
+            }
+        });
+        // ===== END MOBILE MENU =====
     </script>
 
 </body>

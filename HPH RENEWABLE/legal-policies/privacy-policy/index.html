@@ -25,6 +25,7 @@
 
     <!--JAVA SCRIPT-->
     <script defer src="../../app.js"></script>
+    <script type="module" src="../../schedule-visit.js"></script>
 
 </head>
 <body>
@@ -434,7 +435,6 @@
 
                     <div class="footer-nav">
                         <a href="../../about/index.html" class="footer-link">Discover</a>
-                        <a href="../../products/index.html" class="footer-link">Products</a>
                         <a href="../../contact/index.html" class="footer-link">Support</a>
                         <a href="../../portfolio/index.html" class="footer-link">Portfolio</a>
                         <a  href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" class="footer-link">Schedule a Visit</a>
@@ -449,148 +449,245 @@
     </div>
 
 
-
-
-
     <div class="mobile">
         <div class="mobile-nav">
             <a href="../../home/index.html" class="mobile-logo">
-                <img src="../../global-elements/HPH Renewable Black.png" alt="" class="img">
+                <img src="../../global-elements/HPH Renewable White.png" alt="HPH Renewable" class="img">
             </a>
 
-            <div class="menu">
-                <span class="material-symbols-rounded icon-menu">menu</span>
-                <span class="material-symbols-rounded icon-close">close</span>
-            </div>
+            <button type="button" class="menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+                <span class="menu-line"></span>
+                <span class="menu-line"></span>
+            </button>
         </div>
 
-        <ul class="dropdown">
-            <li><a href="../../about/index.html">About</a></li>
-            <li><a href="../../mission/index.html">Mission</a></li>
-            <li><a href="../../products/index.html">Products</a></li>
-            <li><a href="../../contact/index.html">Contact</a></li>
-            <li><a href="../../portfolio/index.html">Portfolio</a></li>
-            <li><a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" class="dropdown-cta">Schedule a Visit</a></li>
-        </ul>
+        <nav class="dropdown" id="mobile-menu" aria-label="Main menu">
+            <div class="dropdown-inner">
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Discover
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../../about/index.html" class="menu-link">About Us</a>
 
-        <div class="mobile-content">
-            <div class="mobile-page-title">Privacy Policy</div>
-            <div class="mobile-page-sub">HPH Technical Solutions Inc. · Last updated: July 10, 2026</div>
+                        <div class="menu-heading">Legal Policies</div>
+                        <a href="../../legal-policies/terms-and-conditions/index.html" class="menu-link">Terms and Conditions</a>
+                        <a href="../../legal-policies/privacy-policy/index.html" class="menu-link">Privacy Policy</a>
+                        <a href="../../legal-policies/return-and-refund-policy/index.html" class="menu-link">Return and Refund Policy</a>
+                        <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="menu-link">Confidentiality Agreement (NDA)</a>
+                    </div>
+                </details>
 
-            <div class="mobile-p">HPH Technical Solutions Inc. ("HPH," "we," "us," or "our") respects your privacy and is committed to protecting your personal data in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173) and its Implementing Rules and Regulations. This Privacy Policy explains how we collect, use, disclose, and protect your personal information when you visit our website (https://hphtechsolutions.com/), request a quotation, purchase Products/Services, or make a payment through our Site.</div>
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Products
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <div class="menu-heading">Products</div>
+                        <a href="../../products/product-pages/content1/page1/index.html" class="menu-link">MX2250</a>
+                        <a href="../../products/product-pages/content1/page2/index.html" class="menu-link">MSU4000 Elite</a>
+                        <a href="../../products/product-pages/content1/page3/index.html" class="menu-link">MAU5000 Elite</a>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">1. Introduction</div>
-                <div class="mobile-p">HPH Technical Solutions Inc. is the personal data controller responsible for your personal information collected through this Site.<br><br>Business Address: Unit 111, 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City, Philippines<br><br>Email: inquiries@hphtechsolutions.com<br>Phone: +63 28804 8735</div>
+                        <div class="menu-heading">Battery Expansion</div>
+                        <a href="../../products/product-pages/content2/page1/index.html" class="menu-link">B4000 Elite</a>
+                        <a href="../../products/product-pages/content2/page2/index.html" class="menu-link">B5000 Elite</a>
+
+                        <div class="menu-heading">Product Data Sheets</div>
+                        <a href="../../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="menu-link">MX2250 Micro Inverter</a>
+                        <a href="../../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                        <a href="../../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MAU5000 Elite AC Coupled Unit</a>
+
+                        <div class="menu-heading">TSUN Smart App</div>
+                        <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="menu-link">Google Play Store (Android)</a>
+                        <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="menu-link">Apple App Store (iOS)</a>
+                    </div>
+                </details>
+
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Support
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../../contact/index.html" class="menu-link">Contact Us</a>
+                        <a href="../../faq/index.html" class="menu-link">Frequently Asked Questions</a>
+
+                        <div class="menu-heading">Contact Number</div>
+                        <a href="tel:+63288084735" class="menu-link">(+63) 2 880 84735</a>
+                        <a href="tel:+63285231142" class="menu-link">(+63) 2 852 31142</a>
+
+                        <div class="menu-heading">Support Email</div>
+                        <a href="mailto:inquiries@hphtechsolutions.com" class="menu-link">inquiries@hphtechsolutions.com</a>
+
+                        <div class="menu-heading">Office Address</div>
+                        <a href="https://maps.app.goo.gl/okz2G6zCGjfVaTua7" target="_blank" rel="noopener" class="menu-link">Unit 111 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City</a>
+                    </div>
+                </details>
+
+                <a href="../../portfolio/index.html" class="menu-title">Portfolio</a>
+
+                <a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" rel="noopener" class="menu-cta">Schedule a Visit</a>
             </div>
+        </nav>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">2. Information We Collect</div>
-                <div class="mobile-p">We may collect the following categories of personal data:<br><br>- Identity and Contact Information: full name, email address, phone number, billing and installation address.<br><br>- Transaction Information: order details, quotation details, product/service purchased, payment amount and status.<br><br>- Payment Information: Card payments (Visa/Mastercard) are processed by our third-party payment gateway, PayMongo. We do not collect or store your full card number, CVV, or expiry date on our own servers — this data is handled directly by PayMongo, which is PCI-DSS compliant.<br><br>- Site Assessment Information: property details relevant to installation, such as roof type, electrical setup, and photos of the site, where you provide these for a quotation.<br><br>- Technical Information: IP address, browser type, and usage data collected automatically when you visit the Site (e.g., via cookies or analytics tools).</div>
-            </div>
+        <main class="mobile-main">
+            <div class="mobile-eyebrow">HPH Technical Solutions Inc.</div>
+            <h1 class="mobile-page-title hidden">Privacy Policy</h1>
+            <div class="mobile-page-meta">Last updated: July 10, 2026</div>
+            <p class="mobile-p">HPH Technical Solutions Inc. ("HPH," "we," "us," or "our") respects your privacy and is committed to protecting your personal data in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173) and its Implementing Rules and Regulations. This Privacy Policy explains how we collect, use, disclose, and protect your personal information when you visit our website (https://hphtechsolutions.com/), request a quotation, purchase Products/Services, or make a payment through our Site.</p>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">3. How We Use Your Information</div>
-                <div class="mobile-p">We use your personal data to:<br><br>1. Process quotations, Orders, and payments;<br><br>2. Schedule and carry out site assessments and installation Services;<br><br>3. Communicate with you regarding your Order, warrant.<br><br>4. service requests; Process payments securely through PayMongo;<br><br>5. Comply with legal, tax, and regulatory obligations;<br><br>6. Improve our Site and services; and<br><br>7. Send you updates about your Order or, with your consent, promotional communications (which you may opt out of at any time).</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">1. Introduction</h2>
+                <p class="mobile-p">HPH Technical Solutions Inc. is the personal data controller responsible for your personal information collected through this Site.</p>
+                <p class="mobile-p">Business Address: Unit 111, 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City, Philippines</p>
+                <p class="mobile-p">Email: <span style="text-decoration: underline;">inquiries@hphtechsolutions.com</span><br/> Phone: +63 28804 8735</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">4. Legal Basis for Processing</div>
-                <div class="mobile-p">We process your personal data on the basis of: (a) your consent, (b) the necessity to fulfill a contract with you (e.g., processing your Order), and (c) compliance with legal obligations, consistent with the Data Privacy Act of 2012.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">2. Information We Collect</h2>
+                <p class="mobile-p">We may collect the following categories of personal data:</p>
+                <p class="mobile-p">- Identity and Contact Information: full name, email address, phone number, billing and installation address.</p>
+                <p class="mobile-p">- Transaction Information: order details, quotation details, product/service purchased, payment amount and status.</p>
+                <p class="mobile-p">- Payment Information: Card payments (Visa/Mastercard) are processed by our third-party payment gateway, PayMongo. We do not collect or store your full card number, CVV, or expiry date on our own servers — this data is handled directly by PayMongo, which is PCI-DSS compliant.</p>
+                <p class="mobile-p">- Site Assessment Information: property details relevant to installation, such as roof type, electrical setup, and photos of the site, where you provide these for a quotation.</p>
+                <p class="mobile-p">- Technical Information: IP address, browser type, and usage data collected automatically when you visit the Site (e.g., via cookies or analytics tools).</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">5. Sharing and Disclosure of Information</div>
-                <div class="mobile-p">We do not sell your personal data. We may share your information with: PayMongo, our payment processing partner, solely to process card transactions; Government agencies or regulators, where required by law; Third-party contractors or logistics partners directly involved in delivering or installing your Products, on a need-to-know basis; and Professional advisors (e.g., auditors, legal counsel) where necessary. All third parties we work with are required to protect your data in a manner consistent with this Policy and applicable law.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">3. How We Use Your Information</h2>
+                <p class="mobile-p">We use your personal data to:<br/><br/> 1. Process quotations, Orders, and payments;</p>
+                <p class="mobile-p">2. Schedule and carry out site assessments and installation Services;</p>
+                <p class="mobile-p">3. Communicate with you regarding your Order, warrant.</p>
+                <p class="mobile-p">4. service requests; Process payments securely through PayMongo;</p>
+                <p class="mobile-p">5. Comply with legal, tax, and regulatory obligations;</p>
+                <p class="mobile-p">6. Improve our Site and services; and</p>
+                <p class="mobile-p">7. Send you updates about your Order or, with your consent, promotional communications (which you may opt out of at any time).</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">6. Data Storage, Retention, and Security</div>
-                <div class="mobile-p">6.1. We retain personal data only for as long as necessary to fulfill the purposes described in this Policy, comply with legal/tax requirements (e.g., BIR record-keeping rules), or honor product/installation warranty periods (up to 12 years for certain products).<br><br>6.2. We implement reasonable organizational, physical, and technical security measures to protect your personal data against unauthorized access, alteration, disclosure, or destruction.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">4. Legal Basis for Processing</h2>
+                <p class="mobile-p">We process your personal data on the basis of: (a) your consent, (b) the necessity to fulfill a contract with you (e.g., processing your Order), and (c) compliance with legal obligations, consistent with the Data Privacy Act of 2012.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">7. Your Rights Under the Data Privacy Act</div>
-                <div class="mobile-p">As a data subject, you have the right to:<br><br>- Be informed that your personal data will be, is being, or has been processed;<br><br>- Access your personal data;<br><br>- Correct inaccurate or outdated personal data;<br><br>- Object to processing, subject to legal exceptions;<br><br>- Erasure or blocking of your data under certain conditions;<br><br>- Data portability;<br><br>- File a complaint with the National Privacy Commission (NPC) if you believe your rights have been violated;<br><br>- Be indemnified for damages sustained due to inaccurate, incomplete, or unlawfully obtained personal data.<br><br>To exercise any of these rights, contact us at inquiries@hphtechsolutions.com</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">5. Sharing and Disclosure of Information</h2>
+                <p class="mobile-p">We do not sell your personal data. We may share your information with: PayMongo, our payment processing partner, solely to process card transactions; Government agencies or regulators, where required by law; Third-party contractors or logistics partners directly involved in delivering or installing your Products, on a need-to-know basis; and Professional advisors (e.g., auditors, legal counsel) where necessary. All third parties we work with are required to protect your data in a manner consistent with this Policy and applicable law.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">8. Cookies and Tracking Technologies</div>
-                <div class="mobile-p">Our Site may use cookies or similar technologies to improve your browsing experience and understand Site usage. You can control cookie preferences through your browser settings.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">6. Data Storage, Retention, and Security</h2>
+                <p class="mobile-p">6.1. We retain personal data only for as long as necessary to fulfill the purposes described in this Policy, comply with legal/tax requirements (e.g., BIR record-keeping rules), or honor product/installation warranty periods (up to 12 years for certain products).<br/><br/> 6.2. We implement reasonable organizational, physical, and technical security measures to protect your personal data against unauthorized access, alteration, disclosure, or destruction.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">9. Children's Privacy</div>
-                <div class="mobile-p">Our Site and Services are not directed at individuals under 18 years of age, and we do not knowingly collect personal data from minors.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">7. Your Rights Under the Data Privacy Act</h2>
+                <p class="mobile-p">As a data subject, you have the right to:</p>
+                <p class="mobile-p">- Be informed that your personal data will be, is being, or has been processed;</p>
+                <p class="mobile-p">- Access your personal data;</p>
+                <p class="mobile-p">- Correct inaccurate or outdated personal data;</p>
+                <p class="mobile-p">- Object to processing, subject to legal exceptions;</p>
+                <p class="mobile-p">- Erasure or blocking of your data under certain conditions;</p>
+                <p class="mobile-p">- Data portability;</p>
+                <p class="mobile-p">- File a complaint with the National Privacy Commission (NPC) if you believe your rights have been violated;</p>
+                <p class="mobile-p">- Be indemnified for damages sustained due to inaccurate, incomplete, or unlawfully obtained personal data.</p>
+                <p class="mobile-p">To exercise any of these rights, contact us at <span style="text-decoration: underline;">inquiries@hphtechsolutions.com</span></p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">10. Changes to This Privacy Policy</div>
-                <div class="mobile-p">We may update this Privacy Policy from time to time. Any changes will be posted on this page with a revised "Last updated" date.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">8. Cookies and Tracking Technologies</h2>
+                <p class="mobile-p">Our Site may use cookies or similar technologies to improve your browsing experience and understand Site usage. You can control cookie preferences through your browser settings.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">11. Contact Us</div>
-                <div class="mobile-p">For questions, concerns, or requests regarding your personal data, please contact:<br><br>HPH Technical Solutions Inc. Unit 111, 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City<br><br>Email: inquiries@hphtechsolutions.com<br>Phone: +63 28804 8735</div>
-            </div>
-        </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">9. Children's Privacy</h2>
+                <p class="mobile-p">Our Site and Services are not directed at individuals under 18 years of age, and we do not knowingly collect personal data from minors.</p>
+            </section>
 
-        <div class="mobile-footer">
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Company</div>
-                <div class="mobile-footer-nav">
-                    <a href="../../home/index.html" class="mobile-footer-link">Home</a>
-                    <a href="../../about/index.html" class="mobile-footer-link">About</a>
-                    <a href="../../mission/index.html" class="mobile-footer-link">Mission</a>
-                    <a href="../../products/index.html" class="mobile-footer-link">Products</a>
-                    <a href="../../contact/index.html" class="mobile-footer-link">Contact</a>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">10. Changes to This Privacy Policy</h2>
+                <p class="mobile-p">We may update this Privacy Policy from time to time. Any changes will be posted on this page with a revised "Last updated" date.</p>
+            </section>
+
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">11. Contact Us</h2>
+                <p class="mobile-p">For questions, concerns, or requests regarding your personal data, please contact:</p>
+                <p class="mobile-p">HPH Technical Solutions Inc. Unit 111, 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City</p>
+                <p class="mobile-p">Email:<span style="text-decoration: underline;">inquiries@hphtechsolutions.com</span><br/> Phone: +63 28804 8735</p>
+            </section>
+        </main>
+
+        <footer class="mobile-footer">
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Products
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="../../products/product-pages/content1/page1/index.html" class="mobile-footer-link">MX2250</a>
+                    <a href="../../products/product-pages/content1/page2/index.html" class="mobile-footer-link">MSU4000 Elite</a>
+                    <a href="../../products/product-pages/content1/page3/index.html" class="mobile-footer-link">MAU5000 Elite</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Contact Information</div>
-
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Email</div>
-                    <a href="https://mail.google.com/mail/?view=cm&fs=1&to=inquiries@hphtechsolutions.com" target="_blank" rel="noopener">
-                        <div class="mobile-footer-detail">inquiries@hphtechsolutions.com</div>
-                    </a>
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Product Data Sheets
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="../../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MX2250 Micro Inverter</a>
+                    <a href="../../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                    <a href="../../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MAU5000 Elite AC Coupled Unit</a>
                 </div>
+            </details>
 
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Contact No.</div>
-                    <div class="mobile-footer-detail">+63 2880 84735</div>
-                    <div class="mobile-footer-detail">+63 2852 31142</div>
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Contact
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="mailto:inquiries@hphtechsolutions.com" class="mobile-footer-link">inquiries@hphtechsolutions.com</a>
+                    <a href="tel:+63288084735" class="mobile-footer-link">(+63) 2 880 84735</a>
+                    <a href="tel:+63285231142" class="mobile-footer-link">(+63) 2 852 31142</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Office Location</div>
-
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Google Maps</div>
-                    <a href="https://maps.app.goo.gl/1cWTWwXiwHLpkzpp6" target="_blank">
-                        <div class="mobile-footer-detail">Unit 111 17 Vatican Building, Vatican Street BFRV, Las Piñas City, Las Piñas, Philippines</div>
-                    </a>
-                </div>
-            </div>
-
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Legal Policies</div>
-                <div class="mobile-footer-nav">
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Legal Policies
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
                     <a href="../../legal-policies/terms-and-conditions/index.html" class="mobile-footer-link">Terms and Conditions</a>
                     <a href="../../legal-policies/privacy-policy/index.html" class="mobile-footer-link">Privacy Policy</a>
                     <a href="../../legal-policies/return-and-refund-policy/index.html" class="mobile-footer-link">Return and Refund Policy</a>
                     <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="mobile-footer-link">Confidentiality Agreement (NDA)</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-bottom-bar">
-                <div class="mobile-bottom-divider"></div>
-                <div class="mobile-copyright">&copy; 2026 HPH Renewable. All rights reserved.</div>
-            </div>
-        </div>
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    TSUN Smart App
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="mobile-footer-link">Google Playstore (Android)</a>
+                    <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="mobile-footer-link">App Store (iOS)</a>
+                </div>
+            </details>
+
+            <div class="mobile-copyright">&copy; 2026 HPH Renewable. All rights reserved.</div>
+        </footer>
     </div>
+
+
+
+
+
+
 
     <script>
         const navItems = document.querySelectorAll(".nav-bar .nav-item");
@@ -666,6 +763,23 @@
                 if (e.key === "Enter" || e.key === " ") copyNumber(e);
             });
         });
+        // ===== MOBILE MENU =====
+        // Mobile menu: app.js toggles the open/active classes; this keeps the
+        // button's accessible state in sync and lets Escape close the menu.
+        const mobileMenuBtn = document.querySelector(".mobile .menu");
+
+        mobileMenuBtn.addEventListener("click", () => {
+            const open = mobileMenuBtn.getAttribute("aria-expanded") !== "true";
+            mobileMenuBtn.setAttribute("aria-expanded", open);
+            mobileMenuBtn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && mobileMenuBtn.getAttribute("aria-expanded") === "true") {
+                mobileMenuBtn.click();
+            }
+        });
+        // ===== END MOBILE MENU =====
     </script>
 
 </body>

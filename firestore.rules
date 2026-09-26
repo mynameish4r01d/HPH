@@ -1,0 +1,43 @@
+rules_version = '2';
+
+// Firestore security rules for HPH Renewable.
+// Paste into: Firebase console → Firestore Database → Rules → Publish.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // "Schedule a Visit" requests from the website (HPH RENEWABLE/schedule-visit.js).
+    // Anyone may submit a well-formed request; nobody can read, change or
+    // delete requests from the website. View them in the Firebase console.
+    match /visitRequests/{requestId} {
+      allow create: if isValidVisitRequest(request.resource.data);
+      allow read, update, delete: if false;
+    }
+
+    function isText(value, minSize, maxSize) {
+      return value is string && value.size() >= minSize && value.size() <= maxSize;
+    }
+
+    function isValidVisitRequest(data) {
+      let fields = ['name', 'phone', 'email', 'address', 'propertyType', 'product',
+                    'monthlyBill', 'preferredDate', 'preferredTime', 'message',
+                    'consent', 'sourcePage', 'status', 'createdAt'];
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && isText(data.name, 1, 100)
+        && isText(data.phone, 7, 30)
+        && isText(data.email, 0, 200)
+        && isText(data.address, 3, 300)
+        && data.propertyType in ['Residential', 'Commercial', 'Industrial']
+        && isText(data.product, 1, 50)
+        && isText(data.monthlyBill, 0, 50)
+        && isText(data.preferredDate, 0, 10)
+        && isText(data.preferredTime, 1, 50)
+        && isText(data.message, 0, 2000)
+        && data.consent == true
+        && isText(data.sourcePage, 0, 300)
+        && data.status == 'new'
+        && data.createdAt == request.time;
+    }
+  }
+}

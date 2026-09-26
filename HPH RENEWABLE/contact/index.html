@@ -25,6 +25,7 @@
 
     <!--JAVA SCRIPT-->
     <script defer src="../app.js"></script>
+    <script type="module" src="../schedule-visit.js"></script>
 <s></s>
 </head>
 <body>
@@ -268,7 +269,6 @@
 
                     <div class="footer-nav">
                         <a href="../about/index.html" class="footer-link">Discover</a>
-                        <a href="../products/index.html" class="footer-link">Products</a>
                         <a href="../contact/index.html" class="footer-link">Support</a>
                         <a href="../portfolio/index.html" class="footer-link">Portfolio</a>
                         <a  href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" class="footer-link">Schedule a Visit</a>
@@ -283,117 +283,195 @@
     </div>
 
 
-
-
-
     <div class="mobile">
         <div class="mobile-nav">
             <a href="../home/index.html" class="mobile-logo">
-                <img src="../global-elements/HPH Renewable Black.png" alt="" class="img">
+                <img src="../global-elements/HPH Renewable White.png" alt="HPH Renewable" class="img">
             </a>
 
-            <div class="menu">
-                <span class="material-symbols-rounded icon-menu">menu</span>
-                <span class="material-symbols-rounded icon-close">close</span>
-            </div>
+            <button type="button" class="menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+                <span class="menu-line"></span>
+                <span class="menu-line"></span>
+            </button>
         </div>
 
-        <ul class="dropdown">
-            <li><a href="../about/index.html">About</a></li>
-            <li><a href="../mission/index.html">Mission</a></li>
-            <li><a href="../products/index.html">Products</a></li>
-            <li><a href="">Contact</a></li>
-            <li><a href="../portfolio/index.html">Portfolio</a></li>
-            <li><a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" class="dropdown-cta">Schedule a Visit</a></li>
-        </ul>
+        <nav class="dropdown" id="mobile-menu" aria-label="Main menu">
+            <div class="dropdown-inner">
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Discover
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../about/index.html" class="menu-link">About Us</a>
 
-        <div class="mobile-content">
-            <div class="mobile-operating">9:00AM - 5:00PM</div>
-            <div class="mobile-page-title">HPH Technical Solutions</div>
-            <div class="mobile-p">Unit 111 17 Vatican Building, Vatsican Street BFRV, Las Piñas City, Las Piñas, Philippines</div>
+                        <div class="menu-heading">Legal Policies</div>
+                        <a href="../legal-policies/terms-and-conditions/index.html" class="menu-link">Terms and Conditions</a>
+                        <a href="../legal-policies/privacy-policy/index.html" class="menu-link">Privacy Policy</a>
+                        <a href="../legal-policies/return-and-refund-policy/index.html" class="menu-link">Return and Refund Policy</a>
+                        <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="menu-link">Confidentiality Agreement (NDA)</a>
+                    </div>
+                </details>
 
-            <div class="mobile-img-strip">
-                <img src="elements/element1.png" alt="" class="img">
-                <img src="elements/element2.png" alt="" class="img">
-                <img src="elements/element3.png" alt="" class="img">
-                <img src="elements/element4.png" alt="" class="img">
-                <img src="elements/element5.png" alt="" class="img">
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Products
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <div class="menu-heading">Products</div>
+                        <a href="../products/product-pages/content1/page1/index.html" class="menu-link">MX2250</a>
+                        <a href="../products/product-pages/content1/page2/index.html" class="menu-link">MSU4000 Elite</a>
+                        <a href="../products/product-pages/content1/page3/index.html" class="menu-link">MAU5000 Elite</a>
+
+                        <div class="menu-heading">Battery Expansion</div>
+                        <a href="../products/product-pages/content2/page1/index.html" class="menu-link">B4000 Elite</a>
+                        <a href="../products/product-pages/content2/page2/index.html" class="menu-link">B5000 Elite</a>
+
+                        <div class="menu-heading">Product Data Sheets</div>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="menu-link">MX2250 Micro Inverter</a>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MAU5000 Elite AC Coupled Unit</a>
+
+                        <div class="menu-heading">TSUN Smart App</div>
+                        <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="menu-link">Google Play Store (Android)</a>
+                        <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="menu-link">Apple App Store (iOS)</a>
+                    </div>
+                </details>
+
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Support
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../contact/index.html" class="menu-link">Contact Us</a>
+                        <a href="../faq/index.html" class="menu-link">Frequently Asked Questions</a>
+
+                        <div class="menu-heading">Contact Number</div>
+                        <a href="tel:+63288084735" class="menu-link">(+63) 2 880 84735</a>
+                        <a href="tel:+63285231142" class="menu-link">(+63) 2 852 31142</a>
+
+                        <div class="menu-heading">Support Email</div>
+                        <a href="mailto:inquiries@hphtechsolutions.com" class="menu-link">inquiries@hphtechsolutions.com</a>
+
+                        <div class="menu-heading">Office Address</div>
+                        <a href="https://maps.app.goo.gl/okz2G6zCGjfVaTua7" target="_blank" rel="noopener" class="menu-link">Unit 111 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City</a>
+                    </div>
+                </details>
+
+                <a href="../portfolio/index.html" class="menu-title">Portfolio</a>
+
+                <a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" rel="noopener" class="menu-cta">Schedule a Visit</a>
+            </div>
+        </nav>
+
+        <main class="mobile-main">
+            <div class="mobile-eyebrow">9:00AM - 5:00PM</div>
+            <h1 class="mobile-page-title hidden">HPH Technical Solutions</h1>
+            <p class="mobile-p">Unit 111 17 Vatican Building, Vatsican Street BFRV, Las Piñas City, Las Piñas, Philippines</p>
+
+            <div class="mobile-btn-row">
+                <a href="https://maps.app.goo.gl/okz2G6zCGjfVaTua7" target="_blank" rel="noopener" class="mobile-btn-solid">Get Directions</a>
+                <a href="mailto:inquiries@hphtechsolutions.com" class="mobile-btn-outline">Email Us</a>
             </div>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">Contact Information</div>
-
-                <div class="mobile-link">
-                    <div class="mobile-label">Email</div>
-                    <div class="mobile-detail">inquiries@hphtechsolutions.com</div>
-                </div>
-
-                <div class="mobile-link">
-                    <div class="mobile-label">Documents</div>
-                    <div class="mobile-detail">+63 2880 84735</div>
-                    <div class="mobile-detail">+63 2852 31142</div>
-                </div>
+            <div class="mobile-gallery">
+                <img src="elements/element1.png" alt="" class="mobile-gallery-img">
+                <img src="elements/element2.png" alt="" class="mobile-gallery-img">
+                <img src="elements/element3.png" alt="" class="mobile-gallery-img">
+                <img src="elements/element4.png" alt="" class="mobile-gallery-img">
+                <img src="elements/element5.png" alt="" class="mobile-gallery-img">
             </div>
 
-            <iframe class="mobile-maps" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3863.978375664259!2d120.98591567629931!3d14.428409786037806!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397d1f91a78bc11%3A0x7cebca69ee71698d!2sHPH%20Technical%20Solutions%20Inc.!5e0!3m2!1sen!2sph!4v1784010038466!5m2!1sen!2sph" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
-        </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">Contact Information</h2>
 
-        <div class="mobile-footer">
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Company</div>
-                <div class="mobile-footer-nav">
-                    <a href="../home/index.html" class="mobile-footer-link">Home</a>
-                    <a href="../about/index.html" class="mobile-footer-link">About</a>
-                    <a href="../mission/index.html" class="mobile-footer-link">Mission</a>
-                    <a href="../products/index.html" class="mobile-footer-link">Products</a>
-                    <a href="../contact/index.html" class="mobile-footer-link">Contact</a>
-                </div>
-            </div>
-
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Contact Information</div>
-
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Email</div>
-                    <a href="https://mail.google.com/mail/?view=cm&fs=1&to=inquiries@hphtechsolutions.com" target="_blank" rel="noopener">
-                        <div class="mobile-footer-detail">inquiries@hphtechsolutions.com</div>
-                    </a>
+                <div class="mobile-contact-block">
+                    <div class="mobile-contact-label">Email</div>
+                    <a href="mailto:inquiries@hphtechsolutions.com" class="mobile-contact-link">inquiries@hphtechsolutions.com</a>
                 </div>
 
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Contact No.</div>
-                    <div class="mobile-footer-detail">+63 2880 84735</div>
-                    <div class="mobile-footer-detail">+63 2852 31142</div>
+                <div class="mobile-contact-block">
+                    <div class="mobile-contact-label">Phone</div>
+                    <a href="tel:+63288084735" class="mobile-contact-link">+63 2880 84735</a>
+                    <a href="tel:+63285231142" class="mobile-contact-link">+63 2852 31142</a>
                 </div>
-            </div>
+            </section>
 
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Office Location</div>
+            <iframe class="mobile-map" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3863.978375664259!2d120.98591567629931!3d14.428409786037806!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3397d1f91a78bc11%3A0x7cebca69ee71698d!2sHPH%20Technical%20Solutions%20Inc.!5e0!3m2!1sen!2sph!4v1784010038466!5m2!1sen!2sph" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" title="HPH Technical Solutions on Google Maps"></iframe>
+        </main>
 
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Google Maps</div>
-                    <a href="https://maps.app.goo.gl/1cWTWwXiwHLpkzpp6" target="_blank">
-                        <div class="mobile-footer-detail">Unit 111 17 Vatican Building, Vatican Street BFRV, Las Piñas City, Las Piñas, Philippines</div>
-                    </a>
+        <footer class="mobile-footer">
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Products
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="../products/product-pages/content1/page1/index.html" class="mobile-footer-link">MX2250</a>
+                    <a href="../products/product-pages/content1/page2/index.html" class="mobile-footer-link">MSU4000 Elite</a>
+                    <a href="../products/product-pages/content1/page3/index.html" class="mobile-footer-link">MAU5000 Elite</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Legal Policies</div>
-                <div class="mobile-footer-nav">
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Product Data Sheets
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MX2250 Micro Inverter</a>
+                    <a href="../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                    <a href="../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MAU5000 Elite AC Coupled Unit</a>
+                </div>
+            </details>
+
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Contact
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="mailto:inquiries@hphtechsolutions.com" class="mobile-footer-link">inquiries@hphtechsolutions.com</a>
+                    <a href="tel:+63288084735" class="mobile-footer-link">(+63) 2 880 84735</a>
+                    <a href="tel:+63285231142" class="mobile-footer-link">(+63) 2 852 31142</a>
+                </div>
+            </details>
+
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Legal Policies
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
                     <a href="../legal-policies/terms-and-conditions/index.html" class="mobile-footer-link">Terms and Conditions</a>
                     <a href="../legal-policies/privacy-policy/index.html" class="mobile-footer-link">Privacy Policy</a>
                     <a href="../legal-policies/return-and-refund-policy/index.html" class="mobile-footer-link">Return and Refund Policy</a>
                     <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="mobile-footer-link">Confidentiality Agreement (NDA)</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-bottom-bar">
-                <div class="mobile-bottom-divider"></div>
-                <div class="mobile-copyright">&copy; 2026 HPH Renewable. All rights reserved.</div>
-            </div>
-        </div>
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    TSUN Smart App
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="mobile-footer-link">Google Playstore (Android)</a>
+                    <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="mobile-footer-link">App Store (iOS)</a>
+                </div>
+            </details>
+
+            <div class="mobile-copyright">&copy; 2026 HPH Renewable. All rights reserved.</div>
+        </footer>
     </div>
+
+
+
+
+
+
 
     <script>
         const navItems = document.querySelectorAll(".nav-bar .nav-item");
@@ -469,6 +547,23 @@
                 if (e.key === "Enter" || e.key === " ") copyNumber(e);
             });
         });
+        // ===== MOBILE MENU =====
+        // Mobile menu: app.js toggles the open/active classes; this keeps the
+        // button's accessible state in sync and lets Escape close the menu.
+        const mobileMenuBtn = document.querySelector(".mobile .menu");
+
+        mobileMenuBtn.addEventListener("click", () => {
+            const open = mobileMenuBtn.getAttribute("aria-expanded") !== "true";
+            mobileMenuBtn.setAttribute("aria-expanded", open);
+            mobileMenuBtn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && mobileMenuBtn.getAttribute("aria-expanded") === "true") {
+                mobileMenuBtn.click();
+            }
+        });
+        // ===== END MOBILE MENU =====
     </script>
 
 </body>

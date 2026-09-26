@@ -25,6 +25,7 @@
 
     <!--JAVA SCRIPT-->
     <script defer src="../app.js"></script>
+    <script type="module" src="../schedule-visit.js"></script>
     <script defer src="script.js"></script>
 
 </head>
@@ -211,12 +212,8 @@
                 <div class="closing-title logo hidden">A Better Tomorrow, Today.</div>
 
                 <div class="btn-flex logo hidden">
-                    <a href="../products/index.html" style="width: fit-content;">
-                        <div class="btn-1">Explore Products</div>
-                    </a>
-
                     <a href="../contact/index.html" style="width: fit-content;">
-                        <div class="btn-2">Get in Touch</div>
+                        <div class="btn-1">Get in Touch</div>
                     </a>
                 </div>
             </div>
@@ -296,7 +293,6 @@
 
                     <div class="footer-nav">
                         <a href="../about/index.html" class="footer-link">Discover</a>
-                        <a href="../products/index.html" class="footer-link">Products</a>
                         <a href="../contact/index.html" class="footer-link">Support</a>
                         <a href="../portfolio/index.html" class="footer-link">Portfolio</a>
                         <a  href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" class="footer-link">Schedule a Visit</a>
@@ -311,121 +307,195 @@
     </div>
 
 
-
-
-
     <div class="mobile">
         <div class="mobile-nav">
             <a href="../home/index.html" class="mobile-logo">
-                <img src="../global-elements/HPH Renewable Black.png" alt="" class="img">
+                <img src="../global-elements/HPH Renewable White.png" alt="HPH Renewable" class="img">
             </a>
 
-            <div class="menu">
-                <span class="material-symbols-rounded icon-menu">menu</span>
-                <span class="material-symbols-rounded icon-close">close</span>
-            </div>
+            <button type="button" class="menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+                <span class="menu-line"></span>
+                <span class="menu-line"></span>
+            </button>
         </div>
 
-        <ul class="dropdown">
-            <li><a href="../about/index.html">About</a></li>
-            <li><a href="">Mission</a></li>
-            <li><a href="../products/index.html">Products</a></li>
-            <li><a href="../contact/index.html">Contact</a></li>
-            <li><a href="../portfolio/index.html">Portfolio</a></li>
-            <li><a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" class="dropdown-cta">Schedule a Visit</a></li>
-        </ul>
+        <nav class="dropdown" id="mobile-menu" aria-label="Main menu">
+            <div class="dropdown-inner">
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Discover
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../about/index.html" class="menu-link">About Us</a>
 
-        <section class="mobile-panel mobile-hero">
-            <div class="mobile-eyebrow">Our Mission</div>
-            <div class="mobile-hero-title">Energy That Answers to No One.</div>
-            <div class="mobile-hero-sub">Affordable, accessible renewable power — built for every Filipino home.</div>
-        </section>
+                        <div class="menu-heading">Legal Policies</div>
+                        <a href="../legal-policies/terms-and-conditions/index.html" class="menu-link">Terms and Conditions</a>
+                        <a href="../legal-policies/privacy-policy/index.html" class="menu-link">Privacy Policy</a>
+                        <a href="../legal-policies/return-and-refund-policy/index.html" class="menu-link">Return and Refund Policy</a>
+                        <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="menu-link">Confidentiality Agreement (NDA)</a>
+                    </div>
+                </details>
 
-        <section class="mobile-panel">
-            <div class="mobile-eyebrow">01 — Mission</div>
-            <div class="mobile-statement">We make renewable energy as affordable and accessible as we can — for every home, every business, every community we serve.</div>
-        </section>
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Products
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <div class="menu-heading">Products</div>
+                        <a href="../products/product-pages/content1/page1/index.html" class="menu-link">MX2250</a>
+                        <a href="../products/product-pages/content1/page2/index.html" class="menu-link">MSU4000 Elite</a>
+                        <a href="../products/product-pages/content1/page3/index.html" class="menu-link">MAU5000 Elite</a>
 
-        <section class="mobile-panel">
-            <div class="mobile-eyebrow">02 — Vision</div>
-            <div class="mobile-statement">A Philippines where every rooftop makes its own power — free from rising rates, and run entirely on sunlight.</div>
-        </section>
+                        <div class="menu-heading">Battery Expansion</div>
+                        <a href="../products/product-pages/content2/page1/index.html" class="menu-link">B4000 Elite</a>
+                        <a href="../products/product-pages/content2/page2/index.html" class="menu-link">B5000 Elite</a>
 
-        <section class="mobile-panel">
-            <div class="mobile-eyebrow">03 — Advocacy</div>
-            <div class="mobile-statement">We're fighting for Filipino energy independence — helping communities take back control of their power, and <span class="mobile-accent">take the greed from the grid</span>.</div>
-        </section>
+                        <div class="menu-heading">Product Data Sheets</div>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="menu-link">MX2250 Micro Inverter</a>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MAU5000 Elite AC Coupled Unit</a>
 
-        <section class="mobile-panel mobile-closing">
-            <div class="mobile-closing-title">A Better Tomorrow, Today.</div>
+                        <div class="menu-heading">TSUN Smart App</div>
+                        <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="menu-link">Google Play Store (Android)</a>
+                        <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="menu-link">Apple App Store (iOS)</a>
+                    </div>
+                </details>
 
-            <div class="mobile-btn-flex">
-                <a href="../products/index.html">
-                    <div class="mobile-btn-1">Explore Products</div>
-                </a>
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Support
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../contact/index.html" class="menu-link">Contact Us</a>
+                        <a href="../faq/index.html" class="menu-link">Frequently Asked Questions</a>
 
-                <a href="../contact/index.html">
-                    <div class="mobile-btn-2">Get in Touch</div>
-                </a>
+                        <div class="menu-heading">Contact Number</div>
+                        <a href="tel:+63288084735" class="menu-link">(+63) 2 880 84735</a>
+                        <a href="tel:+63285231142" class="menu-link">(+63) 2 852 31142</a>
+
+                        <div class="menu-heading">Support Email</div>
+                        <a href="mailto:inquiries@hphtechsolutions.com" class="menu-link">inquiries@hphtechsolutions.com</a>
+
+                        <div class="menu-heading">Office Address</div>
+                        <a href="https://maps.app.goo.gl/okz2G6zCGjfVaTua7" target="_blank" rel="noopener" class="menu-link">Unit 111 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City</a>
+                    </div>
+                </details>
+
+                <a href="../portfolio/index.html" class="menu-title">Portfolio</a>
+
+                <a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" rel="noopener" class="menu-cta">Schedule a Visit</a>
             </div>
-        </section>
+        </nav>
 
-        <div class="mobile-footer">
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Company</div>
-                <div class="mobile-footer-nav">
-                    <a href="../home/index.html" class="mobile-footer-link">Home</a>
-                    <a href="../about/index.html" class="mobile-footer-link">About</a>
-                    <a href="../mission/index.html" class="mobile-footer-link">Mission</a>
-                    <a href="../products/index.html" class="mobile-footer-link">Products</a>
-                    <a href="../contact/index.html" class="mobile-footer-link">Contact</a>
+        <main class="mobile-main mobile-mission">
+            <section class="mobile-mission-hero">
+                <div class="mobile-eyebrow logo hidden">Our Mission</div>
+                <h1 class="mobile-mission-title">
+                    <span class="logo hidden">Energy That</span>
+                    <span class="logo hidden">Answers to No One.</span>
+                </h1>
+                <p class="mobile-p logo hidden">Affordable, accessible renewable power — built for every Filipino home.</p>
+            </section>
+
+            <section class="mobile-mission-panel">
+                <div class="mobile-mission-numeral" aria-hidden="true">01</div>
+                <div class="mobile-eyebrow logo hidden">01 — Mission</div>
+                <p class="mobile-mission-statement logo hidden">We make renewable energy as affordable and accessible as we can — for every home, every business, every community we serve.</p>
+            </section>
+
+            <section class="mobile-mission-panel">
+                <div class="mobile-mission-numeral" aria-hidden="true">02</div>
+                <div class="mobile-eyebrow logo hidden">02 — Vision</div>
+                <p class="mobile-mission-statement logo hidden">A Philippines where every rooftop makes its own power — free from rising rates, and run entirely on sunlight.</p>
+            </section>
+
+            <section class="mobile-mission-panel">
+                <div class="mobile-mission-numeral" aria-hidden="true">03</div>
+                <div class="mobile-eyebrow logo hidden">03 — Advocacy</div>
+                <p class="mobile-mission-statement logo hidden">We're fighting for Filipino energy independence — helping communities take back control of their power, and <span class="mobile-accent">take the greed from the grid</span>.</p>
+            </section>
+
+            <section class="mobile-mission-closing">
+                <h2 class="mobile-mission-closing-title">A Better Tomorrow, Today.</h2>
+                <div class="mobile-btn-row">
+                    <a href="../contact/index.html" class="mobile-btn-solid">Get in Touch</a>
                 </div>
-            </div>
+            </section>
+        </main>
 
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Contact Information</div>
-
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Email</div>
-                    <a href="https://mail.google.com/mail/?view=cm&fs=1&to=inquiries@hphtechsolutions.com" target="_blank" rel="noopener">
-                        <div class="mobile-footer-detail">inquiries@hphtechsolutions.com</div>
-                    </a>
+        <footer class="mobile-footer">
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Products
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="../products/product-pages/content1/page1/index.html" class="mobile-footer-link">MX2250</a>
+                    <a href="../products/product-pages/content1/page2/index.html" class="mobile-footer-link">MSU4000 Elite</a>
+                    <a href="../products/product-pages/content1/page3/index.html" class="mobile-footer-link">MAU5000 Elite</a>
                 </div>
+            </details>
 
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Contact No.</div>
-                    <div class="mobile-footer-detail">+63 2880 84735</div>
-                    <div class="mobile-footer-detail">+63 2852 31142</div>
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Product Data Sheets
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MX2250 Micro Inverter</a>
+                    <a href="../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                    <a href="../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MAU5000 Elite AC Coupled Unit</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Office Location</div>
-
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Google Maps</div>
-                    <a href="https://maps.app.goo.gl/1cWTWwXiwHLpkzpp6" target="_blank">
-                        <div class="mobile-footer-detail">Unit 111 17 Vatican Building, Vatican Street BFRV, Las Piñas City, Las Piñas, Philippines</div>
-                    </a>
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Contact
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="mailto:inquiries@hphtechsolutions.com" class="mobile-footer-link">inquiries@hphtechsolutions.com</a>
+                    <a href="tel:+63288084735" class="mobile-footer-link">(+63) 2 880 84735</a>
+                    <a href="tel:+63285231142" class="mobile-footer-link">(+63) 2 852 31142</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Legal Policies</div>
-                <div class="mobile-footer-nav">
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Legal Policies
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
                     <a href="../legal-policies/terms-and-conditions/index.html" class="mobile-footer-link">Terms and Conditions</a>
                     <a href="../legal-policies/privacy-policy/index.html" class="mobile-footer-link">Privacy Policy</a>
                     <a href="../legal-policies/return-and-refund-policy/index.html" class="mobile-footer-link">Return and Refund Policy</a>
                     <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="mobile-footer-link">Confidentiality Agreement (NDA)</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-bottom-bar">
-                <div class="mobile-bottom-divider"></div>
-                <div class="mobile-copyright">&copy; 2026 HPH Renewable. All rights reserved.</div>
-            </div>
-        </div>
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    TSUN Smart App
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="mobile-footer-link">Google Playstore (Android)</a>
+                    <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="mobile-footer-link">App Store (iOS)</a>
+                </div>
+            </details>
+
+            <div class="mobile-copyright">&copy; 2026 HPH Renewable. All rights reserved.</div>
+        </footer>
     </div>
+
+
+
+
+
+
 
     <script>
         const navItems = document.querySelectorAll(".nav-bar .nav-item");
@@ -501,6 +571,23 @@
                 if (e.key === "Enter" || e.key === " ") copyNumber(e);
             });
         });
+        // ===== MOBILE MENU =====
+        // Mobile menu: app.js toggles the open/active classes; this keeps the
+        // button's accessible state in sync and lets Escape close the menu.
+        const mobileMenuBtn = document.querySelector(".mobile .menu");
+
+        mobileMenuBtn.addEventListener("click", () => {
+            const open = mobileMenuBtn.getAttribute("aria-expanded") !== "true";
+            mobileMenuBtn.setAttribute("aria-expanded", open);
+            mobileMenuBtn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && mobileMenuBtn.getAttribute("aria-expanded") === "true") {
+                mobileMenuBtn.click();
+            }
+        });
+        // ===== END MOBILE MENU =====
     </script>
 
 </body>

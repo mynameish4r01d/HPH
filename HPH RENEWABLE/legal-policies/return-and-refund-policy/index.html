@@ -25,6 +25,7 @@
 
     <!--JAVA SCRIPT-->
     <script defer src="../../app.js"></script>
+    <script type="module" src="../../schedule-visit.js"></script>
 
 </head>
 <body>
@@ -347,7 +348,6 @@
 
                     <div class="footer-nav">
                         <a href="../../about/index.html" class="footer-link">Discover</a>
-                        <a href="../../products/index.html" class="footer-link">Products</a>
                         <a href="../../contact/index.html" class="footer-link">Support</a>
                         <a href="../../portfolio/index.html" class="footer-link">Portfolio</a>
                         <a  href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" class="footer-link">Schedule a Visit</a>
@@ -362,133 +362,212 @@
     </div>
 
 
-
-
-
     <div class="mobile">
         <div class="mobile-nav">
             <a href="../../home/index.html" class="mobile-logo">
-                <img src="../../global-elements/HPH Renewable Black.png" alt="" class="img">
+                <img src="../../global-elements/HPH Renewable White.png" alt="HPH Renewable" class="img">
             </a>
 
-            <div class="menu">
-                <span class="material-symbols-rounded icon-menu">menu</span>
-                <span class="material-symbols-rounded icon-close">close</span>
-            </div>
+            <button type="button" class="menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+                <span class="menu-line"></span>
+                <span class="menu-line"></span>
+            </button>
         </div>
 
-        <ul class="dropdown">
-            <li><a href="../../about/index.html">About</a></li>
-            <li><a href="../../mission/index.html">Mission</a></li>
-            <li><a href="../../products/index.html">Products</a></li>
-            <li><a href="../../contact/index.html">Contact</a></li>
-            <li><a href="../../portfolio/index.html">Portfolio</a></li>
-            <li><a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" class="dropdown-cta">Schedule a Visit</a></li>
-        </ul>
+        <nav class="dropdown" id="mobile-menu" aria-label="Main menu">
+            <div class="dropdown-inner">
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Discover
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../../about/index.html" class="menu-link">About Us</a>
 
-        <div class="mobile-content">
-            <div class="mobile-page-title">Return and Refund Policy</div>
-            <div class="mobile-page-sub">HPH Technical Solutions Inc. · Last updated: July 10, 2026</div>
+                        <div class="menu-heading">Legal Policies</div>
+                        <a href="../../legal-policies/terms-and-conditions/index.html" class="menu-link">Terms and Conditions</a>
+                        <a href="../../legal-policies/privacy-policy/index.html" class="menu-link">Privacy Policy</a>
+                        <a href="../../legal-policies/return-and-refund-policy/index.html" class="menu-link">Return and Refund Policy</a>
+                        <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="menu-link">Confidentiality Agreement (NDA)</a>
+                    </div>
+                </details>
 
-            <div class="mobile-p">This Return and Refund Policy applies to Products and installation Services purchased from HPH Technical Solutions Inc. ("HPH," "we," "us," or "our") through https://hphtechsolutions.com/ or via a formal quotation. It is provided in accordance with the Consumer Act of the Philippines (RA 7394) and forms part of our Terms and Conditions.</div>
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Products
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <div class="menu-heading">Products</div>
+                        <a href="../../products/product-pages/content1/page1/index.html" class="menu-link">MX2250</a>
+                        <a href="../../products/product-pages/content1/page2/index.html" class="menu-link">MSU4000 Elite</a>
+                        <a href="../../products/product-pages/content1/page3/index.html" class="menu-link">MAU5000 Elite</a>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">1. Nature of Our Products and Services</div>
-                <div class="mobile-p">Because our Products (solar panels, inverters, and related equipment) are installed on-site and customized to each property, our approach to returns differs from standard retail goods. Our primary remedy for covered issues is repair or replacement, backed by manufacturer and/or HPH-supported warranties.</div>
+                        <div class="menu-heading">Battery Expansion</div>
+                        <a href="../../products/product-pages/content2/page1/index.html" class="menu-link">B4000 Elite</a>
+                        <a href="../../products/product-pages/content2/page2/index.html" class="menu-link">B5000 Elite</a>
+
+                        <div class="menu-heading">Product Data Sheets</div>
+                        <a href="../../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="menu-link">MX2250 Micro Inverter</a>
+                        <a href="../../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                        <a href="../../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MAU5000 Elite AC Coupled Unit</a>
+
+                        <div class="menu-heading">TSUN Smart App</div>
+                        <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="menu-link">Google Play Store (Android)</a>
+                        <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="menu-link">Apple App Store (iOS)</a>
+                    </div>
+                </details>
+
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Support
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../../contact/index.html" class="menu-link">Contact Us</a>
+                        <a href="../../faq/index.html" class="menu-link">Frequently Asked Questions</a>
+
+                        <div class="menu-heading">Contact Number</div>
+                        <a href="tel:+63288084735" class="menu-link">(+63) 2 880 84735</a>
+                        <a href="tel:+63285231142" class="menu-link">(+63) 2 852 31142</a>
+
+                        <div class="menu-heading">Support Email</div>
+                        <a href="mailto:inquiries@hphtechsolutions.com" class="menu-link">inquiries@hphtechsolutions.com</a>
+
+                        <div class="menu-heading">Office Address</div>
+                        <a href="https://maps.app.goo.gl/okz2G6zCGjfVaTua7" target="_blank" rel="noopener" class="menu-link">Unit 111 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City</a>
+                    </div>
+                </details>
+
+                <a href="../../portfolio/index.html" class="menu-title">Portfolio</a>
+
+                <a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" rel="noopener" class="menu-cta">Schedule a Visit</a>
             </div>
+        </nav>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">2. Warranty Coverage</div>
-                <div class="mobile-p">2.1 Your system is covered by a twelve (12) year product/manufacturing warranty on both solar panels and microinverters, as specified in your product documentation, warranty certificate, or quotation. Solar panels and microinverters are also designed with an expected operational lifespan of up to twenty-five (25) years.<br><br>2.2. What is covered: During the applicable warranty period, if a Product is found to be defective due to a manufacturing defect or an installation defect caused by HPH, we will:<br>- Service and repair the affected unit or workmanship at no cost to you;<br>- Replace the defective unit, if repair is not feasible, at no cost to you.<br><br>2.3. What is not covered: The warranty does not cover damage or performance issues caused by:<br>- Normal wear and tear or gradual efficiency degradation within expected manufacturer tolerances;<br>- Force majeure events (typhoons, flooding, lightning, earthquakes, fire);<br>- Unauthorized modification, tampering, or repair by anyone other than HPH or an HPH-authorized technician;<br>- Improper use, neglect, or failure to follow maintenance guidelines provided at installation;<br>- Damage caused by third-party electrical work or structural changes to the property after installation.</div>
-            </div>
+        <main class="mobile-main">
+            <div class="mobile-eyebrow">HPH Technical Solutions Inc.</div>
+            <h1 class="mobile-page-title hidden">Return and Refund Policy</h1>
+            <div class="mobile-page-meta">Last updated: July 10, 2026</div>
+            <p class="mobile-p">This Return and Refund Policy applies to Products and installation Services purchased from HPH Technical Solutions Inc. ("HPH," "we," "us," or "our") through https://hphtechsolutions.com/ or via a formal quotation. It is provided in accordance with the Consumer Act of the Philippines (RA 7394) and forms part of our Terms and Conditions.</p>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">3. How to File a Warranty Claim</div>
-                <div class="mobile-p">To request service, repair, or replacement under warranty:<br><br>1. Contact us at inquiries@hphtechsolutions.com or +63 28804 8735 with your Order details, a description of the issue, and photos/videos if available.<br><br>2. Our technical team will assess the issue, which may include a site visit.<br><br>3. If the issue is confirmed as a covered manufacturing or installation defect, we will proceed with repair or replacement within a reasonable timeframe, depending on parts availability.<br><br>4. If the issue is found not to be covered under warranty, we will inform you of the findings and, if you wish, provide a paid-service quotation to address it.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">1. Nature of Our Products and Services</h2>
+                <p class="mobile-p">Because our Products (solar panels, inverters, and related equipment) are installed on-site and customized to each property, our approach to returns differs from standard retail goods. Our primary remedy for covered issues is repair or replacement, backed by manufacturer and/or HPH-supported warranties.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">4. Cancellations Before Installation</div>
-                <div class="mobile-p">4.1. If you wish to cancel an Order before materials have been procured or installation work has begun, you may request a cancellation and refund of your deposit, subject to deduction of any non-recoverable costs already incurred (e.g., payment processing fees, site assessment costs already performed).<br><br>4.2. Once materials have been ordered or procured specifically for your project, or once installation work has commenced, the Order is generally non-cancellable, as costs have already been committed on your behalf. In such cases, cancellation requests will be evaluated case-by-case, and any refund will be net of costs already incurred by HPH.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">2. Warranty Coverage</h2>
+                <p class="mobile-p">2.1 Your system is covered by a twelve (12) year product/manufacturing warranty on both solar panels and microinverters, as specified in your product documentation, warranty certificate, or quotation. Solar panels and microinverters are also designed with an expected operational lifespan of up to twenty-five (25) years.<br/><br/> 2.2. What is covered: During the applicable warranty period, if a Product is found to be defective due to a manufacturing defect or an installation defect caused by HPH, we will:<br/> - Service and repair the affected unit or workmanship at no cost to you;<br/> - Replace the defective unit, if repair is not feasible, at no cost to you.<br/><br/> 2.3. What is not covered: The warranty does not cover damage or performance issues caused by:<br/> - Normal wear and tear or gradual efficiency degradation within expected manufacturer tolerances;<br/> - Force majeure events (typhoons, flooding, lightning, earthquakes, fire);<br/> - Unauthorized modification, tampering, or repair by anyone other than HPH or an HPH-authorized technician;<br/> - Improper use, neglect, or failure to follow maintenance guidelines provided at installation;<br/> - Damage caused by third-party electrical work or structural changes to the property after installation.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">5. Refunds for Undelivered or Incorrect Products</div>
-                <div class="mobile-p">If you paid for a Product that was not delivered, or that was delivered incorrectly (wrong item) due to HPH's error, you are entitled to a full refund or replacement, at your choice, at no additional cost.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">3. How to File a Warranty Claim</h2>
+                <p class="mobile-p">To request service, repair, or replacement under warranty:</p>
+                <p class="mobile-p">1. Contact us at <span style="text-decoration: underline;">inquiries@hphtechsolutions.com</span> or +63 28804 8735 with your Order details, a description of the issue, and photos/videos if available.</p>
+                <p class="mobile-p">2. Our technical team will assess the issue, which may include a site visit.</p>
+                <p class="mobile-p">3. If the issue is confirmed as a covered manufacturing or installation defect, we will proceed with repair or replacement within a reasonable timeframe, depending on parts availability.</p>
+                <p class="mobile-p">4. If the issue is found not to be covered under warranty, we will inform you of the findings and, if you wish, provide a paid-service quotation to address it.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">6. Refund Method and Timeline</div>
-                <div class="mobile-p">6.1. Approved refunds will be issued to the original payment method used (via PayMongo, for card payments) or via bank transfer, as applicable.<br><br>6.2. Refunds are typically processed within 7–15 business days of approval, though actual crediting time may depend on your card issuer or bank.</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">4. Cancellations Before Installation</h2>
+                <p class="mobile-p">4.1. If you wish to cancel an Order before materials have been procured or installation work has begun, you may request a cancellation and refund of your deposit, subject to deduction of any non-recoverable costs already incurred (e.g., payment processing fees, site assessment costs already performed).<br/><br/> 4.2. Once materials have been ordered or procured specifically for your project, or once installation work has commenced, the Order is generally non-cancellable, as costs have already been committed on your behalf. In such cases, cancellation requests will be evaluated case-by-case, and any refund will be net of costs already incurred by HPH.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">7. Your Rights Under Philippine Law</div>
-                <div class="mobile-p">Nothing in this Policy limits your rights under the Consumer Act of the Philippines (RA 7394) or other applicable consumer protection laws. If you believe your consumer rights have been violated, you may file a complaint with the Department of Trade and Industry (DTI).</div>
-            </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">5. Refunds for Undelivered or Incorrect Products</h2>
+                <p class="mobile-p">If you paid for a Product that was not delivered, or that was delivered incorrectly (wrong item) due to HPH's error, you are entitled to a full refund or replacement, at your choice, at no additional cost.</p>
+            </section>
 
-            <div class="mobile-block">
-                <div class="mobile-block-title">8. Contact Us</div>
-                <div class="mobile-p">For warranty claims, cancellations, or refund inquiries, contact:<br><br>HPH Technical Solutions Inc. Unit 111, 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City<br><br>Email: inquiries@hphtechsolutions.com<br>Phone: +63 28804 8735</div>
-            </div>
-        </div>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">6. Refund Method and Timeline</h2>
+                <p class="mobile-p">6.1. Approved refunds will be issued to the original payment method used (via PayMongo, for card payments) or via bank transfer, as applicable.<br/><br/> 6.2. Refunds are typically processed within 7–15 business days of approval, though actual crediting time may depend on your card issuer or bank.</p>
+            </section>
 
-        <div class="mobile-footer">
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Company</div>
-                <div class="mobile-footer-nav">
-                    <a href="../../home/index.html" class="mobile-footer-link">Home</a>
-                    <a href="../../about/index.html" class="mobile-footer-link">About</a>
-                    <a href="../../mission/index.html" class="mobile-footer-link">Mission</a>
-                    <a href="../../products/index.html" class="mobile-footer-link">Products</a>
-                    <a href="../../contact/index.html" class="mobile-footer-link">Contact</a>
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">7. Your Rights Under Philippine Law</h2>
+                <p class="mobile-p">Nothing in this Policy limits your rights under the Consumer Act of the Philippines (RA 7394) or other applicable consumer protection laws. If you believe your consumer rights have been violated, you may file a complaint with the Department of Trade and Industry (DTI).</p>
+            </section>
+
+            <section class="mobile-section">
+                <h2 class="mobile-section-title">8. Contact Us</h2>
+                <p class="mobile-p">For warranty claims, cancellations, or refund inquiries, contact:</p>
+                <p class="mobile-p">HPH Technical Solutions Inc. Unit 111, 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City</p>
+                <p class="mobile-p">Email:<span style="text-decoration: underline;">inquiries@hphtechsolutions.com</span><br/> Phone: +63 28804 8735</p>
+            </section>
+        </main>
+
+        <footer class="mobile-footer">
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Products
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="../../products/product-pages/content1/page1/index.html" class="mobile-footer-link">MX2250</a>
+                    <a href="../../products/product-pages/content1/page2/index.html" class="mobile-footer-link">MSU4000 Elite</a>
+                    <a href="../../products/product-pages/content1/page3/index.html" class="mobile-footer-link">MAU5000 Elite</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Contact Information</div>
-
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Email</div>
-                    <a href="https://mail.google.com/mail/?view=cm&fs=1&to=inquiries@hphtechsolutions.com" target="_blank" rel="noopener">
-                        <div class="mobile-footer-detail">inquiries@hphtechsolutions.com</div>
-                    </a>
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Product Data Sheets
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="../../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MX2250 Micro Inverter</a>
+                    <a href="../../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                    <a href="../../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="mobile-footer-link">MAU5000 Elite AC Coupled Unit</a>
                 </div>
+            </details>
 
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Contact No.</div>
-                    <div class="mobile-footer-detail">+63 2880 84735</div>
-                    <div class="mobile-footer-detail">+63 2852 31142</div>
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Contact
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="mailto:inquiries@hphtechsolutions.com" class="mobile-footer-link">inquiries@hphtechsolutions.com</a>
+                    <a href="tel:+63288084735" class="mobile-footer-link">(+63) 2 880 84735</a>
+                    <a href="tel:+63285231142" class="mobile-footer-link">(+63) 2 852 31142</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Office Location</div>
-
-                <div class="mobile-footer-link-block">
-                    <div class="mobile-footer-label">Google Maps</div>
-                    <a href="https://maps.app.goo.gl/1cWTWwXiwHLpkzpp6" target="_blank">
-                        <div class="mobile-footer-detail">Unit 111 17 Vatican Building, Vatican Street BFRV, Las Piñas City, Las Piñas, Philippines</div>
-                    </a>
-                </div>
-            </div>
-
-            <div class="mobile-footer-section">
-                <div class="mobile-footer-title">Legal Policies</div>
-                <div class="mobile-footer-nav">
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Legal Policies
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
                     <a href="../../legal-policies/terms-and-conditions/index.html" class="mobile-footer-link">Terms and Conditions</a>
                     <a href="../../legal-policies/privacy-policy/index.html" class="mobile-footer-link">Privacy Policy</a>
                     <a href="../../legal-policies/return-and-refund-policy/index.html" class="mobile-footer-link">Return and Refund Policy</a>
                     <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="mobile-footer-link">Confidentiality Agreement (NDA)</a>
                 </div>
-            </div>
+            </details>
 
-            <div class="mobile-bottom-bar">
-                <div class="mobile-bottom-divider"></div>
-                <div class="mobile-copyright">&copy; 2026 HPH Renewable. All rights reserved.</div>
-            </div>
-        </div>
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    TSUN Smart App
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="mobile-footer-link">Google Playstore (Android)</a>
+                    <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="mobile-footer-link">App Store (iOS)</a>
+                </div>
+            </details>
+
+            <div class="mobile-copyright">&copy; 2026 HPH Renewable. All rights reserved.</div>
+        </footer>
     </div>
+
+
+
+
+
+
 
     <script>
         const navItems = document.querySelectorAll(".nav-bar .nav-item");
@@ -564,6 +643,23 @@
                 if (e.key === "Enter" || e.key === " ") copyNumber(e);
             });
         });
+        // ===== MOBILE MENU =====
+        // Mobile menu: app.js toggles the open/active classes; this keeps the
+        // button's accessible state in sync and lets Escape close the menu.
+        const mobileMenuBtn = document.querySelector(".mobile .menu");
+
+        mobileMenuBtn.addEventListener("click", () => {
+            const open = mobileMenuBtn.getAttribute("aria-expanded") !== "true";
+            mobileMenuBtn.setAttribute("aria-expanded", open);
+            mobileMenuBtn.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+        });
+
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && mobileMenuBtn.getAttribute("aria-expanded") === "true") {
+                mobileMenuBtn.click();
+            }
+        });
+        // ===== END MOBILE MENU =====
     </script>
 
 </body>
