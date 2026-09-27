@@ -56,6 +56,10 @@ Every HPH RENEWABLE page loads `HPH RENEWABLE/schedule-visit.js` (an ES module, 
 - Security rules live in `/firestore.rules` (public may create validated requests only; no public reads). If you add or rename a form field, update both `schedule-visit.js` and the field list in `firestore.rules`, or every submission will be rejected.
 - ES modules don't load over `file://` — test the form through a local server (`python3 -m http.server`).
 
+## Live portfolio counters (HPH RENEWABLE)
+
+`HPH RENEWABLE/portfolio-counters.js` (plain `defer` script) reads the installation Google Sheet and fills in the installed-count and total-capacity counters. It's loaded by both `home/` and `portfolio/` and finds its elements by data attributes — `data-portfolio-count="inverters|panels|inverter-capacity|solar-capacity"` (capacities also need `data-unit`), plus optional `data-portfolio-status-dot` / `-status-text` / `-error` — so any page can show them without its own copy of the logic. The per-unit ratings (2.25 kW per inverter, 0.65 kWp per panel) live at the top of that file.
+
 ## Conventions to follow
 
 - Each page's CSS lives in a `styles.css` next to its `index.html`; there is no shared/global stylesheet imported across pages beyond what's copy-pasted from the root `styles.css` patterns (`.hidden`/`.show`, desktop/mobile toggle, font/icon `<link>` tags in `<head>`).

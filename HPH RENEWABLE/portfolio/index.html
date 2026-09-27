@@ -26,6 +26,7 @@
     <!--JAVA SCRIPT-->
     <script defer src="../app.js"></script>
     <script type="module" src="../schedule-visit.js"></script>
+    <script defer src="../portfolio-counters.js"></script>
 <s></s>
 </head>
 <body>
@@ -157,37 +158,37 @@
 
         <div class="portfolio-section">
             <div class="portfolio-status-row">
-                <div class="portfolio-status-dot" id="statusDot"></div>
-                <span id="statusText">Loading&hellip;</span>
+                <div class="portfolio-status-dot" id="statusDot" data-portfolio-status-dot></div>
+                <span id="statusText" data-portfolio-status-text>Loading&hellip;</span>
             </div>
 
-            <div class="portfolio-error" id="errorMessage"></div>
+            <div class="portfolio-error" id="errorMessage" data-portfolio-error></div>
 
             <div class="portfolio-stats">
                 <div class="portfolio-stat">
                     <div class="portfolio-label">Micro Inverters Installed</div>
-                    <div class="portfolio-count loading" id="countInverter">&mdash;</div>
+                    <div class="portfolio-count loading" id="countInverter" data-portfolio-count="inverters">&mdash;</div>
                 </div>
 
                 <div class="portfolio-stat-divider"></div>
 
                 <div class="portfolio-stat">
                     <div class="portfolio-label">Solar Panels Installed</div>
-                    <div class="portfolio-count loading" id="countPanel">&mdash;</div>
+                    <div class="portfolio-count loading" id="countPanel" data-portfolio-count="panels">&mdash;</div>
                 </div>
 
                 <div class="portfolio-stat-divider"></div>
 
                 <div class="portfolio-stat">
                     <div class="portfolio-label">Total Inverter Capacity</div>
-                    <div class="portfolio-count loading" id="capacityInverter" data-unit="kW">&mdash;</div>
+                    <div class="portfolio-count loading" id="capacityInverter" data-portfolio-count="inverter-capacity" data-unit="kW">&mdash;</div>
                 </div>
 
                 <div class="portfolio-stat-divider"></div>
 
                 <div class="portfolio-stat">
                     <div class="portfolio-label">Total Solar Capacity</div>
-                    <div class="portfolio-count loading" id="capacityPanel" data-unit="kWp">&mdash;</div>
+                    <div class="portfolio-count loading" id="capacityPanel" data-portfolio-count="solar-capacity" data-unit="kWp">&mdash;</div>
                 </div>
             </div>
         </div>
@@ -379,30 +380,30 @@
 
         <main class="mobile-main mobile-portfolio">
             <div class="mobile-portfolio-status">
-                <div class="mobile-portfolio-dot" id="mobileStatusDot"></div>
-                <span id="mobileStatusText">Loading&hellip;</span>
+                <div class="mobile-portfolio-dot" id="mobileStatusDot" data-portfolio-status-dot></div>
+                <span id="mobileStatusText" data-portfolio-status-text>Loading&hellip;</span>
             </div>
 
-            <div class="mobile-portfolio-error" id="mobileErrorMessage"></div>
+            <div class="mobile-portfolio-error" id="mobileErrorMessage" data-portfolio-error></div>
 
             <div class="mobile-portfolio-stat">
                 <div class="mobile-portfolio-label">Micro Inverters Installed</div>
-                <div class="mobile-portfolio-count loading" id="mobileCountInverter">&mdash;</div>
+                <div class="mobile-portfolio-count loading" id="mobileCountInverter" data-portfolio-count="inverters">&mdash;</div>
             </div>
 
             <div class="mobile-portfolio-stat">
                 <div class="mobile-portfolio-label">Solar Panels Installed</div>
-                <div class="mobile-portfolio-count loading" id="mobileCountPanel">&mdash;</div>
+                <div class="mobile-portfolio-count loading" id="mobileCountPanel" data-portfolio-count="panels">&mdash;</div>
             </div>
 
             <div class="mobile-portfolio-stat">
                 <div class="mobile-portfolio-label">Total Inverter Capacity</div>
-                <div class="mobile-portfolio-count loading" id="mobileCapacityInverter" data-unit="kW">&mdash;</div>
+                <div class="mobile-portfolio-count loading" id="mobileCapacityInverter" data-portfolio-count="inverter-capacity" data-unit="kW">&mdash;</div>
             </div>
 
             <div class="mobile-portfolio-stat">
                 <div class="mobile-portfolio-label">Total Solar Capacity</div>
-                <div class="mobile-portfolio-count loading" id="mobileCapacityPanel" data-unit="kWp">&mdash;</div>
+                <div class="mobile-portfolio-count loading" id="mobileCapacityPanel" data-portfolio-count="solar-capacity" data-unit="kWp">&mdash;</div>
             </div>
         </main>
 
@@ -593,206 +594,6 @@
                 link.addEventListener("click", e => e.preventDefault());
             }
         });
-
-        // Live-counts Micro Inverter and Solar Panel serial numbers (and their
-        // total kW / kWp capacity) straight from the "HPH Renewable Master
-        // Database" Google Sheet — the same sheet the installation-report
-        // form writes to.
-        const SHEET_ID = "1I7w59tsa54pBLcBUs2T55pb-8lvfLKzCe0in_eY41WY";
-        const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
-        const LIVE_REFRESH_MS = 5000;
-
-        // Each metric: which sheet column to read, which DOM elements to fill
-        // in (desktop + mobile), and the exact token shape that counts as a
-        // valid serial number for it. A cell can contain several serials
-        // separated by a space, comma, slash, or line break — each matching
-        // token is counted as its own entry.
-        const METRICS = [
-            {
-                column: "Micro Inverter SN",
-                els: [document.getElementById("countInverter"), document.getElementById("mobileCountInverter")],
-                // "Y" + 15 alphanumeric characters, e.g. "Y0019A57121D00D2"
-                pattern: /^Y[0-9A-Z]{15}$/i,
-            },
-            {
-                column: "Solar Panel SN",
-                els: [document.getElementById("countPanel"), document.getElementById("mobileCountPanel")],
-                // "Z" + 18 alphanumeric characters, e.g. "Z2026300G1210029683"
-                pattern: /^Z[0-9A-Z]{18}$/i,
-            },
-        ];
-
-        // Capacity totals derived from the counts above: each MX2250 micro
-        // inverter is rated 2,250 W (2.25 kW) and each solar panel 650 W
-        // (0.65 kWp). Shown with their unit (data-unit) after the number.
-        const CAPACITIES = [
-            {
-                from: "Micro Inverter SN",
-                perUnit: 2.25,
-                els: [document.getElementById("capacityInverter"), document.getElementById("mobileCapacityInverter")],
-            },
-            {
-                from: "Solar Panel SN",
-                perUnit: 0.65,
-                els: [document.getElementById("capacityPanel"), document.getElementById("mobileCapacityPanel")],
-            },
-        ];
-
-        const allCountEls = [...METRICS, ...CAPACITIES].flatMap(m => m.els);
-
-        function showCapacity(el, value) {
-            const number = value.toLocaleString(undefined, { maximumFractionDigits: 2 });
-            el.innerHTML = `${number}<span class="portfolio-unit">${el.dataset.unit}</span>`;
-            el.classList.remove("loading");
-        }
-
-        const statusDots = [document.getElementById("statusDot"), document.getElementById("mobileStatusDot")];
-        const statusTexts = [document.getElementById("statusText"), document.getElementById("mobileStatusText")];
-        const errorMessages = [document.getElementById("errorMessage"), document.getElementById("mobileErrorMessage")];
-
-        function parsePortfolioCSV(text) {
-            const rows = [];
-            let row = [];
-            let field = "";
-            let inQuotes = false;
-
-            for (let i = 0; i < text.length; i++) {
-                const char = text[i];
-                const next = text[i + 1];
-
-                if (inQuotes) {
-                    if (char === '"' && next === '"') {
-                        field += '"';
-                        i++;
-                    } else if (char === '"') {
-                        inQuotes = false;
-                    } else {
-                        field += char;
-                    }
-                } else {
-                    if (char === '"') {
-                        inQuotes = true;
-                    } else if (char === ",") {
-                        row.push(field);
-                        field = "";
-                    } else if (char === "\n" || char === "\r") {
-                        if (char === "\r" && next === "\n") i++;
-                        row.push(field);
-                        rows.push(row);
-                        row = [];
-                        field = "";
-                    } else {
-                        field += char;
-                    }
-                }
-            }
-
-            if (field.length > 0 || row.length > 0) {
-                row.push(field);
-                rows.push(row);
-            }
-
-            return rows.filter(r => r.length > 1 || (r.length === 1 && r[0] !== ""));
-        }
-
-        function countPortfolioTokens(cellText, pattern) {
-            if (!cellText) return 0;
-            return cellText
-                .split(/[^A-Za-z0-9]+/)
-                .filter(token => pattern.test(token))
-                .length;
-        }
-
-        async function loadPortfolioCounts() {
-            allCountEls.forEach(el => el && el.classList.add("loading"));
-            statusDots.forEach(d => d && d.classList.remove("error"));
-            statusTexts.forEach(t => t && (t.textContent = "Loading…"));
-            errorMessages.forEach(e => e && e.classList.remove("show"));
-
-            try {
-                const res = await fetch(`${CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
-                if (!res.ok) throw new Error(`Sheet request failed (HTTP ${res.status})`);
-
-                const csvText = await res.text();
-                const rows = parsePortfolioCSV(csvText);
-
-                if (rows.length === 0) throw new Error("Sheet returned no data");
-
-                const header = rows[0];
-                const dataRows = rows.slice(1);
-                const counts = {};
-
-                METRICS.forEach(metric => {
-                    const colIndex = header.findIndex(
-                        h => h.trim().toLowerCase() === metric.column.toLowerCase()
-                    );
-
-                    if (colIndex === -1) {
-                        throw new Error(`Column "${metric.column}" not found in sheet`);
-                    }
-
-                    const count = dataRows.reduce(
-                        (total, r) => total + countPortfolioTokens(r[colIndex], metric.pattern),
-                        0
-                    );
-
-                    counts[metric.column] = count;
-
-                    metric.els.forEach(el => {
-                        if (!el) return;
-                        el.textContent = count.toLocaleString();
-                        el.classList.remove("loading");
-                    });
-                });
-
-                CAPACITIES.forEach(capacity => {
-                    const value = counts[capacity.from] * capacity.perUnit;
-                    capacity.els.forEach(el => el && showCapacity(el, value));
-                });
-
-                statusDots.forEach(d => d && d.classList.remove("paused"));
-                statusTexts.forEach(t => t && (t.textContent = `Live — updated ${new Date().toLocaleTimeString()}`));
-            } catch (err) {
-                allCountEls.forEach(el => {
-                    if (!el) return;
-                    el.textContent = "!";
-                    el.classList.remove("loading");
-                });
-                statusDots.forEach(d => d && d.classList.add("error"));
-                statusTexts.forEach(t => t && (t.textContent = "Failed to load"));
-                errorMessages.forEach(e => {
-                    if (!e) return;
-                    e.textContent = err.message;
-                    e.classList.add("show");
-                });
-            }
-        }
-
-        let portfolioLiveTimer = null;
-
-        function startPortfolioLive() {
-            if (portfolioLiveTimer) return;
-            loadPortfolioCounts();
-            portfolioLiveTimer = setInterval(loadPortfolioCounts, LIVE_REFRESH_MS);
-        }
-
-        function stopPortfolioLive() {
-            if (!portfolioLiveTimer) return;
-            clearInterval(portfolioLiveTimer);
-            portfolioLiveTimer = null;
-            statusDots.forEach(d => d && d.classList.add("paused"));
-            statusTexts.forEach(t => t && (t.textContent = "Paused — tab hidden"));
-        }
-
-        document.addEventListener("visibilitychange", () => {
-            if (document.hidden) {
-                stopPortfolioLive();
-            } else {
-                startPortfolioLive();
-            }
-        });
-
-        startPortfolioLive();
     </script>
 
 </body>

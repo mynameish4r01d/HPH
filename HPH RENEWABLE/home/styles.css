@@ -412,7 +412,7 @@ a:link{
             pointer-events: none;
             background:
                 linear-gradient(to bottom, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0.35) 30%, rgba(0, 0, 0, 0) 50%),
-                linear-gradient(to top, rgba(0, 0, 0, 0.6) 0%, rgba(0, 0, 0, 0) 30%);
+                linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.35) 22%, rgba(0, 0, 0, 0) 40%);
         }
 
         /* Headline + copy pinned top-center just under the nav bar, buttons
@@ -914,7 +914,7 @@ body.menu-open{
             inset: 0;
             background:
                 linear-gradient(to bottom, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.45) 35%, rgba(0, 0, 0, 0) 55%),
-                linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0) 30%);
+                linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.45) 25%, rgba(0, 0, 0, 0) 50%);
         }
 
         /* Headline + copy pinned top-center just under the fixed nav bar,
@@ -1096,5 +1096,140 @@ body.menu-open{
     /*MOBILE VIEW ONLY*/
     .mobile{
         display: block;
+    }
+}
+
+
+
+
+/* ===== LIVE PORTFOLIO COUNTERS =====
+   Filled in by ../portfolio-counters.js (same sheet and numbers as the
+   Portfolio page). Overlaid on the bottom of the hero video in white:
+   desktop as one row, mobile as a 2×2 grid. Kept outside the .mobile block
+   above so the shared mobile nav/menu/footer stays identical to other pages. */
+
+.stats-section, .mobile-stats{
+    font-family: inter;
+    color: rgb(255, 255, 255);
+
+    .portfolio-error, .mobile-portfolio-error{
+        display: none;
+        order: 1;
+        margin-top: 12px;
+        font-size: 12px;
+        color: #FF8A80;
+
+        &.show{
+            display: block;
+        }
+    }
+
+    .portfolio-label, .mobile-portfolio-label{
+        font-size: 13px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.72);
+    }
+
+    .portfolio-count, .mobile-portfolio-count{
+        white-space: nowrap;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.02em;
+        color: rgb(255, 255, 255);
+        font-variant-numeric: tabular-nums;
+        transition: opacity 0.2s ease;
+
+        &.loading{
+            opacity: 0.35;
+        }
+    }
+
+    .portfolio-unit{
+        margin-left: 6px;
+        font-size: 0.4em;
+        font-weight: 600;
+        letter-spacing: 0;
+        color: rgba(255, 255, 255, 0.72);
+    }
+}
+
+/* Desktop: one row across the bottom of the hero video. z-index 8 keeps it
+   above the hero's text layer (7). */
+.stats-section{
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 56px;
+    z-index: 8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .portfolio-stats{
+        width: min(1200px, 90vw);
+        display: flex;
+        align-items: stretch;
+        gap: clamp(20px, 3vw, 56px);
+    }
+
+    .portfolio-stat{
+        flex: 1 1 0;
+        min-width: 0;
+        text-align: center;
+    }
+
+    .portfolio-stat-divider{
+        flex: none;
+        width: 1px;
+        background-color: rgba(255, 255, 255, 0.25);
+    }
+
+    .portfolio-label{
+        margin-bottom: 12px;
+    }
+
+    .portfolio-count{
+        font-size: clamp(26px, 3vw, 52px);
+    }
+}
+
+/* Mobile: 2×2 grid at the bottom of the hero video — installed counts on
+   the top row, capacities below. (Children: the error line, then the four
+   counters, so the counters are nth-child 2–5.) */
+.mobile-stats{
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    text-align: center;
+
+    .mobile-portfolio-error{
+        grid-column: 1 / -1;
+    }
+
+    .mobile-portfolio-stat{
+        min-width: 0;
+        padding: 16px 6px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+
+        &:nth-child(3), &:nth-child(5){
+            border-left: 1px solid rgba(255, 255, 255, 0.25);
+        }
+
+        &:nth-child(4), &:nth-child(5){
+            border-top: 1px solid rgba(255, 255, 255, 0.25);
+        }
+    }
+
+    .mobile-portfolio-label{
+        margin-bottom: 8px;
+        font-size: 12px;
+    }
+
+    /* margin-top: auto keeps numbers in a row level if a label wraps. */
+    .mobile-portfolio-count{
+        margin-top: auto;
+        font-size: clamp(24px, 8vw, 34px);
     }
 }

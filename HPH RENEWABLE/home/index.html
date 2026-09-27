@@ -26,6 +26,7 @@
     <!--JAVA SCRIPT-->
     <script defer src="../app.js"></script>
     <script type="module" src="../schedule-visit.js"></script>
+    <script defer src="../portfolio-counters.js"></script>
 
 </head>
 <body>
@@ -168,6 +169,39 @@
                         </div>
 
                         <div class="details">Affordability is for everyone.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Live portfolio counters — filled in by ../portfolio-counters.js -->
+            <div class="stats-section">
+                <div class="portfolio-error" data-portfolio-error></div>
+
+                <div class="portfolio-stats">
+                    <div class="portfolio-stat">
+                        <div class="portfolio-label">Micro Inverters Installed</div>
+                        <div class="portfolio-count loading" data-portfolio-count="inverters">&mdash;</div>
+                    </div>
+
+                    <div class="portfolio-stat-divider"></div>
+
+                    <div class="portfolio-stat">
+                        <div class="portfolio-label">Solar Panels Installed</div>
+                        <div class="portfolio-count loading" data-portfolio-count="panels">&mdash;</div>
+                    </div>
+
+                    <div class="portfolio-stat-divider"></div>
+
+                    <div class="portfolio-stat">
+                        <div class="portfolio-label">Total Inverter Capacity</div>
+                        <div class="portfolio-count loading" data-portfolio-count="inverter-capacity" data-unit="kW">&mdash;</div>
+                    </div>
+
+                    <div class="portfolio-stat-divider"></div>
+
+                    <div class="portfolio-stat">
+                        <div class="portfolio-label">Total Solar Capacity</div>
+                        <div class="portfolio-count loading" data-portfolio-count="solar-capacity" data-unit="kWp">&mdash;</div>
                     </div>
                 </div>
             </div>
@@ -362,6 +396,31 @@
 
                     <p class="mobile-hero-details">Affordability is for everyone.</p>
                 </div>
+
+                <!-- Live portfolio counters — filled in by ../portfolio-counters.js -->
+                <section class="mobile-stats">
+                    <div class="mobile-portfolio-error" data-portfolio-error></div>
+
+                    <div class="mobile-portfolio-stat">
+                        <div class="mobile-portfolio-label">Micro Inverters Installed</div>
+                        <div class="mobile-portfolio-count loading" data-portfolio-count="inverters">&mdash;</div>
+                    </div>
+
+                    <div class="mobile-portfolio-stat">
+                        <div class="mobile-portfolio-label">Solar Panels Installed</div>
+                        <div class="mobile-portfolio-count loading" data-portfolio-count="panels">&mdash;</div>
+                    </div>
+
+                    <div class="mobile-portfolio-stat">
+                        <div class="mobile-portfolio-label">Total Inverter Capacity</div>
+                        <div class="mobile-portfolio-count loading" data-portfolio-count="inverter-capacity" data-unit="kW">&mdash;</div>
+                    </div>
+
+                    <div class="mobile-portfolio-stat">
+                        <div class="mobile-portfolio-label">Total Solar Capacity</div>
+                        <div class="mobile-portfolio-count loading" data-portfolio-count="solar-capacity" data-unit="kWp">&mdash;</div>
+                    </div>
+                </section>
             </div>
         </div>
 
