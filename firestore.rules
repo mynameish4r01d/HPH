@@ -41,7 +41,9 @@ service cloud.firestore {
     // and isAdmin() in /storage.rules.
     function isAdmin() {
       return request.auth != null
-        && request.auth.token.email in ['harold.t.hermosa@gmail.com'];
+        && request.auth.token.email in ['harold.t.hermosa@gmail.com',
+                                     'jeff.hermosa@hphtechsolutions.com',
+                                     'lerin.hermosa@hphtechsolutions.com'];
     }
 
     // Admin "Mark as done" / "Mark as contacted" (and undo): only status, completedAt and

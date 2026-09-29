@@ -17,7 +17,11 @@
 import { firebaseConfig } from "../firebase-config.js";
 
 const FIREBASE_VERSION = "12.3.0";
-const ADMIN_EMAILS = ["harold.t.hermosa@gmail.com"];
+const ADMIN_EMAILS = [
+    "harold.t.hermosa@gmail.com",
+    "jeff.hermosa@hphtechsolutions.com",
+    "lerin.hermosa@hphtechsolutions.com",
+];
 const MAX_ROWS = 500;
 
 const status = document.querySelector(".admin-status");
