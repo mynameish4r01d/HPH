@@ -21,12 +21,12 @@
 
   <link rel="icon" type="image/x-icon" href="../global-elements/favicon.png">
 
-    <title>HPH RENEWABLE</title>
+    <title>Share Your Feedback | HPH RENEWABLE</title>
 
     <!--JAVA SCRIPT-->
     <script defer src="../app.js"></script>
-    <script defer src="../portfolio-counters.js"></script>
-<s></s>
+    <script type="module" src="feedback-form.js"></script>
+
 </head>
 <body>
 
@@ -153,58 +153,155 @@
                 </div>
             </div>
         </div>
+    </div>
 
+    <div class="mobile">
+        <div class="mobile-nav">
+            <a href="../home/index.html" class="mobile-logo">
+                <img src="../global-elements/HPH Renewable White.png" alt="HPH Renewable" class="img">
+            </a>
 
-        <div class="portfolio-section">
-            <div class="portfolio-status-row">
-                <div class="portfolio-status-dot" id="statusDot" data-portfolio-status-dot></div>
-                <span id="statusText" data-portfolio-status-text>Loading&hellip;</span>
-            </div>
-
-            <div class="portfolio-error" id="errorMessage" data-portfolio-error></div>
-
-            <div class="portfolio-stats">
-                <div class="portfolio-stat">
-                    <div class="portfolio-label">Micro Inverters Installed</div>
-                    <div class="portfolio-count loading" id="countInverter" data-portfolio-count="inverters">&mdash;</div>
-                </div>
-
-                <div class="portfolio-stat-divider"></div>
-
-                <div class="portfolio-stat">
-                    <div class="portfolio-label">Solar Panels Installed</div>
-                    <div class="portfolio-count loading" id="countPanel" data-portfolio-count="panels">&mdash;</div>
-                </div>
-
-                <div class="portfolio-stat-divider"></div>
-
-                <div class="portfolio-stat">
-                    <div class="portfolio-label">Total Inverter Capacity</div>
-                    <div class="portfolio-count loading" id="capacityInverter" data-portfolio-count="inverter-capacity" data-unit="kW">&mdash;</div>
-                </div>
-
-                <div class="portfolio-stat-divider"></div>
-
-                <div class="portfolio-stat">
-                    <div class="portfolio-label">Total Solar Capacity</div>
-                    <div class="portfolio-count loading" id="capacityPanel" data-portfolio-count="solar-capacity" data-unit="kWp">&mdash;</div>
-                </div>
-            </div>
+            <button type="button" class="menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+                <span class="menu-line"></span>
+                <span class="menu-line"></span>
+            </button>
         </div>
 
-        <div class="feedback-section">
-            <div class="feedback-title">Share Your Experiences</div>
-            <div class="feedback-text">Your experience matters. Let us know how it <br>went and what we can improve.</div>
+        <nav class="dropdown" id="mobile-menu" aria-label="Main menu">
+            <div class="dropdown-inner">
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Discover
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../about/index.html" class="menu-link">About Us</a>
 
-            <a href="../feedback/index.html" class="feedback-link feedback-btn">Send Feedback</a>
+                        <div class="menu-heading">Legal Policies</div>
+                        <a href="../legal-policies/terms-and-conditions/index.html" class="menu-link">Terms and Conditions</a>
+                        <a href="../legal-policies/privacy-policy/index.html" class="menu-link">Privacy Policy</a>
+                        <a href="../legal-policies/return-and-refund-policy/index.html" class="menu-link">Return and Refund Policy</a>
+                        <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="menu-link">Confidentiality Agreement (NDA)</a>
+                    </div>
+                </details>
 
-            <div class="feedback-image-wrap">
-                <img src="elements/element1.png" alt="A house with solar panels on its roof" class="feedback-image">
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Products
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <div class="menu-heading">Products</div>
+                        <a href="../products/product-pages/content1/page1/index.html" class="menu-link">MX2250</a>
+                        <a href="../products/product-pages/content1/page2/index.html" class="menu-link">MSU4000 Elite</a>
+                        <a href="../products/product-pages/content1/page3/index.html" class="menu-link">MAU5000 Elite</a>
+
+                        <div class="menu-heading">Battery Expansion</div>
+                        <a href="../products/product-pages/content2/page1/index.html" class="menu-link">B4000 Elite</a>
+                        <a href="../products/product-pages/content2/page2/index.html" class="menu-link">B5000 Elite</a>
+
+                        <div class="menu-heading">Product Data Sheets</div>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="menu-link">MX2250 Micro Inverter</a>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MAU5000 Elite AC Coupled Unit</a>
+
+                        <div class="menu-heading">TSUN Smart App</div>
+                        <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="menu-link">Google Play Store (Android)</a>
+                        <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="menu-link">Apple App Store (iOS)</a>
+                    </div>
+                </details>
+
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Support
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../contact/index.html" class="menu-link">Contact Us</a>
+                        <a href="../faq/index.html" class="menu-link">Frequently Asked Questions</a>
+
+                        <div class="menu-heading">Contact Number</div>
+                        <a href="tel:+63288084735" class="menu-link">(+63) 2 880 84735</a>
+                        <a href="tel:+63285231142" class="menu-link">(+63) 2 852 31142</a>
+
+                        <div class="menu-heading">Support Email</div>
+                        <a href="mailto:inquiries@hphtechsolutions.com" class="menu-link">inquiries@hphtechsolutions.com</a>
+
+                        <div class="menu-heading">Office Address</div>
+                        <a href="https://maps.app.goo.gl/okz2G6zCGjfVaTua7" target="_blank" rel="noopener" class="menu-link">Unit 111 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City</a>
+                    </div>
+                </details>
+
+                <a href="../portfolio/index.html" class="menu-title">Portfolio</a>
+
+                <a href="../schedule-a-visit/index.html" class="menu-cta">Schedule a Visit</a>
             </div>
+        </nav>
+    </div>
+
+    <main class="visit-page">
+        <section class="visit-hero">
+            <h1 class="visit-title">Share Your Experience</h1>
+            <p class="visit-intro">Your experience matters. Let us know how it went and what we can improve.</p>
+        </section>
+
+        <!-- Handled by feedback-form.js: saved to Firestore (collection
+             "feedback"). Field names must match firestore.rules. -->
+        <form class="visit-form" novalidate>
+            <fieldset class="visit-field visit-span visit-rating-field">
+                <legend class="visit-label">How would you rate your experience?</legend>
+                <div class="visit-rating">
+                    <input type="radio" name="rating" id="rating-5" value="5" required><label for="rating-5" title="5 — Excellent"><span class="material-symbols-rounded">star</span></label>
+                    <input type="radio" name="rating" id="rating-4" value="4"><label for="rating-4" title="4 — Good"><span class="material-symbols-rounded">star</span></label>
+                    <input type="radio" name="rating" id="rating-3" value="3"><label for="rating-3" title="3 — Okay"><span class="material-symbols-rounded">star</span></label>
+                    <input type="radio" name="rating" id="rating-2" value="2"><label for="rating-2" title="2 — Poor"><span class="material-symbols-rounded">star</span></label>
+                    <input type="radio" name="rating" id="rating-1" value="1"><label for="rating-1" title="1 — Very poor"><span class="material-symbols-rounded">star</span></label>
+                </div>
+                <span class="visit-hint"></span>
+            </fieldset>
+
+            <div class="visit-grid">
+                <label class="visit-field visit-span">
+                    <span class="visit-label">Your feedback</span>
+                    <textarea name="message" rows="6" required maxlength="2000" placeholder="What went well, and what could we do better?"></textarea>
+                    <span class="visit-hint"></span>
+                </label>
+
+                <label class="visit-field">
+                    <span class="visit-label">Name <span class="visit-optional">(optional)</span></span>
+                    <input type="text" name="name" autocomplete="name" maxlength="100">
+                    <span class="visit-hint"></span>
+                </label>
+
+                <label class="visit-field">
+                    <span class="visit-label">Email or mobile number <span class="visit-optional">(optional)</span></span>
+                    <input type="text" name="contact" autocomplete="email" maxlength="200" placeholder="So we can follow up">
+                    <span class="visit-hint"></span>
+                </label>
+            </div>
+
+            <!-- Spam trap: hidden from people, often filled in by bots. -->
+            <input type="text" name="website" class="visit-trap" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+            <label class="visit-consent">
+                <input type="checkbox" name="allowPublish">
+                <span>You may share my feedback on your website (first name only).</span>
+            </label>
+
+            <p class="visit-error" role="alert" hidden></p>
+
+            <button type="submit" class="visit-submit">Send Feedback</button>
+        </form>
+
+        <div class="visit-success" hidden>
+            <span class="material-symbols-rounded visit-success-icon">check_circle</span>
+            <h2 class="visit-success-title">Thank you!</h2>
+            <p class="visit-success-text">We've received your feedback and appreciate you taking the time to share it.</p>
+            <a href="../portfolio/index.html" class="visit-submit visit-home">Back to Portfolio</a>
         </div>
+    </main>
 
-
-
+    <div class="desktop">
         <div class="bottom-content">
             <div class="flex-box">
                 <div class="text-container">
@@ -292,128 +389,7 @@
         </div>
     </div>
 
-
     <div class="mobile">
-        <div class="mobile-nav">
-            <a href="../home/index.html" class="mobile-logo">
-                <img src="../global-elements/HPH Renewable White.png" alt="HPH Renewable" class="img">
-            </a>
-
-            <button type="button" class="menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
-                <span class="menu-line"></span>
-                <span class="menu-line"></span>
-            </button>
-        </div>
-
-        <nav class="dropdown" id="mobile-menu" aria-label="Main menu">
-            <div class="dropdown-inner">
-                <details class="menu-group" name="mobile-menu">
-                    <summary class="menu-title">
-                        Discover
-                        <span class="material-symbols-rounded chevron">expand_more</span>
-                    </summary>
-                    <div class="menu-links">
-                        <a href="../about/index.html" class="menu-link">About Us</a>
-
-                        <div class="menu-heading">Legal Policies</div>
-                        <a href="../legal-policies/terms-and-conditions/index.html" class="menu-link">Terms and Conditions</a>
-                        <a href="../legal-policies/privacy-policy/index.html" class="menu-link">Privacy Policy</a>
-                        <a href="../legal-policies/return-and-refund-policy/index.html" class="menu-link">Return and Refund Policy</a>
-                        <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="menu-link">Confidentiality Agreement (NDA)</a>
-                    </div>
-                </details>
-
-                <details class="menu-group" name="mobile-menu">
-                    <summary class="menu-title">
-                        Products
-                        <span class="material-symbols-rounded chevron">expand_more</span>
-                    </summary>
-                    <div class="menu-links">
-                        <div class="menu-heading">Products</div>
-                        <a href="../products/product-pages/content1/page1/index.html" class="menu-link">MX2250</a>
-                        <a href="../products/product-pages/content1/page2/index.html" class="menu-link">MSU4000 Elite</a>
-                        <a href="../products/product-pages/content1/page3/index.html" class="menu-link">MAU5000 Elite</a>
-
-                        <div class="menu-heading">Battery Expansion</div>
-                        <a href="../products/product-pages/content2/page1/index.html" class="menu-link">B4000 Elite</a>
-                        <a href="../products/product-pages/content2/page2/index.html" class="menu-link">B5000 Elite</a>
-
-                        <div class="menu-heading">Product Data Sheets</div>
-                        <a href="../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="menu-link">MX2250 Micro Inverter</a>
-                        <a href="../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
-                        <a href="../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MAU5000 Elite AC Coupled Unit</a>
-
-                        <div class="menu-heading">TSUN Smart App</div>
-                        <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="menu-link">Google Play Store (Android)</a>
-                        <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="menu-link">Apple App Store (iOS)</a>
-                    </div>
-                </details>
-
-                <details class="menu-group" name="mobile-menu">
-                    <summary class="menu-title">
-                        Support
-                        <span class="material-symbols-rounded chevron">expand_more</span>
-                    </summary>
-                    <div class="menu-links">
-                        <a href="../contact/index.html" class="menu-link">Contact Us</a>
-                        <a href="../faq/index.html" class="menu-link">Frequently Asked Questions</a>
-
-                        <div class="menu-heading">Contact Number</div>
-                        <a href="tel:+63288084735" class="menu-link">(+63) 2 880 84735</a>
-                        <a href="tel:+63285231142" class="menu-link">(+63) 2 852 31142</a>
-
-                        <div class="menu-heading">Support Email</div>
-                        <a href="mailto:inquiries@hphtechsolutions.com" class="menu-link">inquiries@hphtechsolutions.com</a>
-
-                        <div class="menu-heading">Office Address</div>
-                        <a href="https://maps.app.goo.gl/okz2G6zCGjfVaTua7" target="_blank" rel="noopener" class="menu-link">Unit 111 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City</a>
-                    </div>
-                </details>
-
-                <a href="../portfolio/index.html" class="menu-title">Portfolio</a>
-
-                <a href="../schedule-a-visit/index.html" class="menu-cta">Schedule a Visit</a>
-            </div>
-        </nav>
-
-        <main class="mobile-main mobile-portfolio">
-            <div class="mobile-portfolio-status">
-                <div class="mobile-portfolio-dot" id="mobileStatusDot" data-portfolio-status-dot></div>
-                <span id="mobileStatusText" data-portfolio-status-text>Loading&hellip;</span>
-            </div>
-
-            <div class="mobile-portfolio-error" id="mobileErrorMessage" data-portfolio-error></div>
-
-            <div class="mobile-portfolio-stat">
-                <div class="mobile-portfolio-label">Micro Inverters Installed</div>
-                <div class="mobile-portfolio-count loading" id="mobileCountInverter" data-portfolio-count="inverters">&mdash;</div>
-            </div>
-
-            <div class="mobile-portfolio-stat">
-                <div class="mobile-portfolio-label">Solar Panels Installed</div>
-                <div class="mobile-portfolio-count loading" id="mobileCountPanel" data-portfolio-count="panels">&mdash;</div>
-            </div>
-
-            <div class="mobile-portfolio-stat">
-                <div class="mobile-portfolio-label">Total Inverter Capacity</div>
-                <div class="mobile-portfolio-count loading" id="mobileCapacityInverter" data-portfolio-count="inverter-capacity" data-unit="kW">&mdash;</div>
-            </div>
-
-            <div class="mobile-portfolio-stat">
-                <div class="mobile-portfolio-label">Total Solar Capacity</div>
-                <div class="mobile-portfolio-count loading" id="mobileCapacityPanel" data-portfolio-count="solar-capacity" data-unit="kWp">&mdash;</div>
-            </div>
-        </main>
-
-        <section class="mobile-feedback">
-            <h2 class="mobile-feedback-title">Share Your Experiences</h2>
-            <p class="mobile-p">Your experience matters. Let us know how it <br/>went and what we can improve.</p>
-            <a href="../feedback/index.html" class="feedback-link mobile-feedback-btn">Send Feedback</a>
-            <div class="mobile-feedback-image-wrap">
-                <img src="elements/element1.png" alt="A house with solar panels on its roof" class="mobile-feedback-image">
-            </div>
-        </section>
-
         <footer class="mobile-footer">
             <details class="mobile-footer-group" name="mobile-footer">
                 <summary class="mobile-footer-title">
@@ -478,12 +454,6 @@
             <div class="mobile-copyright">&copy; 2026 HPH Renewable. All rights reserved.</div>
         </footer>
     </div>
-
-
-
-
-
-
 
     <script>
         const navItems = document.querySelectorAll(".nav-bar .nav-item");

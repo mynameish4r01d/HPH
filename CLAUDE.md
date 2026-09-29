@@ -50,11 +50,18 @@ CSS uses native nested selectors (e.g. `.desktop { .content { .text-container { 
 
 ## "Schedule a Visit" form (HPH RENEWABLE, Firebase)
 
-Every HPH RENEWABLE page loads `HPH RENEWABLE/schedule-visit.js` (an ES module, `<script type="module">` right after the `app.js` tag). It intercepts clicks on any link to the old Schedule a Visit Google Form (`forms.gle/orQuM7UsENUJpYNd6`) and opens a built-in dialog form instead (styles in `HPH RENEWABLE/schedule-visit.css`). Submissions are written to Firestore, collection `visitRequests`, using the web config in `HPH RENEWABLE/firebase-config.js`; the Firebase SDK is loaded from gstatic only on first submit.
+Every "Schedule a Visit" link on HPH RENEWABLE points to the dedicated page `HPH RENEWABLE/schedule-a-visit/` (same tab; product pages append `?product=<name>`, which pre-selects the product). The form there is one shared block (`<main class="visit-page">`, outside `.desktop`/`.mobile`, like the FAQ page) handled by `schedule-a-visit/visit-form.js` (ES module). Answers go to Firestore collection `visitRequests`; optional attachments (≤3 images/PDFs, 10 MB each) go to Cloud Storage under `visitRequests/<request id>/`, and their paths are stored in the request's `attachments` field. Firebase settings: `HPH RENEWABLE/firebase-config.js` (while `projectId` starts with `YOUR_`, submitting shows a call/email fallback message). The SDK loads from gstatic only on submit.
 
-- Keep the Schedule a Visit links pointing at the Google Form URL — that's both the hook the script matches on and the fallback if Firebase isn't configured (placeholder `projectId` starting with `YOUR_`) or the module fails to load.
-- Security rules live in `/firestore.rules` (public may create validated requests only; no public reads). If you add or rename a form field, update both `schedule-visit.js` and the field list in `firestore.rules`, or every submission will be rejected.
+- Security rules: `/firestore.rules` and `/storage.rules` — the public may create validated requests/files only; no public reads, edits or deletes. If you add or rename a form field, update `visit-form.js` and the field list in `firestore.rules`, or every submission will be rejected; upload limits live in both `visit-form.js` and `storage.rules`.
 - ES modules don't load over `file://` — test the form through a local server (`python3 -m http.server`).
+
+## Feedback form (HPH RENEWABLE, Firebase)
+
+The Portfolio page's "Send Feedback" buttons link to `HPH RENEWABLE/feedback/`, built the same way as the Schedule a Visit page (shared `<main class="visit-page">`, same `visit-*` form styles, plus a star rating). `feedback/feedback-form.js` saves to Firestore collection `feedback` in the same project (not a separate database); its field list is validated by `isValidFeedback` in `/firestore.rules`.
+
+## 3D model slides (MAU5000 Elite, MSU4000 Elite and B5000 Elite product pages)
+
+`products/product-pages/content1/page3/` shows a 3D model as the carousel's 2nd slide using Google's `<model-viewer>` web component (loaded from jsDelivr in that page's `<head>`). It displays `elements/mau5000elite.glb`, a web-optimised version of the supplied `elements/mau5000elite.gltf` (19 MB, mm units, 1M triangles, no normals, near-white material): scaled to metres for AR, rotated +90° about X to stand upright (the export lies on its back, front panel facing up), simplified to ~267k triangles, smooth normals added, material set to charcoal, Draco-compressed (~1 MB). Re-export from the source if the model changes rather than editing the .glb. `content1/page2/` (MSU4000 Elite) does the same with `elements/msu4000elite.glb`, built the same way from `elements/mau4000elite.gltf` (the source file's name says "mau", but it is the MSU4000; ~945k → ~236k triangles, ~1 MB). `content2/page2/` (B5000 Elite) likewise shows `elements/b5000elite.glb` from `elements/b5000elite.gltf` (~607k → ~243k triangles, ~0.95 MB); adding the 3D slide made its carousel two slides, so its mobile carousel no longer has the `mobile-carousel-single` class that hid the arrows/dots. Styles are top-level `.carousel-slide-3d` / `.mobile-carousel-slide-3d` rules in each page's `styles.css`; the carousel's touch-swipe handler ignores drags that start on a `<model-viewer>` so they rotate the model instead.
 
 ## Live portfolio counters (HPH RENEWABLE)
 

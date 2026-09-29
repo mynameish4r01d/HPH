@@ -1,0 +1,21 @@
+rules_version = '2';
+
+// Cloud Storage security rules for HPH Renewable.
+// Paste into: Firebase console → Storage → Rules → Publish.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Files attached to "Schedule a Visit" requests (HPH RENEWABLE/schedule-a-visit/).
+    // Anyone may upload a new image or PDF of up to 10 MB into a request's
+    // folder; nobody can list, download, replace or delete files from the
+    // website. View them in the Firebase console → Storage → visitRequests.
+    match /visitRequests/{requestId}/{fileName} {
+      allow create: if resource == null
+                    && request.resource.size <= 10 * 1024 * 1024
+                    && (request.resource.contentType.matches('image/.*')
+                        || request.resource.contentType == 'application/pdf');
+      allow read, update, delete: if false;
+    }
+  }
+}

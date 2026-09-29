@@ -1,19 +1,22 @@
-// Firebase web app settings for HPH Renewable's "Schedule a Visit" form.
+// Firebase web app settings for HPH Renewable's "Schedule a Visit" page
+// (schedule-a-visit/).
 //
 // Paste the values from: Firebase console → Project settings → General →
 // Your apps → (your Web app) → SDK setup and configuration → Config.
 //
 // These values are safe to publish — a Firebase web config only identifies
-// the project. What visitors can do is controlled by the Firestore security
-// rules in /firestore.rules (they can submit requests, but not read them).
+// the project. What visitors can do is controlled by the security rules in
+// /firestore.rules and /storage.rules (they can submit requests and upload
+// files, but not read, change or delete anything).
 //
-// While projectId still starts with "YOUR_", the site keeps opening the old
-// Google Form instead of the built-in form.
+// While projectId still starts with "YOUR_", the form can't be submitted and
+// shows visitors a call/email message instead.
 export const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID",
+    apiKey: "AIzaSyBFkk-_mU0iTaO3mgpZtUSNjp540Rrz_-g",
+    authDomain: "hphrenewable-7c146.firebaseapp.com",
+    projectId: "hphrenewable-7c146",
+    storageBucket: "hphrenewable-7c146.firebasestorage.app",
+    messagingSenderId: "603260343870",
+    appId: "1:603260343870:web:a67133ea2d18b7d360e36f",
+    measurementId: "G-CYS8HCCWVD",
 };

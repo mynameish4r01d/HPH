@@ -6,11 +6,19 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // "Schedule a Visit" requests from the website (HPH RENEWABLE/schedule-visit.js).
+    // "Schedule a Visit" requests from the website (HPH RENEWABLE/schedule-a-visit/).
     // Anyone may submit a well-formed request; nobody can read, change or
     // delete requests from the website. View them in the Firebase console.
     match /visitRequests/{requestId} {
       allow create: if isValidVisitRequest(request.resource.data);
+      allow read, update, delete: if false;
+    }
+
+    // "Share Your Experience" feedback from the website (HPH RENEWABLE/feedback/).
+    // Same idea: anyone may submit well-formed feedback; nobody can read,
+    // change or delete it from the website.
+    match /feedback/{feedbackId} {
+      allow create: if isValidFeedback(request.resource.data);
       allow read, update, delete: if false;
     }
 
@@ -21,7 +29,7 @@ service cloud.firestore {
     function isValidVisitRequest(data) {
       let fields = ['name', 'phone', 'email', 'address', 'propertyType', 'product',
                     'monthlyBill', 'preferredDate', 'preferredTime', 'message',
-                    'consent', 'sourcePage', 'status', 'createdAt'];
+                    'attachments', 'consent', 'sourcePage', 'status', 'createdAt'];
       return data.keys().hasOnly(fields)
         && data.keys().hasAll(fields)
         && isText(data.name, 1, 100)
@@ -34,7 +42,26 @@ service cloud.firestore {
         && isText(data.preferredDate, 0, 10)
         && isText(data.preferredTime, 1, 50)
         && isText(data.message, 0, 2000)
+        // Cloud Storage paths of uploaded files (see /storage.rules), max 3.
+        && data.attachments is list
+        && data.attachments.size() <= 3
         && data.consent == true
+        && isText(data.sourcePage, 0, 300)
+        && data.status == 'new'
+        && data.createdAt == request.time;
+    }
+
+    function isValidFeedback(data) {
+      let fields = ['rating', 'message', 'name', 'contact', 'allowPublish',
+                    'sourcePage', 'status', 'createdAt'];
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && data.rating is int
+        && data.rating >= 1 && data.rating <= 5
+        && isText(data.message, 1, 2000)
+        && isText(data.name, 0, 100)
+        && isText(data.contact, 0, 200)
+        && data.allowPublish is bool
         && isText(data.sourcePage, 0, 300)
         && data.status == 'new'
         && data.createdAt == request.time;

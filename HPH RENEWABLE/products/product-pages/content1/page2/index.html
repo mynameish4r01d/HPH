@@ -25,7 +25,8 @@
 
     <!--JAVA SCRIPT-->
     <script defer src="../../../../app.js"></script>
-    <script type="module" src="../../../../schedule-visit.js"></script>
+    <!-- 3D model viewer (Google <model-viewer>) for the carousel's 3D slide -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js"></script>
 
 </head>
 <body>
@@ -64,7 +65,7 @@
                     <a href="../../../../portfolio/index.html" class="nav-link">Portfolio</a>
                 </div>
 
-                <a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank">
+                <a href="../../../../schedule-a-visit/index.html?product=MSU4000%20Elite">
                     <div class="schedule-btn">
                         Schedule a Visit
                     </div>
@@ -82,7 +83,7 @@
                             </div>
                             <div class="mega-col">
                                 <div class="mega-heading">Youtube Videos</div>
-                                <a href="#" class="mega-link">How We’re Changing The Country</a>
+                                <a href="https://youtu.be/Px5OuYUTYLQ" class="mega-link">How We’re Changing The Country</a>
                                 <a href="#" class="mega-link">Why Micro Inverter’s Are The Way To Go</a>
                                 <a href="#" class="mega-link">A Look Into The Future</a>
                             </div>
@@ -109,11 +110,11 @@
                             <div class="mega-col">
                                 <div class="mega-heading">Youtube Videos</div>
                                 <a href="#" class="mega-link">Meet The MX2250</a>
-                                <a href="#" class="mega-link">Meet The MSU4000 Elite</a>
-                                <a href="#" class="mega-link">Meet The MAU5000 Elite</a>
+                                <a href="https://youtu.be/FcEKftBwtGI?si=ZNtmDQpuAWwM-RW-" class="mega-link">Meet The MSU4000 Elite</a>
+                                <a href="https://youtu.be/HGjHCflvIZs?si=UQK0lXUT7w8jleX_" class="mega-link">Meet The MAU5000 Elite</a>
                                 <a href="#" class="mega-link">How Micro Inverters Work</a>
-                                <a href="#" class="mega-link">Solar Panels 101</a>
-                                <a href="#" class="mega-link">How Solar Panels Are Wired</a>
+                                <a href="https://youtu.be/6uRuMsGQtxo" class="mega-link">Solar Panels 101</a>
+                                <a href="https://youtu.be/6uRuMsGQtxo" class="mega-link">How Solar Panels Are Wired</a>
                                 <a href="#" class="mega-link">Solar Only Or Solar + Battery</a>
                             </div>
                             <div class="mega-col">
@@ -162,6 +163,11 @@
                         <div class="carousel-track">
                             <div class="carousel-slide">
                                 <img src="elements/photo/element1.png" alt="MSU4000 Elite" class="img">
+                            </div>
+                            <!-- 3D model: optimised from elements/mau4000elite.gltf (see CLAUDE.md) -->
+                            <div class="carousel-slide carousel-slide-3d">
+                                <model-viewer class="model" src="elements/msu4000elite.glb" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"></model-viewer>
+                                <div class="model-hint"><span class="material-symbols-rounded">3d_rotation</span>Drag to rotate</div>
                             </div>
                             <div class="carousel-slide carousel-placeholder-2">
                                 <video class="video" muted loop playsinline>
@@ -396,7 +402,7 @@
 
                 <a href="../../../../portfolio/index.html" class="menu-title">Portfolio</a>
 
-                <a href="https://forms.gle/orQuM7UsENUJpYNd6" target="_blank" rel="noopener" class="menu-cta">Schedule a Visit</a>
+                <a href="../../../../schedule-a-visit/index.html" class="menu-cta">Schedule a Visit</a>
             </div>
         </nav>
 
@@ -405,6 +411,10 @@
                 <div class="mobile-carousel-track">
                 <div class="mobile-carousel-slide">
                     <img src="elements/photo/element1.png" alt="MSU4000 Elite" class="mobile-product-img">
+                </div>
+                <div class="mobile-carousel-slide mobile-carousel-slide-3d">
+                    <model-viewer src="elements/msu4000elite.glb" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"></model-viewer>
+                    <div class="model-hint"><span class="material-symbols-rounded">3d_rotation</span>Drag to rotate</div>
                 </div>
                 <div class="mobile-carousel-slide">
                     <video class="mobile-product-img" muted loop playsinline>
@@ -660,7 +670,8 @@
 
                 // Swipe left/right on touch screens.
                 let touchX = null;
-                carousel.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+                // Drags that start on a 3D model rotate it instead of changing slides.
+                carousel.addEventListener("touchstart", (e) => { touchX = e.target.closest("model-viewer") ? null : e.touches[0].clientX; }, { passive: true });
                 carousel.addEventListener("touchend", (e) => {
                     if (touchX === null) return;
                     const dx = e.changedTouches[0].clientX - touchX;
