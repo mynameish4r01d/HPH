@@ -98,8 +98,8 @@ service cloud.firestore {
     }
 
     function isValidWaitlist(data) {
-      let fields = ['system', 'quantities', 'name', 'phone', 'email', 'location', 'message',
-                    'consent', 'sourcePage', 'status', 'createdAt'];
+      let fields = ['system', 'quantities', 'estimatedTotal', 'name', 'phone', 'email',
+                    'address', 'message', 'consent', 'sourcePage', 'status', 'createdAt'];
       return data.keys().hasOnly(fields)
         && data.keys().hasAll(fields)
         // One system, and how many of its unit and/or its own battery, e.g.
@@ -116,7 +116,11 @@ service cloud.firestore {
         && isText(data.name, 1, 100)
         && isText(data.phone, 7, 30)
         && isText(data.email, 0, 200)
-        && isText(data.location, 0, 100)
+        // Home / delivery address.
+        && isText(data.address, 5, 300)
+        // Estimate shown to the visitor from starting prices (pesos); not a quote.
+        && data.estimatedTotal is int
+        && data.estimatedTotal >= 0 && data.estimatedTotal <= 100000000
         && isText(data.message, 0, 2000)
         && data.consent == true
         && isText(data.sourcePage, 0, 300)

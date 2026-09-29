@@ -277,9 +277,10 @@
                 <fieldset class="visit-field visit-span visit-qty-field" hidden>
                     <legend class="visit-label">How many would you like?</legend>
                     <div class="visit-qty-group" data-system="MSU4000 Elite" hidden>
-                        <div class="visit-qty-row" data-product="MSU4000 Elite" data-kind="unit">
+                        <div class="visit-qty-row" data-product="MSU4000 Elite" data-price="120000" data-kind="unit">
                             <span class="visit-product-text">
                                 <span class="visit-product-name">MSU4000 Elite</span>
+                                <span class="visit-product-price">Starting at ₱120,000 each</span>
                                 <span class="visit-product-sub">Head unit only · micro hybrid storage unit · 4&nbsp;kWh</span>
                             </span>
                             <div class="visit-stepper">
@@ -288,9 +289,10 @@
                                 <button type="button" class="visit-step" data-step="1" aria-label="More MSU4000 Elite"><span class="material-symbols-rounded">add</span></button>
                             </div>
                         </div>
-                        <div class="visit-qty-row" data-product="B4000 Elite" data-kind="battery">
+                        <div class="visit-qty-row" data-product="B4000 Elite" data-price="90000" data-kind="battery">
                             <span class="visit-product-text">
                                 <span class="visit-product-name">B4000 Elite</span>
+                                <span class="visit-product-price">Starting at ₱90,000 each</span>
                                 <span class="visit-product-sub">Extension battery · 4&nbsp;kWh · up to 4 per MSU4000 Elite</span>
                             </span>
                             <div class="visit-stepper">
@@ -301,9 +303,10 @@
                         </div>
                     </div>
                     <div class="visit-qty-group" data-system="MAU5000 Elite" hidden>
-                        <div class="visit-qty-row" data-product="MAU5000 Elite" data-kind="unit">
+                        <div class="visit-qty-row" data-product="MAU5000 Elite" data-price="150000" data-kind="unit">
                             <span class="visit-product-text">
                                 <span class="visit-product-name">MAU5000 Elite</span>
+                                <span class="visit-product-price">Starting at ₱150,000 each</span>
                                 <span class="visit-product-sub">Head unit only · AC coupled unit · 5&nbsp;kWh</span>
                             </span>
                             <div class="visit-stepper">
@@ -312,9 +315,10 @@
                                 <button type="button" class="visit-step" data-step="1" aria-label="More MAU5000 Elite"><span class="material-symbols-rounded">add</span></button>
                             </div>
                         </div>
-                        <div class="visit-qty-row" data-product="B5000 Elite" data-kind="battery">
+                        <div class="visit-qty-row" data-product="B5000 Elite" data-price="100000" data-kind="battery">
                             <span class="visit-product-text">
                                 <span class="visit-product-name">B5000 Elite</span>
+                                <span class="visit-product-price">Starting at ₱100,000 each</span>
                                 <span class="visit-product-sub">Extension battery · 5&nbsp;kWh · up to 4 per MAU5000 Elite</span>
                             </span>
                             <div class="visit-stepper">
@@ -323,6 +327,16 @@
                                 <button type="button" class="visit-step" data-step="1" aria-label="More B5000 Elite"><span class="material-symbols-rounded">add</span></button>
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Filled in by waitlist-form.js from each row's data-price. -->
+                    <div class="visit-estimate" aria-live="polite">
+                        <ul class="visit-estimate-lines"></ul>
+                        <div class="visit-estimate-total">
+                            <span>Estimated total</span>
+                            <strong class="visit-estimate-amount">₱0</strong>
+                        </div>
+                        <p class="visit-estimate-note">This is only an estimate based on starting prices, not a final quotation. Your final quote, prepared after we assess your site, will set the final price.</p>
                     </div>
                     <span class="visit-hint"></span>
                 </fieldset>
@@ -345,9 +359,9 @@
                     <span class="visit-hint"></span>
                 </label>
 
-                <label class="visit-field">
-                    <span class="visit-label">City / Province <span class="visit-optional">(optional)</span></span>
-                    <input type="text" name="location" autocomplete="address-level2" maxlength="100">
+                <label class="visit-field visit-span">
+                    <span class="visit-label">Home / delivery address</span>
+                    <input type="text" name="address" autocomplete="street-address" placeholder="House no., street, barangay, city, province" required minlength="5" maxlength="300">
                     <span class="visit-hint"></span>
                 </label>
 

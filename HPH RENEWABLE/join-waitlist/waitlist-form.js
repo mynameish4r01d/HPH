@@ -37,6 +37,8 @@ const button = form.querySelector(".visit-submit");
 const consent = form.querySelector('[name="consent"]');
 const systemField = form.querySelector(".visit-system-field");
 const qtyField = form.querySelector(".visit-qty-field");
+const estimateLines = qtyField.querySelector(".visit-estimate-lines");
+const estimateAmount = qtyField.querySelector(".visit-estimate-amount");
 
 
 // ------------------------------------------------------ system + quantities
@@ -59,6 +61,31 @@ function qty(r) {
     return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+const peso = (amount) => `₱${amount.toLocaleString("en-PH")}`;
+
+// Estimated total from each row's data-price (starting prices in index.html).
+// Only an estimate: the final quote after a site assessment sets the price.
+function estimate() {
+    const system = chosenSystem();
+    if (!system) return 0;
+    return rowsFor(system).reduce((sum, r) => sum + qty(r) * Number(r.dataset.price), 0);
+}
+
+function renderEstimate() {
+    const system = chosenSystem();
+    const rows = system ? rowsFor(system).filter((r) => qty(r) > 0) : [];
+    estimateLines.replaceChildren(...rows.map((r) => {
+        const line = document.createElement("li");
+        const label = document.createElement("span");
+        label.textContent = `${qty(r)} × ${r.dataset.product}`;
+        const amount = document.createElement("span");
+        amount.textContent = peso(qty(r) * Number(r.dataset.price));
+        line.append(label, amount);
+        return line;
+    }));
+    estimateAmount.textContent = peso(estimate());
+}
+
 function batteryMax(system) {
     return BATTERIES_PER_UNIT * Math.max(1, qty(row(system, "unit")));
 }
@@ -77,6 +104,7 @@ function refreshQuantities() {
         r.querySelector('[data-step="1"]').disabled = value >= max;
         r.classList.toggle("visit-qty-active", value > 0);
     }
+    renderEstimate();
 }
 
 function showSystem(system) {
@@ -258,10 +286,12 @@ form.addEventListener("submit", async (e) => {
         const write = firestore.addDoc(firestore.collection(db, COLLECTION), {
             system: chosenSystem(),
             quantities: quantities(),
+            // What the visitor was shown (starting prices), not a quotation.
+            estimatedTotal: estimate(),
             name: value("name"),
             phone: value("phone"),
             email: value("email"),
-            location: value("location"),
+            address: value("address"),
             message: value("message"),
             consent: true,
             sourcePage: decodeURIComponent(window.location.pathname).slice(0, 300),

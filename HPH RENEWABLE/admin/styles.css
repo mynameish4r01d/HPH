@@ -34,6 +34,7 @@ a:link{
     --admin-active-text: #18794E;
     --admin-star: #F5B301;
     --admin-star-empty: #D6D6DA;
+    --admin-divider: #DCDCE0;
 }
 
 @media (prefers-color-scheme: dark){
@@ -53,6 +54,7 @@ a:link{
         --admin-active-text: #4CC38A;
         --admin-star: #FFC53D;
         --admin-star-empty: #48484A;
+        --admin-divider: #3A3A3C;
     }
 }
 
@@ -197,6 +199,55 @@ a:link{
     margin: 0;
 }
 
+/* "or" line between the password form and the Google button. */
+.admin-or{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    font-size: 12px;
+    color: var(--admin-subtle);
+
+    &::before, &::after{
+        content: "";
+        flex: 1;
+        height: 1px;
+        background-color: var(--admin-border);
+    }
+}
+
+.admin-google{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    height: 48px;
+    border: 1px solid var(--admin-border);
+    border-radius: 4px;
+    background-color: var(--admin-field);
+    color: var(--admin-text);
+    font-family: inter;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+
+    .admin-google-logo{
+        width: 20px;
+        height: 20px;
+    }
+
+    &:hover, &:focus-visible{
+        border-color: var(--admin-accent);
+    }
+
+    &:disabled{
+        opacity: 0.6;
+        cursor: default;
+    }
+}
+
 .admin-button{
     width: 100%;
     height: 48px;
@@ -247,6 +298,116 @@ a:link{
     &:disabled{
         opacity: 0.5;
         cursor: default;
+    }
+}
+
+/* Live portfolio counters (../portfolio-counters.js), in one grey box. */
+.admin-portfolio{
+    margin-top: 28px;
+    padding: 20px;
+    border-radius: 6px;
+    background-color: var(--admin-surface);
+}
+
+.admin-portfolio + .admin-stats{
+    margin-top: 12px;
+}
+
+.admin-portfolio-head{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-bottom: 16px;
+
+    .admin-portfolio-title{
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .admin-portfolio-status{
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--admin-subtle);
+    }
+
+    /* Green while live; grey when paused (tab hidden); red on errors. */
+    .admin-portfolio-dot{
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background-color: var(--admin-active-text);
+
+        &.paused{
+            background-color: var(--admin-subtle);
+        }
+
+        &.error{
+            background-color: var(--admin-error);
+        }
+    }
+}
+
+/* Line dividers between the counters, like the Home page: vertical lines
+   between the four on desktop; on phones (2 x 2) a vertical line between the
+   columns and a horizontal line between the rows. */
+.admin-portfolio-grid{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.admin-portfolio-item{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 4px 20px;
+
+    &:first-child{
+        padding-left: 0;
+    }
+
+    & + .admin-portfolio-item{
+        border-left: 1px solid var(--admin-divider);
+    }
+}
+
+/* Same look as the stat tiles' labels. */
+.admin-portfolio-label{
+    font-size: 12px;
+    color: var(--admin-subtle);
+}
+
+.admin-portfolio-value{
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+    transition: opacity 0.2s ease;
+
+    &.loading{
+        opacity: 0.35;
+    }
+
+    .portfolio-unit{
+        margin-left: 4px;
+        font-size: 0.5em;
+        font-weight: 600;
+        color: var(--admin-subtle);
+    }
+}
+
+.admin-portfolio-error{
+    display: none;
+    margin-top: 12px;
+    font-size: 12px;
+    color: var(--admin-error);
+
+    &.show{
+        display: block;
     }
 }
 
@@ -795,6 +956,28 @@ a:link{
 
     .admin-stats{
         grid-template-columns: 1fr 1fr;
+    }
+
+    .admin-portfolio-grid{
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .admin-portfolio-item{
+        padding: 14px 16px;
+
+        &:nth-child(odd){
+            padding-left: 0;
+            border-left: none;
+        }
+
+        &:nth-child(-n+2){
+            padding-top: 0;
+        }
+
+        &:nth-child(n+3){
+            border-top: 1px solid var(--admin-divider);
+            padding-bottom: 0;
+        }
     }
 
     /* Odd number of tiles: the last one spans the row. */

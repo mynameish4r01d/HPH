@@ -2,9 +2,10 @@
 // "Join the Waitlist" sign-ups (Firestore: waitlist) and feedback
 // (Firestore: feedback).
 //
-// Sign-in uses Firebase Authentication (email + password). Passwords are
-// never stored in this repo — admin accounts are created in the Firebase
-// console → Authentication → Users → Add user.
+// Sign-in uses Firebase Authentication: email + password, or "Sign in with
+// Google". Passwords are never stored in this repo — password accounts are
+// created in the Firebase console → Authentication → Users → Add user; Google
+// needs no account setup. Either way, only emails in ADMIN_EMAILS get in.
 //
 // Who counts as an admin is hardcoded in three places; keep them in step:
 //   - ADMIN_EMAILS below (decides what this page shows)
@@ -98,11 +99,13 @@ authSdk.onAuthStateChanged(auth, async (user) => {
     }
 
     if (!isAdminEmail(user.email)) {
+        const email = user.email;
         await authSdk.signOut(auth);
-        showLoginError("This account doesn't have admin access.");
+        showLoginError(email ? `${email} doesn't have admin access.` : "This account doesn't have admin access.");
         return;
     }
 
+    loginError.hidden = true;
     account.querySelector(".admin-account-email").textContent = user.email;
     account.hidden = false;
     show(dashboard);
@@ -143,6 +146,37 @@ loginForm.addEventListener("submit", async (e) => {
     }
 });
 
+// "Sign in with Google": a pop-up, or a full-page redirect if the browser
+// blocks pop-ups. Access is then checked in onAuthStateChanged above.
+const googleButton = loginSection.querySelector(".admin-google");
+const googleProvider = new authSdk.GoogleAuthProvider();
+googleProvider.setCustomParameters({ prompt: "select_account" });
+
+googleButton.addEventListener("click", async () => {
+    loginError.hidden = true;
+    googleButton.disabled = true;
+    try {
+        await authSdk.signInWithPopup(auth, googleProvider);
+    } catch (err) {
+        if (err.code === "auth/popup-blocked") {
+            await authSdk.signInWithRedirect(auth, googleProvider);
+            return;
+        }
+        if (err.code !== "auth/popup-closed-by-user" && err.code !== "auth/cancelled-popup-request") {
+            console.error("Admin: Google sign-in failed", err);
+            showLoginError(signInErrorMessage(err.code));
+        }
+    } finally {
+        googleButton.disabled = false;
+    }
+});
+
+// Errors from a redirect sign-in arrive here.
+authSdk.getRedirectResult(auth).catch((err) => {
+    console.error("Admin: Google sign-in failed", err);
+    showLoginError(signInErrorMessage(err.code));
+});
+
 function signInErrorMessage(code) {
     switch (code) {
         case "auth/invalid-credential":
@@ -161,7 +195,11 @@ function signInErrorMessage(code) {
         case "auth/configuration-not-found":
             return "Sign-in isn't set up yet: open Firebase console → Authentication and click Get started.";
         case "auth/operation-not-allowed":
-            return "Email/Password sign-in is turned off: enable it in Firebase console → Authentication → Sign-in method.";
+            return "This sign-in method is turned off: enable it (Email/Password or Google) in Firebase console → Authentication → Sign-in method.";
+        case "auth/unauthorized-domain":
+            return "This website isn't allowed to use Google sign-in yet: add its domain in Firebase console → Authentication → Settings → Authorized domains.";
+        case "auth/account-exists-with-different-credential":
+            return "This email already has a password account. Sign in with your email and password instead.";
         default:
             return `Sign-in failed (${code || "unknown error"}).`;
     }
@@ -407,7 +445,10 @@ function waitlistItems(w) {
 
 function renderWaitlist(w) {
     const products = waitlistItems(w).join(", ");
-    const meta = [products, w.phone, w.location].filter(Boolean).join(" · ");
+    // Sign-ups store a full `address`; early test ones had `location` (city).
+    const address = w.address || w.location || "";
+    const estimate = Number.isFinite(w.estimatedTotal) ? `₱${w.estimatedTotal.toLocaleString("en-PH")}` : "";
+    const meta = [products, estimate, w.phone].filter(Boolean).join(" · ");
     const done = isDone(w);
     const details = entryShell(w.name, meta, toDate(w.createdAt), { done, badge: TABS.waitlist.status.badge });
 
@@ -415,8 +456,9 @@ function renderWaitlist(w) {
     list.append(
         // One product per line (the summary line above keeps them comma-separated).
         detailRow("Order", waitlistItems(w).join("\n")),
+        detailRow("Estimated total", estimate ? `${estimate}\nFrom starting prices; not a quotation` : ""),
         detailRow("System", w.system ? `${w.system} system` : ""),
-        detailRow("City / Province", w.location),
+        detailRow("Home / delivery address", address, { wide: true }),
         detailRow("Phone", w.phone, { href: w.phone ? `tel:${w.phone.replace(/[^\d+]/g, "")}` : "" }),
         detailRow("Email", w.email, { href: w.email ? `mailto:${w.email}` : "" }),
         detailRow("Note", w.message, { wide: true }),
