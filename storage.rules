@@ -8,14 +8,22 @@ service firebase.storage {
 
     // Files attached to "Schedule a Visit" requests (HPH RENEWABLE/schedule-a-visit/).
     // Anyone may upload a new image or PDF of up to 10 MB into a request's
-    // folder; nobody can list, download, replace or delete files from the
-    // website. View them in the Firebase console → Storage → visitRequests.
+    // folder; only admins can download them (HPH RENEWABLE/admin/); nobody
+    // can replace or delete files from the website.
     match /visitRequests/{requestId}/{fileName} {
       allow create: if resource == null
                     && request.resource.size <= 10 * 1024 * 1024
                     && (request.resource.contentType.matches('image/.*')
                         || request.resource.contentType == 'application/pdf');
-      allow read, update, delete: if false;
+      allow get: if isAdmin();
+      allow list, update, delete: if false;
+    }
+
+    // Keep in step with ADMIN_EMAILS in HPH RENEWABLE/admin/admin.js and
+    // isAdmin() in /firestore.rules.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email in ['harold.t.hermosa@gmail.com'];
     }
   }
 }

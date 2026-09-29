@@ -332,11 +332,14 @@
                 </label>
 
                 <div class="visit-field visit-span">
-                    <span class="visit-label">Photos or documents <span class="visit-optional">(optional)</span></span>
+                    <span class="visit-label">Your last 3 electricity bills <span class="visit-optional">(recommended)</span></span>
+                    <span class="visit-field-note">We use these to estimate your electricity usage so we can give you an accurate quote.</span>
                     <label class="visit-upload">
                         <input type="file" name="files" accept="image/*,application/pdf" multiple>
                         <span class="material-symbols-rounded visit-upload-icon">upload_file</span>
-                        <span class="visit-upload-text">Add your latest electric bill or photos of your roof</span>
+                        <!-- Mouse/trackpad devices get the drag-and-drop wording; touch devices can't drag files in. -->
+                        <span class="visit-upload-text visit-upload-text-pointer">Drag and drop your last 3 electricity bills here, or <span class="visit-upload-browse">click to browse</span></span>
+                        <span class="visit-upload-text visit-upload-text-touch">Tap to add photos or PDFs of your last 3 electricity bills</span>
                         <span class="visit-upload-sub">Up to 3 files · images or PDF · 10 MB each</span>
                     </label>
                     <ul class="visit-file-list"></ul>
@@ -443,6 +446,7 @@
                         <a href="../contact/index.html" class="footer-link">Support</a>
                         <a href="../portfolio/index.html" class="footer-link">Portfolio</a>
                         <a  href="index.html" class="footer-link">Schedule a Visit</a>
+                        <a href="../admin/index.html" class="footer-link">Admin</a>
                     </div>
                 </div>
             </div>
@@ -512,6 +516,20 @@
                 <div class="mobile-footer-links">
                     <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="mobile-footer-link">Google Playstore (Android)</a>
                     <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="mobile-footer-link">App Store (iOS)</a>
+                </div>
+            </details>
+
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Navigation
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="../about/index.html" class="mobile-footer-link">Discover</a>
+                    <a href="../contact/index.html" class="mobile-footer-link">Support</a>
+                    <a href="../portfolio/index.html" class="mobile-footer-link">Portfolio</a>
+                    <a href="index.html" class="mobile-footer-link">Schedule a Visit</a>
+                    <a href="../admin/index.html" class="mobile-footer-link">Admin</a>
                 </div>
             </details>
 

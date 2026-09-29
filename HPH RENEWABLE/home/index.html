@@ -13,6 +13,8 @@
     <!--INTER FONT FAMILY-->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Portfolio counters read a Google Sheet; connect early so they load sooner. -->
+    <link rel="preconnect" href="https://docs.google.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
 
 
@@ -205,7 +207,7 @@
                 </div>
             </div>
 
-            <video class="landing" autoplay muted loop playsinline preload="auto" poster="elements/content1/element1.png">
+            <video class="landing" autoplay muted loop playsinline preload="auto">
                 <source src="elements/content1/element1.mov" type="video/mp4">
             </video>
 
@@ -288,6 +290,7 @@
                         <a href="../contact/index.html" class="footer-link">Support</a>
                         <a href="../portfolio/index.html" class="footer-link">Portfolio</a>
                         <a  href="../schedule-a-visit/index.html" class="footer-link">Schedule a Visit</a>
+                        <a href="../admin/index.html" class="footer-link">Admin</a>
                     </div>
                 </div>
             </div>
@@ -383,7 +386,7 @@
         </nav>
 
         <div class="mobile-hero">
-            <video class="mobile-hero-img" autoplay muted loop playsinline preload="auto" poster="elements/content1/element1.png">
+            <video class="mobile-hero-img" autoplay muted loop playsinline preload="auto">
                 <source src="elements/content1/element1.mov" type="video/mp4">
             </video>
 
@@ -481,6 +484,20 @@
                 <div class="mobile-footer-links">
                     <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="mobile-footer-link">Google Playstore (Android)</a>
                     <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="mobile-footer-link">App Store (iOS)</a>
+                </div>
+            </details>
+
+            <details class="mobile-footer-group" name="mobile-footer">
+                <summary class="mobile-footer-title">
+                    Navigation
+                    <span class="material-symbols-rounded chevron">expand_more</span>
+                </summary>
+                <div class="mobile-footer-links">
+                    <a href="../about/index.html" class="mobile-footer-link">Discover</a>
+                    <a href="../contact/index.html" class="mobile-footer-link">Support</a>
+                    <a href="../portfolio/index.html" class="mobile-footer-link">Portfolio</a>
+                    <a href="../schedule-a-visit/index.html" class="mobile-footer-link">Schedule a Visit</a>
+                    <a href="../admin/index.html" class="mobile-footer-link">Admin</a>
                 </div>
             </details>
 

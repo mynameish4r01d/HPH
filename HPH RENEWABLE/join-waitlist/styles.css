@@ -410,9 +410,10 @@ body.menu-open{
 
 
 
-/* ===== SCHEDULE A VISIT =====
-   One form shared by desktop and mobile (outside .desktop/.mobile, like the
-   FAQ page). Submitted by visit-form.js. */
+/* ===== SHARE YOUR FEEDBACK =====
+   Same form styles as the Schedule a Visit page (visit-* classes), plus the
+   star rating. One form shared by desktop and mobile (outside
+   .desktop/.mobile, like the FAQ page). Submitted by feedback-form.js. */
 .visit-page{
     --visit-text: #1A1A1A;
     --visit-muted: #757575;
@@ -541,14 +542,6 @@ body.menu-open{
     }
 }
 
-/* Short explanation under a field's label (e.g. why we ask for bills). */
-.visit-field-note{
-    margin-top: -2px;
-    font-size: 13px;
-    line-height: 1.5;
-    color: var(--visit-muted);
-}
-
 /* File picker: the whole dashed box is the (visually hidden) input's label. */
 .visit-upload{
     position: relative;
@@ -568,40 +561,11 @@ body.menu-open{
         border-color: var(--visit-accent);
     }
 
-    /* Files being dragged over the box. */
-    &.visit-upload-dragover{
-        border-style: solid;
-        border-color: var(--visit-accent);
-        background-color: rgba(125, 129, 135, 0.14);
-
-        .visit-upload-icon{
-            color: var(--visit-accent);
-        }
-    }
-
     input{
         position: absolute;
         width: 1px;
         height: 1px;
         opacity: 0;
-    }
-
-    .visit-upload-browse{
-        text-decoration: underline;
-    }
-
-    .visit-upload-text-touch{
-        display: none;
-    }
-
-    @media (hover: none){
-        .visit-upload-text-pointer{
-            display: none;
-        }
-
-        .visit-upload-text-touch{
-            display: inline;
-        }
     }
 
     .visit-upload-icon{
@@ -633,7 +597,7 @@ body.menu-open{
 
     li{
         display: flex;
-        align-items: center;
+        justify-content: space-between;
         gap: 12px;
         padding: 10px 12px;
         border: 1px solid var(--visit-border);
@@ -649,34 +613,166 @@ body.menu-open{
 
         .visit-file-size{
             flex-shrink: 0;
-            margin-left: auto;
             color: var(--visit-muted);
         }
+    }
+}
 
-        .visit-file-remove{
-            flex-shrink: 0;
-            width: 24px;
-            height: 24px;
-            margin: -2px -4px -2px 0;
-            padding: 0;
-            border: none;
-            border-radius: 50%;
-            background: none;
-            color: var(--visit-muted);
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+/* Join the Waitlist: system choice (cards) and product quantities (steppers). */
+.visit-system-field, .visit-qty-field{
+    margin: 0;
+    padding: 0;
+    border: none;
+    min-width: 0;
 
-            .material-symbols-rounded{
-                font-size: 18px;
-            }
+    legend{
+        padding: 0;
+        margin-bottom: 6px;
+    }
+}
 
-            &:hover{
-                color: var(--visit-text);
-                background-color: var(--visit-surface);
-            }
+.visit-products{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.visit-product{
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 14px;
+    border: 1px solid var(--visit-border);
+    border-radius: 6px;
+    background-color: var(--visit-field);
+    cursor: pointer;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    input{
+        flex-shrink: 0;
+        width: 18px;
+        height: 18px;
+        margin: 1px 0 0;
+        accent-color: var(--visit-accent);
+    }
+}
+
+/* Product name + description, used in the system cards and quantity rows. */
+.visit-product-text{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.visit-product-name{
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--visit-text);
+}
+
+.visit-product-sub{
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--visit-muted);
+}
+
+/* The chosen system's card gets a dark border. */
+.visit-product:has(input:checked){
+    border-color: var(--visit-accent);
+}
+
+.visit-product:has(input:focus-visible){
+    box-shadow: 0 0 0 3px rgba(125, 129, 135, 0.18);
+}
+
+.visit-system-field.visit-invalid .visit-product,
+.visit-qty-field.visit-invalid .visit-qty-row{
+    border-color: var(--visit-error);
+}
+
+.visit-qty-group{
+    display: grid;
+    gap: 10px;
+}
+
+.visit-qty-row{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 14px;
+    border: 1px solid var(--visit-border);
+    border-radius: 6px;
+    background-color: var(--visit-field);
+
+    /* Rows with a quantity above zero. */
+    &.visit-qty-active{
+        border-color: var(--visit-accent);
+    }
+}
+
+.visit-stepper{
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--visit-border);
+    border-radius: 4px;
+    overflow: hidden;
+
+    input{
+        width: 44px;
+        height: 40px;
+        padding: 0;
+        border: none;
+        border-left: 1px solid var(--visit-border);
+        border-right: 1px solid var(--visit-border);
+        background: none;
+        color: var(--visit-text);
+        font-family: inter;
+        font-size: 16px;
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+        outline: none;
+        -moz-appearance: textfield;
+        appearance: textfield;
+
+        &::-webkit-inner-spin-button, &::-webkit-outer-spin-button{
+            -webkit-appearance: none;
+            margin: 0;
         }
+
+        &:focus{
+            box-shadow: inset 0 0 0 2px rgba(125, 129, 135, 0.35);
+        }
+    }
+
+    .visit-step{
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--visit-text);
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        .material-symbols-rounded{
+            font-size: 20px;
+        }
+
+        &:disabled{
+            color: #C9C9CC;
+            cursor: default;
+        }
+    }
+}
+
+@media only screen and (max-width:750px){
+    .visit-products{
+        grid-template-columns: 1fr;
     }
 }
 
@@ -778,6 +874,58 @@ body.menu-open{
         display: inline-flex;
         padding: 0 32px;
     }
+}
+
+/* Star rating: five radio buttons laid out right-to-left so that hovering or
+   choosing a star can light up it and every star before it with ~ selectors. */
+.visit-rating-field{
+    margin: 40px 0 24px;
+    padding: 0;
+    border: none;
+}
+
+.visit-rating{
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    gap: 4px;
+
+    input{
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+    }
+
+    label{
+        cursor: pointer;
+        line-height: 0;
+        -webkit-tap-highlight-color: transparent;
+
+        .material-symbols-rounded{
+            font-size: 40px;
+            color: var(--visit-border);
+            transition: color 0.15s ease, transform 0.15s ease;
+        }
+    }
+
+    input:checked ~ label .material-symbols-rounded,
+    label:hover .material-symbols-rounded,
+    label:hover ~ label .material-symbols-rounded{
+        color: #F5B301;
+    }
+
+    input:focus-visible + label .material-symbols-rounded{
+        transform: scale(1.12);
+    }
+}
+
+.visit-rating-field.visit-invalid .visit-rating label .material-symbols-rounded{
+    color: rgba(224, 72, 62, 0.35);
+}
+
+.visit-rating-field + .visit-grid{
+    margin-top: 0;
 }
 
 [hidden]{

@@ -3,7 +3,11 @@
 // Counts Micro Inverter and Solar Panel serial numbers (and their total kW /
 // kWp capacity) straight from the "HPH Renewable Master Database" Google
 // Sheet — the same sheet the installation-report form writes to — and
-// refreshes every few seconds while the tab is visible.
+// refreshes every 30 seconds while the tab is visible.
+//
+// Speed: only the two serial-number columns are requested (COLUMNS_QUERY),
+// the last counts are remembered in localStorage and shown instantly on the
+// next visit, and background refreshes don't dim the numbers.
 //
 // Any element on the page can show a value by carrying one of these markers
 // (desktop and mobile copies are all filled in):
@@ -16,8 +20,14 @@
 
 (function () {
     const SHEET_ID = "1I7w59tsa54pBLcBUs2T55pb-8lvfLKzCe0in_eY41WY";
-    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
-    const LIVE_REFRESH_MS = 5000;
+    const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    // Just the serial-number columns (F = Micro Inverter SN, H = Solar Panel
+    // SN): smaller and faster, and visitors' browsers don't receive client
+    // details. If the columns move, the header check below notices and the
+    // whole sheet is read instead.
+    const COLUMNS_QUERY = "select F, H";
+    const LIVE_REFRESH_MS = 30000;
+    const CACHE_KEY = "hph-portfolio-counts";
 
     // Each metric: which sheet column to read, and the exact token shape that
     // counts as a valid serial number for it. A cell can contain several
@@ -60,6 +70,40 @@
         const number = value.toLocaleString(undefined, { maximumFractionDigits: 2 });
         el.innerHTML = `${number}<span class="portfolio-unit">${el.dataset.unit}</span>`;
         el.classList.remove("loading");
+    }
+
+    let hasValues = false;
+
+    function showCounts(counts) {
+        METRICS.forEach((metric) => {
+            countEls(metric.key).forEach((el) => {
+                el.textContent = counts[metric.key].toLocaleString();
+                el.classList.remove("loading");
+            });
+        });
+        CAPACITIES.forEach((capacity) => {
+            const value = counts[capacity.from] * capacity.perUnit;
+            countEls(capacity.key).forEach((el) => showCapacity(el, value));
+        });
+        hasValues = true;
+    }
+
+    // localStorage can be unavailable (private mode, blocked storage).
+    function readCache() {
+        try {
+            const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
+            return cached && METRICS.every((m) => Number.isFinite(cached.counts[m.key])) ? cached : null;
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function writeCache(counts) {
+        try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ counts, savedAt: Date.now() }));
+        } catch (err) {
+            // Not critical: the next visit just waits for the sheet.
+        }
     }
 
     function parsePortfolioCSV(text) {
@@ -115,66 +159,82 @@
             .length;
     }
 
+    async function fetchRows(query) {
+        const url = `${SHEET_CSV_URL}${query ? `&tq=${encodeURIComponent(query)}` : ""}&_=${Date.now()}`;
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error(`Sheet request failed (HTTP ${res.status})`);
+        const rows = parsePortfolioCSV(await res.text());
+        if (rows.length === 0) throw new Error("Sheet returned no data");
+        return rows;
+    }
+
+    function columnIndexes(header) {
+        return METRICS.map((metric) =>
+            header.findIndex((h) => h.trim().toLowerCase() === metric.column.toLowerCase())
+        );
+    }
+
     async function loadPortfolioCounts() {
-        allCountEls.forEach((el) => el.classList.add("loading"));
-        statusDots.forEach((d) => d.classList.remove("error"));
-        statusTexts.forEach((t) => (t.textContent = "Loading…"));
-        errorMessages.forEach((e) => e.classList.remove("show"));
+        // Only the very first load (nothing cached) shows the dimmed state;
+        // later refreshes swap the numbers in quietly.
+        if (!hasValues) {
+            allCountEls.forEach((el) => el.classList.add("loading"));
+            statusTexts.forEach((t) => (t.textContent = "Loading…"));
+        }
 
         try {
-            const res = await fetch(`${CSV_URL}&_=${Date.now()}`, { cache: "no-store" });
-            if (!res.ok) throw new Error(`Sheet request failed (HTTP ${res.status})`);
+            let rows = await fetchRows(COLUMNS_QUERY);
+            let indexes = columnIndexes(rows[0]);
+            if (indexes.includes(-1)) {
+                console.warn("Portfolio counters: serial-number columns moved; reading the whole sheet. Update COLUMNS_QUERY.");
+                rows = await fetchRows("");
+                indexes = columnIndexes(rows[0]);
+            }
 
-            const csvText = await res.text();
-            const rows = parsePortfolioCSV(csvText);
+            const missing = METRICS.find((metric, i) => indexes[i] === -1);
+            if (missing) throw new Error(`Column "${missing.column}" not found in sheet`);
 
-            if (rows.length === 0) throw new Error("Sheet returned no data");
-
-            const header = rows[0];
             const dataRows = rows.slice(1);
             const counts = {};
-
-            METRICS.forEach((metric) => {
-                const colIndex = header.findIndex(
-                    (h) => h.trim().toLowerCase() === metric.column.toLowerCase()
-                );
-
-                if (colIndex === -1) {
-                    throw new Error(`Column "${metric.column}" not found in sheet`);
-                }
-
-                const count = dataRows.reduce(
-                    (total, r) => total + countPortfolioTokens(r[colIndex], metric.pattern),
+            METRICS.forEach((metric, i) => {
+                counts[metric.key] = dataRows.reduce(
+                    (total, r) => total + countPortfolioTokens(r[indexes[i]], metric.pattern),
                     0
                 );
-
-                counts[metric.key] = count;
-
-                countEls(metric.key).forEach((el) => {
-                    el.textContent = count.toLocaleString();
-                    el.classList.remove("loading");
-                });
             });
 
-            CAPACITIES.forEach((capacity) => {
-                const value = counts[capacity.from] * capacity.perUnit;
-                countEls(capacity.key).forEach((el) => showCapacity(el, value));
-            });
+            showCounts(counts);
+            writeCache(counts);
 
-            statusDots.forEach((d) => d.classList.remove("paused"));
+            statusDots.forEach((d) => d.classList.remove("error", "paused"));
             statusTexts.forEach((t) => (t.textContent = `Live — updated ${new Date().toLocaleTimeString()}`));
+            errorMessages.forEach((e) => e.classList.remove("show"));
         } catch (err) {
+            console.error("Portfolio counters: refresh failed", err);
+            statusDots.forEach((d) => d.classList.add("error"));
+            if (hasValues) {
+                // Keep showing the last known numbers rather than "!".
+                statusTexts.forEach((t) => (t.textContent = "Couldn't refresh — showing last known numbers"));
+                return;
+            }
             allCountEls.forEach((el) => {
                 el.textContent = "!";
                 el.classList.remove("loading");
             });
-            statusDots.forEach((d) => d.classList.add("error"));
             statusTexts.forEach((t) => (t.textContent = "Failed to load"));
             errorMessages.forEach((e) => {
                 e.textContent = err.message;
                 e.classList.add("show");
             });
         }
+    }
+
+    // Returning visitors see the last counts immediately; the live refresh
+    // then updates them.
+    const cached = readCache();
+    if (cached) {
+        showCounts(cached.counts);
+        statusTexts.forEach((t) => (t.textContent = "Updating…"));
     }
 
     let portfolioLiveTimer = null;

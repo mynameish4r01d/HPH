@@ -25,6 +25,8 @@
 
     <!--JAVA SCRIPT-->
     <script defer src="../../../../app.js"></script>
+    <!-- 3D model viewer (Google <model-viewer>) for the carousel's 3D slide -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@4.1.0/dist/model-viewer.min.js"></script>
 
 </head>
 <body>
@@ -162,6 +164,11 @@
                             <div class="carousel-slide">
                                 <img src="elements/photo/element1.png" alt="B4000 Elite" class="img">
                             </div>
+                            <!-- 3D model: optimised from elements/b4000elite.gltf (see CLAUDE.md) -->
+                            <div class="carousel-slide carousel-slide-3d">
+                                <model-viewer class="model" src="elements/b4000elite.glb" alt="3D model of the B4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"></model-viewer>
+                                <div class="model-hint">Drag to rotate</div>
+                            </div>
                         </div>
 
                         <button type="button" class="carousel-arrow carousel-arrow-prev" aria-label="Previous photo">
@@ -182,6 +189,7 @@
                             <div class="sub-title">Stackable Battery Pack</div>
                         <div class="title">B4000 Elite</div>
                             <div class="price">Starting at ₱XX,XXX</div>
+                            <div class="unit-note"><span class="material-symbols-rounded">battery_plus</span><span><strong>Extension battery</strong> · for the <a href="../../content1/page2/index.html">MSU4000 Elite</a> head unit, sold separately</span></div>
 
 
                             <div class="grid-box">
@@ -259,7 +267,7 @@
                             </div>
                     </div>
 
-                    <a href="https://forms.gle/az9nPPyePhkD5ABq6" target="_blank" class="btn-container">
+                    <a href="../../../../join-waitlist/index.html?product=B4000%20Elite" class="btn-container">
                         <div class="btn">Join The Waitlist</div>
                     </a>
                 </div>
@@ -352,10 +360,14 @@
         </nav>
 
         <main class="mobile-main mobile-product-page">
-            <div class="mobile-carousel mobile-carousel-single">
+            <div class="mobile-carousel">
                 <div class="mobile-carousel-track">
                 <div class="mobile-carousel-slide">
                     <img src="elements/photo/element1.png" alt="B4000 Elite" class="mobile-product-img">
+                </div>
+                <div class="mobile-carousel-slide mobile-carousel-slide-3d">
+                    <model-viewer src="elements/b4000elite.glb" alt="3D model of the B4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"></model-viewer>
+                    <div class="model-hint">Drag to rotate</div>
                 </div>
                 </div>
 
@@ -373,6 +385,7 @@
                 <div class="mobile-eyebrow">Stackable Battery Pack</div>
                 <h1 class="mobile-page-title">B4000 Elite</h1>
                 <div class="mobile-price">Starting at ₱XX,XXX</div>
+                <div class="unit-note"><span class="material-symbols-rounded">battery_plus</span><span><strong>Extension battery</strong> · for the <a href="../../content1/page2/index.html">MSU4000 Elite</a> head unit, sold separately</span></div>
             </div>
 
             <section class="mobile-spec-group">
@@ -405,7 +418,7 @@
         </main>
 
         <div class="mobile-btn-bar">
-            <a href="https://forms.gle/az9nPPyePhkD5ABq6" target="_blank" rel="noopener" class="mobile-btn-solid">Join The Waitlist</a>
+            <a href="../../../../join-waitlist/index.html?product=B4000%20Elite" class="mobile-btn-solid">Join The Waitlist</a>
         </div>
     </div>
 
@@ -586,7 +599,8 @@
 
                 // Swipe left/right on touch screens.
                 let touchX = null;
-                carousel.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
+                // Drags that start on a 3D model rotate it instead of changing slides.
+                carousel.addEventListener("touchstart", (e) => { touchX = e.target.closest("model-viewer") ? null : e.touches[0].clientX; }, { passive: true });
                 carousel.addEventListener("touchend", (e) => {
                     if (touchX === null) return;
                     const dx = e.changedTouches[0].clientX - touchX;

@@ -21,11 +21,11 @@
 
   <link rel="icon" type="image/x-icon" href="../global-elements/favicon.png">
 
-    <title>HPH RENEWABLE — Mission</title>
+    <title>Join the Waitlist | HPH RENEWABLE</title>
 
     <!--JAVA SCRIPT-->
     <script defer src="../app.js"></script>
-    <script defer src="script.js"></script>
+    <script type="module" src="waitlist-form.js"></script>
 
 </head>
 <body>
@@ -153,71 +153,233 @@
                 </div>
             </div>
         </div>
+    </div>
 
-        <nav class="scroll-dots" aria-label="Section navigation">
-            <a href="#hero" aria-label="Intro"></a>
-            <a href="#mission" aria-label="Mission"></a>
-            <a href="#vision" aria-label="Vision"></a>
-            <a href="#advocacy" aria-label="Advocacy"></a>
-            <a href="#closing" aria-label="Get started"></a>
+    <div class="mobile">
+        <div class="mobile-nav">
+            <a href="../home/index.html" class="mobile-logo">
+                <img src="../global-elements/HPH Renewable White.png" alt="HPH Renewable" class="img">
+            </a>
+
+            <button type="button" class="menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
+                <span class="menu-line"></span>
+                <span class="menu-line"></span>
+            </button>
+        </div>
+
+        <nav class="dropdown" id="mobile-menu" aria-label="Main menu">
+            <div class="dropdown-inner">
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Discover
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../about/index.html" class="menu-link">About Us</a>
+
+                        <div class="menu-heading">Legal Policies</div>
+                        <a href="../legal-policies/terms-and-conditions/index.html" class="menu-link">Terms and Conditions</a>
+                        <a href="../legal-policies/privacy-policy/index.html" class="menu-link">Privacy Policy</a>
+                        <a href="../legal-policies/return-and-refund-policy/index.html" class="menu-link">Return and Refund Policy</a>
+                        <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="menu-link">Confidentiality Agreement (NDA)</a>
+                    </div>
+                </details>
+
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Products
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <div class="menu-heading">Products</div>
+                        <a href="../products/product-pages/content1/page1/index.html" class="menu-link">MX2250</a>
+                        <a href="../products/product-pages/content1/page2/index.html" class="menu-link">MSU4000 Elite</a>
+                        <a href="../products/product-pages/content1/page3/index.html" class="menu-link">MAU5000 Elite</a>
+
+                        <div class="menu-heading">Battery Expansion</div>
+                        <a href="../products/product-pages/content2/page1/index.html" class="menu-link">B4000 Elite</a>
+                        <a href="../products/product-pages/content2/page2/index.html" class="menu-link">B5000 Elite</a>
+
+                        <div class="menu-heading">Product Data Sheets</div>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="menu-link">MX2250 Micro Inverter</a>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
+                        <a href="../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MAU5000 Elite AC Coupled Unit</a>
+
+                        <div class="menu-heading">TSUN Smart App</div>
+                        <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="menu-link">Google Play Store (Android)</a>
+                        <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="menu-link">Apple App Store (iOS)</a>
+                    </div>
+                </details>
+
+                <details class="menu-group" name="mobile-menu">
+                    <summary class="menu-title">
+                        Support
+                        <span class="material-symbols-rounded chevron">expand_more</span>
+                    </summary>
+                    <div class="menu-links">
+                        <a href="../contact/index.html" class="menu-link">Contact Us</a>
+                        <a href="../faq/index.html" class="menu-link">Frequently Asked Questions</a>
+
+                        <div class="menu-heading">Contact Number</div>
+                        <a href="tel:+63288084735" class="menu-link">(+63) 2 880 84735</a>
+                        <a href="tel:+63285231142" class="menu-link">(+63) 2 852 31142</a>
+
+                        <div class="menu-heading">Support Email</div>
+                        <a href="mailto:inquiries@hphtechsolutions.com" class="menu-link">inquiries@hphtechsolutions.com</a>
+
+                        <div class="menu-heading">Office Address</div>
+                        <a href="https://maps.app.goo.gl/okz2G6zCGjfVaTua7" target="_blank" rel="noopener" class="menu-link">Unit 111 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City</a>
+                    </div>
+                </details>
+
+                <a href="../portfolio/index.html" class="menu-title">Portfolio</a>
+
+                <a href="../schedule-a-visit/index.html" class="menu-cta">Schedule a Visit</a>
+            </div>
         </nav>
+    </div>
 
-        <section class="panel hero" id="hero">
-            <div class="panel-content">
-                <div class="eyebrow logo hidden">Our Mission</div>
-
-                <div class="hero-title">
-                    <div class="line logo hidden">Energy That</div>
-                    <div class="line logo hidden">Answers to No One.</div>
-                </div>
-
-                <div class="hero-sub logo hidden">Affordable, accessible renewable power — built for every Filipino home.</div>
-            </div>
-
-            <div class="scroll-cue">
-                <span class="material-symbols-rounded">expand_more</span>
-            </div>
+    <main class="visit-page">
+        <section class="visit-hero">
+            <h1 class="visit-title">Join the Waitlist</h1>
+            <p class="visit-intro">Be the first to know when your chosen product is available. We'll reach out with pricing and availability.</p>
         </section>
 
-        <section class="panel" id="mission">
-            <div class="numeral">01</div>
+        <!-- Handled by waitlist-form.js: saved to Firestore (collection
+             "waitlist"). Field names must match firestore.rules. -->
+        <form class="visit-form" novalidate>
+            <div class="visit-grid">
+                <!-- Two systems, each a unit plus its own extension battery. A product
+                     page link (?product=<name>) picks the system and hides this
+                     choice, so only related products are shown. -->
+                <fieldset class="visit-field visit-span visit-system-field">
+                    <legend class="visit-label">Which system are you interested in?</legend>
+                    <div class="visit-products">
+                        <label class="visit-product">
+                            <input type="radio" name="system" value="MSU4000 Elite">
+                            <span class="visit-product-text">
+                                <span class="visit-product-name">MSU4000 Elite system</span>
+                                <span class="visit-product-sub">Micro hybrid storage head unit, expandable with B4000 Elite extension batteries</span>
+                            </span>
+                        </label>
+                        <label class="visit-product">
+                            <input type="radio" name="system" value="MAU5000 Elite">
+                            <span class="visit-product-text">
+                                <span class="visit-product-name">MAU5000 Elite system</span>
+                                <span class="visit-product-sub">AC coupled head unit, expandable with B5000 Elite extension batteries</span>
+                            </span>
+                        </label>
+                    </div>
+                    <span class="visit-hint"></span>
+                </fieldset>
 
-            <div class="panel-content">
-                <div class="eyebrow logo hidden">01 — Mission</div>
-                <div class="statement logo hidden">We make renewable energy as affordable and accessible as we can — for every home, every business, every community we serve.</div>
+                <!-- Quantities for the chosen system; waitlist-form.js shows one group. -->
+                <fieldset class="visit-field visit-span visit-qty-field" hidden>
+                    <legend class="visit-label">How many would you like?</legend>
+                    <div class="visit-qty-group" data-system="MSU4000 Elite" hidden>
+                        <div class="visit-qty-row" data-product="MSU4000 Elite" data-kind="unit">
+                            <span class="visit-product-text">
+                                <span class="visit-product-name">MSU4000 Elite</span>
+                                <span class="visit-product-sub">Head unit only · micro hybrid storage unit · 4&nbsp;kWh</span>
+                            </span>
+                            <div class="visit-stepper">
+                                <button type="button" class="visit-step" data-step="-1" aria-label="Fewer MSU4000 Elite"><span class="material-symbols-rounded">remove</span></button>
+                                <input type="number" name="qty" value="0" min="0" max="10" step="1" inputmode="numeric" aria-label="Number of MSU4000 Elite">
+                                <button type="button" class="visit-step" data-step="1" aria-label="More MSU4000 Elite"><span class="material-symbols-rounded">add</span></button>
+                            </div>
+                        </div>
+                        <div class="visit-qty-row" data-product="B4000 Elite" data-kind="battery">
+                            <span class="visit-product-text">
+                                <span class="visit-product-name">B4000 Elite</span>
+                                <span class="visit-product-sub">Extension battery · 4&nbsp;kWh · up to 4 per MSU4000 Elite</span>
+                            </span>
+                            <div class="visit-stepper">
+                                <button type="button" class="visit-step" data-step="-1" aria-label="Fewer B4000 Elite"><span class="material-symbols-rounded">remove</span></button>
+                                <input type="number" name="qty" value="0" min="0" max="40" step="1" inputmode="numeric" aria-label="Number of B4000 Elite">
+                                <button type="button" class="visit-step" data-step="1" aria-label="More B4000 Elite"><span class="material-symbols-rounded">add</span></button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="visit-qty-group" data-system="MAU5000 Elite" hidden>
+                        <div class="visit-qty-row" data-product="MAU5000 Elite" data-kind="unit">
+                            <span class="visit-product-text">
+                                <span class="visit-product-name">MAU5000 Elite</span>
+                                <span class="visit-product-sub">Head unit only · AC coupled unit · 5&nbsp;kWh</span>
+                            </span>
+                            <div class="visit-stepper">
+                                <button type="button" class="visit-step" data-step="-1" aria-label="Fewer MAU5000 Elite"><span class="material-symbols-rounded">remove</span></button>
+                                <input type="number" name="qty" value="0" min="0" max="10" step="1" inputmode="numeric" aria-label="Number of MAU5000 Elite">
+                                <button type="button" class="visit-step" data-step="1" aria-label="More MAU5000 Elite"><span class="material-symbols-rounded">add</span></button>
+                            </div>
+                        </div>
+                        <div class="visit-qty-row" data-product="B5000 Elite" data-kind="battery">
+                            <span class="visit-product-text">
+                                <span class="visit-product-name">B5000 Elite</span>
+                                <span class="visit-product-sub">Extension battery · 5&nbsp;kWh · up to 4 per MAU5000 Elite</span>
+                            </span>
+                            <div class="visit-stepper">
+                                <button type="button" class="visit-step" data-step="-1" aria-label="Fewer B5000 Elite"><span class="material-symbols-rounded">remove</span></button>
+                                <input type="number" name="qty" value="0" min="0" max="40" step="1" inputmode="numeric" aria-label="Number of B5000 Elite">
+                                <button type="button" class="visit-step" data-step="1" aria-label="More B5000 Elite"><span class="material-symbols-rounded">add</span></button>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="visit-hint"></span>
+                </fieldset>
+
+                <label class="visit-field">
+                    <span class="visit-label">Full name</span>
+                    <input type="text" name="name" autocomplete="name" required maxlength="100">
+                    <span class="visit-hint"></span>
+                </label>
+
+                <label class="visit-field">
+                    <span class="visit-label">Mobile number</span>
+                    <input type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="09XX XXX XXXX" required pattern="[0-9+\(\)\-\s]{7,30}" maxlength="30">
+                    <span class="visit-hint"></span>
+                </label>
+
+                <label class="visit-field">
+                    <span class="visit-label">Email <span class="visit-optional">(optional)</span></span>
+                    <input type="email" name="email" autocomplete="email" maxlength="200">
+                    <span class="visit-hint"></span>
+                </label>
+
+                <label class="visit-field">
+                    <span class="visit-label">City / Province <span class="visit-optional">(optional)</span></span>
+                    <input type="text" name="location" autocomplete="address-level2" maxlength="100">
+                    <span class="visit-hint"></span>
+                </label>
+
+                <label class="visit-field visit-span">
+                    <span class="visit-label">Note <span class="visit-optional">(optional)</span></span>
+                    <textarea name="message" rows="4" maxlength="2000" placeholder="Anything you'd like us to know, e.g. how many units you need"></textarea>
+                    <span class="visit-hint"></span>
+                </label>
             </div>
-        </section>
 
-        <section class="panel" id="vision">
-            <div class="numeral">02</div>
+            <!-- Spam trap: hidden from people, often filled in by bots. -->
+            <input type="text" name="website" class="visit-trap" tabindex="-1" autocomplete="off" aria-hidden="true">
 
-            <div class="panel-content">
-                <div class="eyebrow logo hidden">02 — Vision</div>
-                <div class="statement logo hidden">A Philippines where every rooftop makes its own power — free from rising rates, and run entirely on sunlight.</div>
-            </div>
-        </section>
+            <label class="visit-consent">
+                <input type="checkbox" name="consent" required>
+                <span>I agree to HPH Renewable contacting me about this product, as described in the <a href="../legal-policies/privacy-policy/index.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
+            </label>
 
-        <section class="panel" id="advocacy">
-            <div class="numeral">03</div>
+            <p class="visit-error" role="alert" hidden></p>
 
-            <div class="panel-content">
-                <div class="eyebrow logo hidden">03 — Advocacy</div>
-                <div class="statement logo hidden">We're fighting for Filipino energy independence — helping communities take back control of their power, and <span class="accent">take the greed from the grid</span>.</div>
-            </div>
-        </section>
+            <button type="submit" class="visit-submit">Join the Waitlist</button>
+        </form>
 
-        <section class="panel closing" id="closing">
-            <div class="panel-content">
-                <div class="closing-title logo hidden">A Better Tomorrow, Today.</div>
+        <div class="visit-success" hidden>
+            <span class="material-symbols-rounded visit-success-icon">check_circle</span>
+            <h2 class="visit-success-title">You're on the list!</h2>
+            <p class="visit-success-text">Thanks for your interest. We'll contact you as soon as it's available.</p>
+            <a href="../home/index.html" class="visit-submit visit-home">Back to Home</a>
+        </div>
+    </main>
 
-                <div class="btn-flex logo hidden">
-                    <a href="../contact/index.html" style="width: fit-content;">
-                        <div class="btn-1">Get in Touch</div>
-                    </a>
-                </div>
-            </div>
-        </section>
-
+    <div class="desktop">
         <div class="bottom-content">
             <div class="flex-box">
                 <div class="text-container">
@@ -306,126 +468,7 @@
         </div>
     </div>
 
-
     <div class="mobile">
-        <div class="mobile-nav">
-            <a href="../home/index.html" class="mobile-logo">
-                <img src="../global-elements/HPH Renewable White.png" alt="HPH Renewable" class="img">
-            </a>
-
-            <button type="button" class="menu" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-menu">
-                <span class="menu-line"></span>
-                <span class="menu-line"></span>
-            </button>
-        </div>
-
-        <nav class="dropdown" id="mobile-menu" aria-label="Main menu">
-            <div class="dropdown-inner">
-                <details class="menu-group" name="mobile-menu">
-                    <summary class="menu-title">
-                        Discover
-                        <span class="material-symbols-rounded chevron">expand_more</span>
-                    </summary>
-                    <div class="menu-links">
-                        <a href="../about/index.html" class="menu-link">About Us</a>
-
-                        <div class="menu-heading">Legal Policies</div>
-                        <a href="../legal-policies/terms-and-conditions/index.html" class="menu-link">Terms and Conditions</a>
-                        <a href="../legal-policies/privacy-policy/index.html" class="menu-link">Privacy Policy</a>
-                        <a href="../legal-policies/return-and-refund-policy/index.html" class="menu-link">Return and Refund Policy</a>
-                        <a href="https://forms.gle/j7gnBmEzqYN4bZqYA" target="_blank" rel="noopener" class="menu-link">Confidentiality Agreement (NDA)</a>
-                    </div>
-                </details>
-
-                <details class="menu-group" name="mobile-menu">
-                    <summary class="menu-title">
-                        Products
-                        <span class="material-symbols-rounded chevron">expand_more</span>
-                    </summary>
-                    <div class="menu-links">
-                        <div class="menu-heading">Products</div>
-                        <a href="../products/product-pages/content1/page1/index.html" class="menu-link">MX2250</a>
-                        <a href="../products/product-pages/content1/page2/index.html" class="menu-link">MSU4000 Elite</a>
-                        <a href="../products/product-pages/content1/page3/index.html" class="menu-link">MAU5000 Elite</a>
-
-                        <div class="menu-heading">Battery Expansion</div>
-                        <a href="../products/product-pages/content2/page1/index.html" class="menu-link">B4000 Elite</a>
-                        <a href="../products/product-pages/content2/page2/index.html" class="menu-link">B5000 Elite</a>
-
-                        <div class="menu-heading">Product Data Sheets</div>
-                        <a href="../product-data-sheets/TSUN Product DataSheet MX2250.pdf" target="_blank" rel="noopener" class="menu-link">MX2250 Micro Inverter</a>
-                        <a href="../product-data-sheets/TSUN Product DataSheet MSU4000 Elite And B4000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MSU4000 Elite Micro Hybrid Storage Unit</a>
-                        <a href="../product-data-sheets/TSUN Product DataSheet MAU5000 Elite And B5000 Elite.pdf" target="_blank" rel="noopener" class="menu-link">MAU5000 Elite AC Coupled Unit</a>
-
-                        <div class="menu-heading">TSUN Smart App</div>
-                        <a href="https://play.google.com/store/apps/details?id=com.tsuntalent.home&pcampaignid=web_share" target="_blank" rel="noopener" class="menu-link">Google Play Store (Android)</a>
-                        <a href="https://apps.apple.com/us/app/tsun-smart/id6468031219" target="_blank" rel="noopener" class="menu-link">Apple App Store (iOS)</a>
-                    </div>
-                </details>
-
-                <details class="menu-group" name="mobile-menu">
-                    <summary class="menu-title">
-                        Support
-                        <span class="material-symbols-rounded chevron">expand_more</span>
-                    </summary>
-                    <div class="menu-links">
-                        <a href="../contact/index.html" class="menu-link">Contact Us</a>
-                        <a href="../faq/index.html" class="menu-link">Frequently Asked Questions</a>
-
-                        <div class="menu-heading">Contact Number</div>
-                        <a href="tel:+63288084735" class="menu-link">(+63) 2 880 84735</a>
-                        <a href="tel:+63285231142" class="menu-link">(+63) 2 852 31142</a>
-
-                        <div class="menu-heading">Support Email</div>
-                        <a href="mailto:inquiries@hphtechsolutions.com" class="menu-link">inquiries@hphtechsolutions.com</a>
-
-                        <div class="menu-heading">Office Address</div>
-                        <a href="https://maps.app.goo.gl/okz2G6zCGjfVaTua7" target="_blank" rel="noopener" class="menu-link">Unit 111 17 Vatican Building, BF Resort Village, Talon Dos, Las Piñas City</a>
-                    </div>
-                </details>
-
-                <a href="../portfolio/index.html" class="menu-title">Portfolio</a>
-
-                <a href="../schedule-a-visit/index.html" class="menu-cta">Schedule a Visit</a>
-            </div>
-        </nav>
-
-        <main class="mobile-main mobile-mission">
-            <section class="mobile-mission-hero">
-                <div class="mobile-eyebrow logo hidden">Our Mission</div>
-                <h1 class="mobile-mission-title">
-                    <span class="logo hidden">Energy That</span>
-                    <span class="logo hidden">Answers to No One.</span>
-                </h1>
-                <p class="mobile-p logo hidden">Affordable, accessible renewable power — built for every Filipino home.</p>
-            </section>
-
-            <section class="mobile-mission-panel">
-                <div class="mobile-mission-numeral" aria-hidden="true">01</div>
-                <div class="mobile-eyebrow logo hidden">01 — Mission</div>
-                <p class="mobile-mission-statement logo hidden">We make renewable energy as affordable and accessible as we can — for every home, every business, every community we serve.</p>
-            </section>
-
-            <section class="mobile-mission-panel">
-                <div class="mobile-mission-numeral" aria-hidden="true">02</div>
-                <div class="mobile-eyebrow logo hidden">02 — Vision</div>
-                <p class="mobile-mission-statement logo hidden">A Philippines where every rooftop makes its own power — free from rising rates, and run entirely on sunlight.</p>
-            </section>
-
-            <section class="mobile-mission-panel">
-                <div class="mobile-mission-numeral" aria-hidden="true">03</div>
-                <div class="mobile-eyebrow logo hidden">03 — Advocacy</div>
-                <p class="mobile-mission-statement logo hidden">We're fighting for Filipino energy independence — helping communities take back control of their power, and <span class="mobile-accent">take the greed from the grid</span>.</p>
-            </section>
-
-            <section class="mobile-mission-closing">
-                <h2 class="mobile-mission-closing-title">A Better Tomorrow, Today.</h2>
-                <div class="mobile-btn-row">
-                    <a href="../contact/index.html" class="mobile-btn-solid">Get in Touch</a>
-                </div>
-            </section>
-        </main>
-
         <footer class="mobile-footer">
             <details class="mobile-footer-group" name="mobile-footer">
                 <summary class="mobile-footer-title">
@@ -504,12 +547,6 @@
             <div class="mobile-copyright">&copy; 2026 HPH Renewable. All rights reserved.</div>
         </footer>
     </div>
-
-
-
-
-
-
 
     <script>
         const navItems = document.querySelectorAll(".nav-bar .nav-item");

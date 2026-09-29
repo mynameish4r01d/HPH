@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <link rel="stylesheet" href="styles.css">
+
+    <!--GOOGLE ICONS MATERIAL ROUNDED-->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,1,0" rel="stylesheet">
+
+
+
+
+    <!--INTER FONT FAMILY-->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap" rel="stylesheet">
+
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+
+  <link rel="icon" type="image/x-icon" href="../global-elements/favicon.png">
+
+    <title>Admin | HPH RENEWABLE</title>
+
+    <!--JAVA SCRIPT-->
+    <script type="module" src="admin.js"></script>
+
+</head>
+<body>
+
+    <header class="admin-bar">
+        <a href="../home/index.html" class="admin-logo">
+            <img src="../global-elements/HPH Renewable Black.png" alt="HPH Renewable" class="img">
+        </a>
+
+        <div class="admin-account" hidden>
+            <span class="admin-account-email"></span>
+            <button type="button" class="admin-signout">Sign out</button>
+        </div>
+    </header>
+
+    <main class="admin-page">
+        <p class="admin-status">Loading…</p>
+
+        <!-- Sign-in: Firebase Authentication (email + password). Only emails
+             in ADMIN_EMAILS (admin.js) and in isAdmin() (/firestore.rules,
+             /storage.rules) can see submissions. -->
+        <section class="admin-login" hidden>
+            <h1 class="admin-title">Admin sign in</h1>
+            <p class="admin-intro">Sign in to view Schedule a Visit requests, waitlist sign-ups and customer feedback.</p>
+
+            <form class="admin-login-form" novalidate>
+                <label class="admin-field">
+                    <span class="admin-label">Email</span>
+                    <input type="email" name="email" autocomplete="username" required>
+                </label>
+
+                <label class="admin-field">
+                    <span class="admin-label">Password</span>
+                    <input type="password" name="password" autocomplete="current-password" required>
+                </label>
+
+                <p class="admin-error" role="alert" hidden></p>
+
+                <button type="submit" class="admin-button">Sign in</button>
+            </form>
+        </section>
+
+        <section class="admin-dashboard" hidden>
+            <div class="admin-heading">
+                <h1 class="admin-title">Overview</h1>
+                <button type="button" class="admin-refresh" title="Refresh">
+                    <span class="material-symbols-rounded">refresh</span>
+                    Refresh
+                </button>
+            </div>
+
+            <div class="admin-stats">
+                <div class="admin-stat">
+                    <span class="admin-stat-value" data-stat="visits">–</span>
+                    <span class="admin-stat-label">Visit requests</span>
+                </div>
+                <div class="admin-stat">
+                    <span class="admin-stat-value" data-stat="visits-open">–</span>
+                    <span class="admin-stat-label">Still to visit</span>
+                </div>
+                <div class="admin-stat">
+                    <span class="admin-stat-value" data-stat="waitlist">–</span>
+                    <span class="admin-stat-label">Waitlist sign-ups</span>
+                </div>
+                <div class="admin-stat">
+                    <span class="admin-stat-value" data-stat="feedback">–</span>
+                    <span class="admin-stat-label">Feedback</span>
+                </div>
+                <div class="admin-stat">
+                    <span class="admin-stat-value" data-stat="rating">–</span>
+                    <span class="admin-stat-label">Average rating</span>
+                </div>
+            </div>
+
+            <div class="admin-toolbar">
+                <div class="admin-tabs" role="tablist">
+                    <button type="button" class="admin-tab active" role="tab" aria-selected="true" data-tab="visits">
+                        Site Visits <span class="admin-tab-count" data-count="visits"></span>
+                    </button>
+                    <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="waitlist">
+                        Waitlist <span class="admin-tab-count" data-count="waitlist"></span>
+                    </button>
+                    <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="feedback">
+                        Feedback <span class="admin-tab-count" data-count="feedback"></span>
+                    </button>
+                </div>
+
+                <div class="admin-filters">
+                    <select class="admin-status-filter" aria-label="Filter by status">
+                        <option value="all">All requests</option>
+                        <option value="new">Active</option>
+                        <option value="done">Complete</option>
+                    </select>
+
+                    <input type="search" class="admin-search" placeholder="Search name, phone, email, message…" aria-label="Search submissions">
+                </div>
+            </div>
+
+            <p class="admin-error admin-load-error" role="alert" hidden></p>
+
+            <div class="admin-list" data-list="visits"></div>
+            <div class="admin-list" data-list="waitlist" hidden></div>
+            <div class="admin-list" data-list="feedback" hidden></div>
+        </section>
+    </main>
+
+</body>
+</html>

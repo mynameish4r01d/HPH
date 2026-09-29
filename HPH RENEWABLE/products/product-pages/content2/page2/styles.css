@@ -725,14 +725,13 @@ body.menu-open{
         --progress-bar-color: #1A1A1A;
     }
 
+    /* Sits just above the carousel's page dots (desktop dots: bottom 20px,
+       8px tall; mobile dots: bottom 14px, 6px tall). */
     .model-hint{
         position: absolute;
-        top: 16px;
+        bottom: 40px;
         left: 50%;
         transform: translateX(-50%);
-        display: flex;
-        align-items: center;
-        gap: 6px;
         padding: 6px 12px;
         border-radius: 100px;
         background-color: rgba(255, 255, 255, 0.9);
@@ -742,11 +741,11 @@ body.menu-open{
         font-weight: 500;
         white-space: nowrap;
         pointer-events: none;
-
-        .material-symbols-rounded{
-            font-size: 18px;
-        }
     }
+}
+
+.mobile-carousel-slide-3d .model-hint{
+    bottom: 30px;
 }
 
 
@@ -1383,5 +1382,50 @@ body.menu-open{
     /*MOBILE VIEW ONLY*/
     .mobile{
         display: block;
+    }
+}
+
+/* "Head unit only" / "Extension battery" note under the product price
+   (desktop and mobile). Top-level so it applies in both layouts. */
+.unit-note{
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 14px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    background-color: #F5F5F7;
+    color: #1A1A1A;
+    font-family: inter;
+    font-size: 13px;
+    line-height: 1.45;
+
+    .material-symbols-rounded{
+        flex-shrink: 0;
+        font-size: 18px;
+        color: #7D8187;
+    }
+
+    strong{
+        font-weight: 600;
+    }
+
+    a{
+        color: #1A1A1A;
+        text-decoration: underline !important;
+    }
+}
+
+/* Mobile layout: follow its light/dark colour variables. */
+.mobile .unit-note{
+    background-color: var(--m-surface, #F5F5F7);
+    color: var(--m-text, #1A1A1A);
+
+    .material-symbols-rounded{
+        color: var(--m-subtle, #7D8187);
+    }
+
+    a{
+        color: var(--m-text, #1A1A1A);
     }
 }
