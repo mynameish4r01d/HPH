@@ -50,7 +50,7 @@
              /storage.rules) can see submissions. -->
         <section class="admin-login" hidden>
             <h1 class="admin-title">Admin sign in</h1>
-            <p class="admin-intro">Sign in to view Schedule a Visit requests, waitlist sign-ups and customer feedback.</p>
+            <p class="admin-intro">Sign in to view ocular site visit requests, waitlist sign-ups and customer feedback.</p>
 
             <form class="admin-login-form" novalidate>
                 <label class="admin-field">
@@ -113,17 +113,40 @@
                         <span class="admin-portfolio-label">Total solar capacity</span>
                     </div>
                 </div>
+                <!-- Install goal: GOALS in ../portfolio-counters.js. -->
+                <div class="admin-goal" data-portfolio-goal="inverters" role="progressbar" aria-label="MX2250 installs toward the goal of 1,000" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                    <div class="admin-goal-head">
+                        <span class="admin-goal-title">Goal: 1,000 MX2250 installs</span>
+                        <span class="admin-goal-text" data-portfolio-goal-text>&mdash;</span>
+                    </div>
+                    <div class="admin-goal-track"><div class="admin-goal-fill"></div></div>
+                </div>
                 <div class="admin-portfolio-error" data-portfolio-error></div>
+            </section>
+
+            <!-- Customer impact: installed MX2250s × SAVINGS_PER_MX2250_YEAR in
+                 ../portfolio-counters.js (currently ₱49,600 a year; may change). -->
+            <section class="admin-impact" aria-label="Customer impact">
+                <div class="admin-portfolio-head">
+                    <span class="admin-portfolio-title">Customer impact</span>
+                    <span class="admin-impact-note">Estimate: about ₱49,600 a year per MX2250. This rate may change.</span>
+                </div>
+                <div class="admin-impact-grid">
+                    <div class="admin-portfolio-item">
+                        <span class="admin-portfolio-value loading" data-portfolio-count="yearly-savings">&mdash;</span>
+                        <span class="admin-portfolio-label">Customer savings per year, all installs</span>
+                    </div>
+                    <div class="admin-portfolio-item">
+                        <span class="admin-portfolio-value loading" data-portfolio-count="lifetime-savings">&mdash;</span>
+                        <span class="admin-portfolio-label">Customer savings over 25 years</span>
+                    </div>
+                </div>
             </section>
 
             <div class="admin-stats">
                 <div class="admin-stat">
-                    <span class="admin-stat-value" data-stat="visits">–</span>
-                    <span class="admin-stat-label">Visit requests</span>
-                </div>
-                <div class="admin-stat">
                     <span class="admin-stat-value" data-stat="visits-open">–</span>
-                    <span class="admin-stat-label">Still to visit</span>
+                    <span class="admin-stat-label">Ocular site visit requests</span>
                 </div>
                 <div class="admin-stat">
                     <span class="admin-stat-value" data-stat="waitlist">–</span>
@@ -137,12 +160,31 @@
                     <span class="admin-stat-value" data-stat="rating">–</span>
                     <span class="admin-stat-label">Average rating</span>
                 </div>
+                <div class="admin-stat">
+                    <span class="admin-stat-value" data-stat="referrals">–</span>
+                    <span class="admin-stat-label">Referred visits</span>
+                </div>
             </div>
+
+            <!-- Stale alert: open visit requests / waitlist sign-ups with no
+                 contact after STALE_WARN_HOURS (admin.js). Filled in by admin.js. -->
+            <div class="admin-stale" role="status" hidden></div>
+
+            <!-- Who referred whom: visit requests grouped by referral code. -->
+            <details class="admin-referrals" hidden>
+                <summary>
+                    <span class="material-symbols-rounded">group_add</span>
+                    <span class="admin-referrals-title">Referrals</span>
+                    <span class="admin-referrals-count"></span>
+                    <span class="material-symbols-rounded admin-chevron">expand_more</span>
+                </summary>
+                <div class="admin-referrals-list"></div>
+            </details>
 
             <div class="admin-toolbar">
                 <div class="admin-tabs" role="tablist">
                     <button type="button" class="admin-tab active" role="tab" aria-selected="true" data-tab="visits">
-                        Site Visits <span class="admin-tab-count" data-count="visits"></span>
+                        Ocular Visits <span class="admin-tab-count" data-count="visits"></span>
                     </button>
                     <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="waitlist">
                         Waitlist <span class="admin-tab-count" data-count="waitlist"></span>
@@ -157,6 +199,7 @@
                         <option value="all">All requests</option>
                         <option value="new">Active</option>
                         <option value="done">Complete</option>
+                        <option value="stale">No contact 48h+</option>
                     </select>
 
                     <input type="search" class="admin-search" placeholder="Search name, phone, email, message…" aria-label="Search submissions">
@@ -164,6 +207,9 @@
             </div>
 
             <p class="admin-error admin-load-error" role="alert" hidden></p>
+
+            <!-- Waitlist only: filter by product, with per-product totals. -->
+            <div class="admin-product-filter" role="group" aria-label="Filter waitlist by product" hidden></div>
 
             <div class="admin-list" data-list="visits"></div>
             <div class="admin-list" data-list="waitlist" hidden></div>

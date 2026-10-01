@@ -53,6 +53,10 @@ form.querySelector('[name="preferredDate"]').min =
 const product = new URLSearchParams(window.location.search).get("product");
 if (PRODUCTS.includes(product)) form.querySelector('[name="product"]').value = product;
 
+// Referral links can carry ?ref=<code>; pre-fill it.
+const referral = new URLSearchParams(window.location.search).get("ref");
+if (referral) form.querySelector('[name="referralCode"]').value = referral.trim().slice(0, 50);
+
 
 // -------------------------------------------------------------- validation
 
@@ -328,6 +332,8 @@ form.addEventListener("submit", async (e) => {
                 preferredDate: value("preferredDate"),
                 preferredTime: value("preferredTime"),
                 message: value("message"),
+                // Upper-cased so "juan01" and "JUAN01" group together in the admin page.
+                referralCode: value("referralCode").toUpperCase().slice(0, 50),
                 attachments,
                 consent: true,
                 sourcePage: decodeURIComponent(window.location.pathname).slice(0, 300),

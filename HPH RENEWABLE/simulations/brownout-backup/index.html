@@ -262,8 +262,11 @@
             <p class="sim-intro">Pick a battery, the appliances you want to keep running and when the brownout hits. Then press play to see how long your home stays powered, and how solar panels can recharge the battery during the day.</p>
         </section>
 
+        <!-- Scene, results and setup share one wrapper so that on phones the
+             scene can stay pinned (sticky) while the setup scrolls under it. -->
+        <section class="bk-sticky-zone" aria-label="Brownout backup simulation">
         <!-- Scene + playback (left) and results (right); drawn by brownout.js. -->
-        <section class="sim-stage bk-stage" aria-label="Brownout backup simulation">
+        <div class="sim-stage bk-stage">
             <div class="bk-scene-card">
                 <div class="sim-scene-wrap bk-scene-wrap">
                     <svg class="bk-scene" viewBox="0 0 760 360" role="img" aria-label="A home during a brownout, with its backup battery and solar panels. Described in the results next to it.">
@@ -321,7 +324,7 @@
                 </dl>
                 <p class="bk-advice" data-out="advice" hidden></p>
             </div>
-        </section>
+        </div>
 
         <!-- Inputs; everything recalculates as soon as something changes. -->
         <section class="bk-setup" aria-labelledby="bk-setup-title">
@@ -399,6 +402,7 @@
                     <p class="calc-help">Running power. The fridge figure is an average, because its compressor switches on and off.</p>
                 </div>
             </div>
+        </section>
         </section>
 
         <!-- Battery charge over the brownout, with the times the home had no power. -->

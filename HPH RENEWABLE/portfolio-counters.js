@@ -15,6 +15,11 @@
 //   data-portfolio-count="panels"             Solar panels installed
 //   data-portfolio-count="inverter-capacity"  Total inverter capacity (kW)
 //   data-portfolio-count="solar-capacity"     Total solar capacity (kWp)
+//   data-portfolio-count="yearly-savings"     Customer savings per year (₱)
+//   data-portfolio-count="lifetime-savings"   Customer savings over 25 years (₱)
+//   data-portfolio-goal="inverters"           Progress toward GOALS.inverters:
+//       sets --progress (0–100%) and aria-valuenow on the element, and fills
+//       any [data-portfolio-goal-text] inside it ("312 of 1,000 · 31%")
 //   data-portfolio-status-dot / -status-text / -error   Live status line
 // Capacity elements also need data-unit="kW" / "kWp" for the unit label.
 
@@ -56,8 +61,22 @@
         { key: "solar-capacity", from: "panels", perUnit: 0.65 },
     ];
 
+    // Install goals, by metric. Shown as a progress bar on the admin page.
+    const GOALS = { inverters: 1000 };
+
+    // Customer savings: about ₱49,600 a year per MX2250 kit (4 panels,
+    // ~3,100 kWh a year at ₱16/kWh — the FAQ and savings calculator's figure).
+    // An estimate that will change with electricity rates: update it here and
+    // keep it in step with the FAQ and simulations/savings-calculator/savings.js.
+    const SAVINGS_PER_MX2250_YEAR = 49600;
+    const SAVINGS_YEARS = 25;
+    const SAVINGS = [
+        { key: "yearly-savings", from: "inverters", perUnit: SAVINGS_PER_MX2250_YEAR },
+        { key: "lifetime-savings", from: "inverters", perUnit: SAVINGS_PER_MX2250_YEAR * SAVINGS_YEARS },
+    ];
+
     const countEls = (key) => Array.from(document.querySelectorAll(`[data-portfolio-count="${key}"]`));
-    const allCountEls = [...METRICS, ...CAPACITIES].flatMap((m) => countEls(m.key));
+    const allCountEls = [...METRICS, ...CAPACITIES, ...SAVINGS].flatMap((m) => countEls(m.key));
 
     // Nothing to fill in on this page.
     if (!allCountEls.length) return;
@@ -70,6 +89,29 @@
         const number = value.toLocaleString(undefined, { maximumFractionDigits: 2 });
         el.innerHTML = `${number}<span class="portfolio-unit">${el.dataset.unit}</span>`;
         el.classList.remove("loading");
+    }
+
+    const goalEls = Array.from(document.querySelectorAll("[data-portfolio-goal]"));
+
+    // "₱15.4M" style for large amounts, so the number fits its tile.
+    function formatPesos(value) {
+        if (value >= 1e6) {
+            return `₱${(value / 1e6).toLocaleString(undefined, { maximumFractionDigits: value >= 1e8 ? 0 : 1 })}M`;
+        }
+        return `₱${Math.round(value).toLocaleString()}`;
+    }
+
+    function showGoal(el, count) {
+        const goal = GOALS[el.dataset.portfolioGoal];
+        if (!goal) return;
+        const percent = Math.min(100, (count / goal) * 100);
+        el.style.setProperty("--progress", `${percent}%`);
+        el.setAttribute("aria-valuenow", String(Math.min(count, goal)));
+        el.setAttribute("aria-valuemax", String(goal));
+        el.querySelectorAll("[data-portfolio-goal-text]").forEach((t) => {
+            t.textContent = `${count.toLocaleString()} of ${goal.toLocaleString()} · ${Math.floor(percent)}%`;
+        });
+        el.classList.toggle("reached", count >= goal);
     }
 
     let hasValues = false;
@@ -85,6 +127,15 @@
             const value = counts[capacity.from] * capacity.perUnit;
             countEls(capacity.key).forEach((el) => showCapacity(el, value));
         });
+        SAVINGS.forEach((saving) => {
+            const value = counts[saving.from] * saving.perUnit;
+            countEls(saving.key).forEach((el) => {
+                el.textContent = formatPesos(value);
+                el.title = `₱${value.toLocaleString()}`;
+                el.classList.remove("loading");
+            });
+        });
+        goalEls.forEach((el) => showGoal(el, counts[el.dataset.portfolioGoal] || 0));
         hasValues = true;
     }
 

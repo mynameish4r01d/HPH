@@ -817,7 +817,9 @@ body.menu-open{
     /* Once the menu panel opens behind the nav, the bar's own background
        drops away so it blends into the panel. */
     body.menu-open & .mobile-nav{
-        background-color: transparent;
+        /* Solid, like the open menu, so the logo and X stay readable
+           while the menu scrolls under them. No border. */
+        background-color: #FFFFFF;
 
         .mobile-logo .img{
             filter: brightness(0);
@@ -990,65 +992,7 @@ body.menu-open{
         }
     }
 
-    /* Dark theme: same #FFFFFF -> #0C0C0C surface mapping as the home
-       page's desktop mega-panel and footer. */
-    @media (prefers-color-scheme: dark){
-        &{
-            background-color: #0C0C0C;
-        }
-
-        .dropdown{
-            background-color: #0C0C0C;
-
-            .menu-title, .menu-links .menu-link{
-                color: #EBEBEB;
-            }
-
-            .menu-cta{
-                background-color: #EBEBEB;
-                color: #0C0C0C;
-            }
-        }
-
-        .mobile-nav{
-            background-color: #0C0C0C;
-
-            .mobile-logo .img{
-                filter: none;
-            }
-
-            .menu .menu-line{
-                background-color: #EBEBEB;
-            }
-        }
-
-        body.menu-open & .mobile-nav{
-            .mobile-logo .img{
-                filter: none;
-            }
-
-            .menu .menu-line{
-                background-color: #EBEBEB;
-            }
-        }
-
-        .mobile-footer{
-            background-color: #0C0C0C;
-
-            .mobile-footer-group{
-                border-bottom-color: #2A2A2A;
-
-                .mobile-footer-title{
-                    color: #FFFFFF;
-                }
-
-                .mobile-footer-links .mobile-footer-link{
-                    color: #9E9E9E;
-                }
-            }
-        }
     }
-}
 
 /* Inner-page content: shared type scale used by every page below. */
 .mobile{
@@ -1152,19 +1096,6 @@ body.menu-open{
         color: var(--m-text);
     }
 
-    @media (prefers-color-scheme: dark){
-        &{
-            --m-text: #EBEBEB;
-            --m-muted: #9E9E9E;
-            --m-border: #2A2A2A;
-            --m-surface: #1A1A1A;
-        }
-
-        .mobile-btn-solid{
-            background-color: #EBEBEB;
-            color: #0C0C0C;
-        }
-    }
 }
 
 
@@ -1323,9 +1254,6 @@ body.menu-open{
             font-size: 14px;
         }
 
-        @media (prefers-color-scheme: dark){
-            --m-bg: #0C0C0C;
-        }
     }
 }
 

@@ -1140,7 +1140,9 @@ body.menu-open{
     /* Once the menu panel opens behind the nav, the bar's own background
        drops away so it blends into the panel. */
     body.menu-open & .mobile-nav{
-        background-color: transparent;
+        /* Solid, like the open menu, so the logo and X stay readable
+           while the menu scrolls under them. No border. */
+        background-color: #FFFFFF;
 
         .mobile-logo .img{
             filter: brightness(0);
@@ -1346,6 +1348,8 @@ body.menu-open{
         }
 
         body.menu-open & .mobile-nav{
+            background-color: #0C0C0C;
+
             .mobile-logo .img{
                 filter: none;
             }
@@ -1499,5 +1503,91 @@ body.menu-open{
     /*MOBILE VIEW ONLY*/
     .mobile{
         display: block;
+    }
+}
+
+/* ===== DESKTOP DARK THEME ===== */
+/* Follows the system setting, like the mobile view. Same #FFFFFF -> #0C0C0C
+   surface mapping as the Home page. The base nav and footer colours are set
+   several levels deep, so these use !important (as Home's do). */
+@media (prefers-color-scheme: dark){
+    body{
+        background-color: #0C0C0C;
+    }
+
+    .desktop{
+        background-color: #0C0C0C !important;
+
+        .top-blur{
+            background-color: #0C0C0C !important;
+        }
+
+        .nav-bar{
+            .logo .img{
+                filter: invert(1) !important;
+            }
+
+            .nav-title, .nav-link{
+                color: #EBEBEB !important;
+            }
+
+            .schedule-btn{
+                background-color: #EBEBEB !important;
+                color: #0C0C0C !important;
+            }
+
+            .mega-panel{
+                background-color: rgba(12, 12, 12, 0.97) !important;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+
+                .mega-heading{
+                    color: #9E9E9E !important;
+                }
+
+                .mega-link{
+                    color: #EBEBEB !important;
+                }
+
+                .mega-link:hover{
+                    color: #ADADAD !important;
+                }
+            }
+        }
+
+        .bottom-content{
+            background-color: #0C0C0C !important;
+
+            .title, .title3{
+                color: #FFFFFF !important;
+            }
+
+            .footer-link, .details{
+                color: #9E9E9E !important;
+            }
+
+            .footer-link:hover{
+                color: #FFFFFF !important;
+            }
+
+            .bottom-divider{
+                background-color: #2A2A2A !important;
+            }
+        }
+    }
+}
+
+/* Page content: the same dark tokens the phone layout uses. */
+@media (prefers-color-scheme: dark){
+    .visit-page{
+        --visit-text: #EBEBEB;
+        --visit-muted: #9E9E9E;
+        --visit-subtle: #9E9E9E;
+        --visit-border: #2A2A2A;
+        --visit-field: #141414;
+        --visit-surface: #1A1A1A;
+        --visit-accent: #EBEBEB;
+        --visit-on-accent: #0C0C0C;
+        color-scheme: dark;
+        background-color: #0C0C0C;
     }
 }

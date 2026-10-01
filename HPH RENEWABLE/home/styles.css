@@ -764,7 +764,9 @@ body.menu-open{
     /* Once the menu panel opens behind the nav, the bar's own background
        drops away so it blends into the panel. */
     body.menu-open & .mobile-nav{
-        background-color: transparent;
+        /* Solid, like the open menu, so the logo and X stay readable
+           while the menu scrolls under them. No border. */
+        background-color: #FFFFFF;
 
         .mobile-logo .img{
             filter: brightness(0);
@@ -1060,6 +1062,8 @@ body.menu-open{
         }
 
         body.menu-open & .mobile-nav{
+            background-color: #0C0C0C;
+
             .mobile-logo .img{
                 filter: none;
             }

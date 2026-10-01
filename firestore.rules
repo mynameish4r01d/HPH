@@ -68,8 +68,10 @@ service cloud.firestore {
       let fields = ['name', 'phone', 'email', 'address', 'propertyType', 'product',
                     'monthlyBill', 'preferredDate', 'preferredTime', 'message',
                     'attachments', 'consent', 'sourcePage', 'status', 'createdAt'];
-      return data.keys().hasOnly(fields)
+      // referralCode is optional so requests from a cached older form still go through.
+      return data.keys().hasOnly(fields.concat(['referralCode']))
         && data.keys().hasAll(fields)
+        && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
         && isText(data.name, 1, 100)
         && isText(data.phone, 7, 30)
         && isText(data.email, 0, 200)

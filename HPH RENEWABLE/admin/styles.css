@@ -35,6 +35,12 @@ a:link{
     --admin-star: #F5B301;
     --admin-star-empty: #D6D6DA;
     --admin-divider: #DCDCE0;
+    --admin-warn-bg: #FFF4D6;
+    --admin-warn-text: #8A5A00;
+    --admin-stale-bg: #FDE8E7;
+    --admin-stale-text: #B42318;
+    --admin-goal: #18794E;
+    --admin-goal-track: #DCDCE0;
 }
 
 @media (prefers-color-scheme: dark){
@@ -55,6 +61,12 @@ a:link{
         --admin-star: #FFC53D;
         --admin-star-empty: #48484A;
         --admin-divider: #3A3A3C;
+        --admin-warn-bg: rgba(255, 178, 36, 0.18);
+        --admin-warn-text: #FFC53D;
+        --admin-stale-bg: rgba(255, 107, 97, 0.18);
+        --admin-stale-text: #FF8A80;
+        --admin-goal: #4CC38A;
+        --admin-goal-track: #3A3A3C;
     }
 }
 
@@ -411,6 +423,242 @@ a:link{
     }
 }
 
+/* Install goal progress bar (data-portfolio-goal, filled by
+   ../portfolio-counters.js via --progress). */
+.admin-goal{
+    --progress: 0%;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--admin-divider);
+}
+
+.admin-goal-head{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin-bottom: 8px;
+    font-size: 12px;
+
+    .admin-goal-title{
+        font-weight: 600;
+    }
+
+    .admin-goal-text{
+        color: var(--admin-subtle);
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+.admin-goal-track{
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background-color: var(--admin-goal-track);
+
+    .admin-goal-fill{
+        width: var(--progress);
+        height: 100%;
+        border-radius: 4px;
+        background-color: var(--admin-goal);
+        transition: width 0.6s ease;
+    }
+}
+
+/* Customer impact: estimated peso savings across all installs. */
+.admin-impact{
+    margin-top: 12px;
+    padding: 20px;
+    border-radius: 6px;
+    background-color: var(--admin-surface);
+
+    .admin-impact-note{
+        font-size: 12px;
+        color: var(--admin-subtle);
+    }
+}
+
+.admin-impact-grid{
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.admin-impact + .admin-stats{
+    margin-top: 12px;
+}
+
+/* Stale alert banner above the tabs. */
+.admin-stale{
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin: -16px 0 24px;
+    padding: 12px 16px;
+    border-radius: 6px;
+    background-color: var(--admin-warn-bg);
+    color: var(--admin-warn-text);
+    font-size: 13px;
+
+    .admin-stale-text{
+        flex: 1 1 240px;
+    }
+
+    .admin-stale-links{
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .admin-stale-link{
+        padding: 6px 12px;
+        border: 1px solid currentColor;
+        border-radius: 999px;
+        background: none;
+        color: inherit;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+}
+
+/* Referrals: visit requests grouped by referral code. */
+.admin-referrals{
+    margin: -12px 0 28px;
+    border-radius: 6px;
+    background-color: var(--admin-surface);
+
+    summary{
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 14px 16px;
+        list-style: none;
+        cursor: pointer;
+        font-size: 13px;
+
+        &::-webkit-details-marker{
+            display: none;
+        }
+    }
+
+    .admin-referrals-title{
+        font-weight: 600;
+    }
+
+    .admin-referrals-count{
+        flex: 1;
+        color: var(--admin-subtle);
+        font-size: 12px;
+    }
+
+    .admin-chevron{
+        color: var(--admin-subtle);
+        transition: transform 0.2s ease;
+    }
+
+    &[open] .admin-chevron{
+        transform: rotate(180deg);
+    }
+}
+
+.admin-referrals-list{
+    padding: 0 16px 8px;
+}
+
+.admin-referral{
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    align-items: center;
+    gap: 4px 10px;
+    padding: 12px 0;
+    border-top: 1px solid var(--admin-divider);
+    font-size: 13px;
+
+    .admin-referral-label{
+        font-size: 12px;
+        color: var(--admin-subtle);
+    }
+
+    .admin-referral-code{
+        padding: 3px 8px;
+        border: 1px solid var(--admin-border);
+        border-radius: 4px;
+        background-color: var(--admin-bg);
+        color: var(--admin-text);
+        font: inherit;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        cursor: pointer;
+
+        &:hover{
+            border-color: var(--admin-accent);
+        }
+    }
+
+    .admin-referral-total{
+        color: var(--admin-subtle);
+        font-size: 12px;
+    }
+
+    .admin-referral-people{
+        grid-column: 1 / -1;
+        margin: 4px 0 0;
+        padding-left: 18px;
+        line-height: 1.7;
+    }
+}
+
+/* Waitlist product chips. */
+.admin-product-filter{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0 4px;
+}
+
+.admin-product-chip{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    background-color: var(--admin-field);
+    color: var(--admin-text);
+    font-family: inter;
+    text-align: left;
+    cursor: pointer;
+
+    .admin-product-name{
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .admin-product-sub{
+        font-size: 11px;
+        color: var(--admin-subtle);
+    }
+
+    &:hover{
+        border-color: var(--admin-accent);
+    }
+
+    &[aria-pressed="true"]{
+        border-color: var(--admin-accent);
+        background-color: var(--admin-accent);
+        color: var(--admin-on-accent);
+
+        .admin-product-sub{
+            color: inherit;
+            opacity: 0.75;
+        }
+    }
+}
+
 .admin-stats{
     display: grid;
     grid-template-columns: repeat(5, 1fr);
@@ -635,6 +883,17 @@ a:link{
 .admin-badge-active{
     background-color: var(--admin-active-bg);
     color: var(--admin-active-text);
+}
+
+/* No contact after 48 h (amber), stale after 72 h (red). */
+.admin-badge-warn{
+    background-color: var(--admin-warn-bg);
+    color: var(--admin-warn-text);
+}
+
+.admin-badge-stale{
+    background-color: var(--admin-stale-bg);
+    color: var(--admin-stale-text);
 }
 
 .admin-stars{
@@ -960,6 +1219,16 @@ a:link{
 
     .admin-portfolio-grid{
         grid-template-columns: 1fr 1fr;
+    }
+
+    .admin-impact-grid .admin-portfolio-item{
+        padding-top: 0;
+        padding-bottom: 0;
+        border-top: none;
+    }
+
+    .admin-product-chip{
+        flex: 1 1 calc(50% - 4px);
     }
 
     .admin-portfolio-item{

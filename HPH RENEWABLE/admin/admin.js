@@ -1,4 +1,4 @@
-// Admin overview of "Schedule a Visit" requests (Firestore: visitRequests),
+// Admin overview of ocular site visit ("Schedule a Visit") requests (Firestore: visitRequests),
 // "Join the Waitlist" sign-ups (Firestore: waitlist) and feedback
 // (Firestore: feedback).
 //
@@ -23,6 +23,15 @@ const ADMIN_EMAILS = [
     "lerin.hermosa@hphtechsolutions.com",
 ];
 const MAX_ROWS = 500;
+
+// Stale alert: an open visit request or waitlist sign-up (not marked done /
+// contacted) older than this many hours gets an amber "No contact" tag, and
+// past STALE_HOURS a red "Stale" tag.
+const STALE_WARN_HOURS = 48;
+const STALE_HOURS = 72;
+
+// Waitlist product filter, in this order.
+const WAITLIST_PRODUCTS = ["MSU4000 Elite", "MAU5000 Elite", "B4000 Elite", "B5000 Elite"];
 
 const status = document.querySelector(".admin-status");
 
@@ -56,9 +65,13 @@ const loadError = document.querySelector(".admin-load-error");
 const search = document.querySelector(".admin-search");
 const statusFilter = document.querySelector(".admin-status-filter");
 const refreshButton = document.querySelector(".admin-refresh");
+const staleAlert = document.querySelector(".admin-stale");
+const referrals = document.querySelector(".admin-referrals");
+const productFilter = document.querySelector(".admin-product-filter");
 
 let data = { visits: [], waitlist: [], feedback: [] };
 let activeTab = "visits";
+let activeProduct = "all";
 
 
 // ---------------------------------------------------------------- helpers
@@ -264,12 +277,12 @@ const TABS = {
     visits: {
         collection: "visitRequests",
         render: (entry) => renderVisit(entry),
-        status: { badge: "Complete", openBadge: "Active", mark: "Mark as done", undo: "Mark as not done", marked: "Marked done", open: "Active", done: "Complete", all: "All requests" },
+        status: { badge: "Complete", openBadge: "Active", mark: "Mark as done", undo: "Mark as not done", marked: "Marked done", open: "Active", done: "Complete", all: "All requests", stale: "No contact 48h+", noun: ["ocular visit request", "ocular visit requests"] },
     },
     waitlist: {
         collection: "waitlist",
         render: (entry) => renderWaitlist(entry),
-        status: { badge: "Contacted", mark: "Mark as contacted", undo: "Mark as not contacted", marked: "Marked contacted", open: "Not contacted", done: "Contacted", all: "All sign-ups" },
+        status: { badge: "Contacted", mark: "Mark as contacted", undo: "Mark as not contacted", marked: "Marked contacted", open: "Not contacted", done: "Contacted", all: "All sign-ups", stale: "No contact 48h+", noun: ["waitlist sign-up", "waitlist sign-ups"] },
     },
     feedback: {
         collection: "feedback",
@@ -281,14 +294,152 @@ function isDone(entry) {
     return entry.status === "done";
 }
 
+// Hours since an open entry was submitted; null once it's done (or has no date).
+function hoursWaiting(entry) {
+    const created = toDate(entry.createdAt);
+    if (isDone(entry) || !created) return null;
+    return (Date.now() - created.getTime()) / 3600000;
+}
+
+function isStale(entry) {
+    const hours = hoursWaiting(entry);
+    return hours !== null && hours >= STALE_WARN_HOURS;
+}
+
+// Amber "No contact · 2d" from 48 h, red "Stale · 3d" from 72 h.
+function staleBadge(entry) {
+    const hours = hoursWaiting(entry);
+    if (hours === null || hours < STALE_WARN_HOURS) return null;
+    const days = Math.floor(hours / 24);
+    const late = hours >= STALE_HOURS;
+    const badge = el("span", late ? "admin-badge admin-badge-stale" : "admin-badge admin-badge-warn",
+        `${late ? "Stale" : "No contact"} · ${days}d`);
+    badge.title = `No contact for ${Math.floor(hours)} hours`;
+    return badge;
+}
+
+function plural(count, [one, many]) {
+    return `${count} ${count === 1 ? one : many}`;
+}
+
+// Banner above the tabs: how many open entries are past 48 h, per tab, each
+// a link that shows them.
+function renderStaleAlert() {
+    const parts = ["visits", "waitlist"]
+        .map((tab) => ({ tab, entries: data[tab].filter(isStale) }))
+        .filter(({ entries }) => entries.length);
+    if (!parts.length) {
+        staleAlert.hidden = true;
+        return;
+    }
+    const total = parts.reduce((sum, { entries }) => sum + entries.length, 0);
+    const late = parts.reduce((sum, { entries }) => sum + entries.filter((e) => hoursWaiting(e) >= STALE_HOURS).length, 0);
+
+    const text = el("span", "admin-stale-text");
+    text.append(el("strong", "", `${total} waiting over ${STALE_WARN_HOURS} hours with no contact`));
+    if (late) text.append(` (${late} over ${STALE_HOURS} hours)`);
+    const links = el("span", "admin-stale-links");
+    for (const { tab, entries } of parts) {
+        const link = el("button", "admin-stale-link", plural(entries.length, TABS[tab].status.noun));
+        link.type = "button";
+        link.addEventListener("click", () => {
+            selectTab(tab);
+            statusFilter.value = "stale";
+            renderList();
+        });
+        links.append(link);
+    }
+    staleAlert.replaceChildren(el("span", "material-symbols-rounded", "schedule"), text, links);
+    staleAlert.hidden = false;
+}
+
+// Who referred whom: visit requests grouped by referral code, most referrals first.
+function renderReferrals() {
+    const groups = new Map();
+    for (const v of data.visits) {
+        const code = (v.referralCode || "").trim().toUpperCase();
+        if (!code) continue;
+        if (!groups.has(code)) groups.set(code, []);
+        groups.get(code).push(v);
+    }
+    referrals.hidden = !groups.size;
+    if (!groups.size) return;
+
+    const referred = [...groups.values()].reduce((sum, list) => sum + list.length, 0);
+    referrals.querySelector(".admin-referrals-count").textContent =
+        `${plural(groups.size, ["code", "codes"])} · ${plural(referred, ["referred visit", "referred visits"])}`;
+
+    const rows = [...groups.entries()]
+        .sort(([a, x], [b, y]) => y.length - x.length || a.localeCompare(b))
+        .map(([code, list]) => {
+            const row = el("div", "admin-referral");
+            const codeButton = el("button", "admin-referral-code", code);
+            codeButton.type = "button";
+            codeButton.title = `Show visit requests referred by ${code}`;
+            codeButton.addEventListener("click", () => {
+                selectTab("visits");
+                statusFilter.value = "all";
+                search.value = code;
+                renderList();
+            });
+            const people = el("ul", "admin-referral-people");
+            people.append(...list.map((v) => {
+                const item = el("li");
+                item.append(el("span", "", v.name || "(no name)"));
+                item.append(el("span", "admin-muted", ` · ${formatDate(toDate(v.createdAt))}${isDone(v) ? " · visited" : ""}`));
+                return item;
+            }));
+            row.append(
+                el("span", "admin-referral-label", "Referred by"),
+                codeButton,
+                el("span", "admin-referral-total", plural(list.length, ["referral", "referrals"])),
+                people,
+            );
+            return row;
+        });
+    referrals.querySelector(".admin-referrals-list").replaceChildren(...rows);
+}
+
+// Product names in a waitlist sign-up (from `quantities`, or early test ones'
+// `products` / `product`).
+function waitlistProducts(w) {
+    if (w.quantities && typeof w.quantities === "object") return Object.keys(w.quantities);
+    return Array.isArray(w.products) ? w.products : [w.product].filter(Boolean);
+}
+
+// Chips above the waitlist: All, then each product with its sign-ups and
+// units requested. Clicking one shows only sign-ups that include it.
+function renderProductFilter() {
+    const chip = (value, label, sub) => {
+        const button = el("button", "admin-product-chip");
+        button.type = "button";
+        button.setAttribute("aria-pressed", String(activeProduct === value));
+        button.append(el("span", "admin-product-name", label));
+        if (sub) button.append(el("span", "admin-product-sub", sub));
+        button.addEventListener("click", () => {
+            activeProduct = value;
+            renderProductFilter();
+            renderList();
+        });
+        return button;
+    };
+    const chips = [chip("all", "All products", plural(data.waitlist.length, ["sign-up", "sign-ups"]))];
+    for (const name of WAITLIST_PRODUCTS) {
+        const signups = data.waitlist.filter((w) => waitlistProducts(w).includes(name));
+        const units = signups.reduce((sum, w) => sum + (w.quantities && Number.isFinite(w.quantities[name]) ? w.quantities[name] : 0), 0);
+        chips.push(chip(name, name, `${plural(signups.length, ["sign-up", "sign-ups"])} · ${units} units`));
+    }
+    productFilter.replaceChildren(...chips);
+}
+
 function renderStats() {
     const openVisits = data.visits.filter((v) => !isDone(v)).length;
     const ratings = data.feedback.map((f) => f.rating).filter((r) => typeof r === "number");
     const average = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : "–";
 
     const set = (key, value) => { document.querySelector(`[data-stat="${key}"]`).textContent = value; };
-    set("visits", data.visits.length);
     set("visits-open", openVisits);
+    set("referrals", data.visits.filter((v) => (v.referralCode || "").trim()).length);
     set("waitlist", data.waitlist.length);
     set("feedback", data.feedback.length);
     const rating = document.querySelector('[data-stat="rating"]');
@@ -298,6 +449,9 @@ function renderStats() {
     for (const key of Object.keys(TABS)) {
         document.querySelector(`[data-count="${key}"]`).textContent = data[key].length;
     }
+    renderStaleAlert();
+    renderReferrals();
+    renderProductFilter();
 }
 
 // Every string in an entry, including those inside lists and maps (both
@@ -320,12 +474,16 @@ function renderList() {
     const term = search.value.trim().toLowerCase();
     const list = document.querySelector(`[data-list="${activeTab}"]`);
     const wanted = TABS[activeTab].status ? statusFilter.value : "all";
+    const product = activeTab === "waitlist" ? activeProduct : "all";
     const entries = data[activeTab].filter((entry) => matches(entry, term)
-        && (wanted === "all" || (wanted === "done") === isDone(entry)));
+        && (wanted === "all"
+            || (wanted === "stale" ? isStale(entry) : (wanted === "done") === isDone(entry)))
+        && (product === "all" || waitlistProducts(entry).includes(product)));
     const render = TABS[activeTab].render;
 
     if (!entries.length) {
-        list.replaceChildren(el("p", "admin-empty", term || wanted !== "all" ? "No matches." : "Nothing submitted yet."));
+        const filtered = term || wanted !== "all" || product !== "all";
+        list.replaceChildren(el("p", "admin-empty", filtered ? "No matches." : "Nothing submitted yet."));
         return;
     }
     list.replaceChildren(...entries.map(render));
@@ -348,7 +506,8 @@ function detailRow(label, value, { href, wide } = {}) {
 
 // `meta` is text or a node (e.g. the feedback stars). `badge` shows when
 // done; `openBadge` (visit requests' green "Active" tag) when not.
-function entryShell(title, meta, date, { done, badge, openBadge } = {}) {
+// `stale` is the amber/red no-contact tag from staleBadge(), if any.
+function entryShell(title, meta, date, { done, badge, openBadge, stale } = {}) {
     const details = el("details", done ? "admin-entry admin-entry-done" : "admin-entry");
     const summary = el("summary");
     const main = el("div", "admin-entry-main");
@@ -356,6 +515,7 @@ function entryShell(title, meta, date, { done, badge, openBadge } = {}) {
     heading.append(el("span", "admin-entry-title", title || "(no name)"));
     if (done && badge) heading.append(el("span", "admin-badge", badge));
     if (!done && openBadge) heading.append(el("span", "admin-badge admin-badge-active", openBadge));
+    if (stale) heading.append(stale);
     main.append(heading);
     const metaLine = el("span", "admin-entry-meta");
     metaLine.append(meta);
@@ -368,11 +528,12 @@ function entryShell(title, meta, date, { done, badge, openBadge } = {}) {
 }
 
 function renderVisit(v) {
-    const meta = [v.product, v.propertyType, v.phone].filter(Boolean).join(" · ");
+    const referral = (v.referralCode || "").trim();
+    const meta = [v.product, v.propertyType, v.phone, referral && `Referred by ${referral}`].filter(Boolean).join(" · ");
     const done = isDone(v);
     const { badge, openBadge } = TABS.visits.status;
     const paths = Array.isArray(v.attachments) ? v.attachments : [];
-    const details = entryShell(v.name, meta, toDate(v.createdAt), { done, badge, openBadge });
+    const details = entryShell(v.name, meta, toDate(v.createdAt), { done, badge, openBadge, stale: staleBadge(v) });
     if (paths.length) {
         // Paperclip + count on the collapsed entry, so bills are easy to spot.
         const clip = el("span", "admin-entry-files");
@@ -391,6 +552,7 @@ function renderVisit(v) {
         detailRow("Monthly bill", v.monthlyBill),
         detailRow("Preferred date", v.preferredDate),
         detailRow("Preferred time", v.preferredTime),
+        detailRow("Referral code", referral),
         detailRow("Message", v.message, { wide: true }),
         detailRow("Submitted", formatDate(toDate(v.createdAt))),
         detailRow("Request ID", v.id),
@@ -454,7 +616,7 @@ function renderWaitlist(w) {
     const estimate = Number.isFinite(w.estimatedTotal) ? `₱${w.estimatedTotal.toLocaleString("en-PH")}` : "";
     const meta = [products, estimate, w.phone].filter(Boolean).join(" · ");
     const done = isDone(w);
-    const details = entryShell(w.name, meta, toDate(w.createdAt), { done, badge: TABS.waitlist.status.badge });
+    const details = entryShell(w.name, meta, toDate(w.createdAt), { done, badge: TABS.waitlist.status.badge, stale: staleBadge(w) });
 
     const list = el("dl", "admin-details");
     list.append(
@@ -688,22 +850,25 @@ function updateStatusFilter() {
     }
 }
 
+function selectTab(name) {
+    activeTab = name;
+    document.querySelectorAll(".admin-tab").forEach((t) => {
+        const active = t.dataset.tab === name;
+        t.classList.toggle("active", active);
+        t.setAttribute("aria-selected", String(active));
+    });
+    document.querySelectorAll(".admin-list").forEach((list) => {
+        list.hidden = list.dataset.list !== name;
+    });
+    productFilter.hidden = name !== "waitlist";
+    updateStatusFilter();
+    renderList();
+}
+
 updateStatusFilter();
 
 document.querySelectorAll(".admin-tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-        activeTab = tab.dataset.tab;
-        document.querySelectorAll(".admin-tab").forEach((t) => {
-            const active = t === tab;
-            t.classList.toggle("active", active);
-            t.setAttribute("aria-selected", String(active));
-        });
-        document.querySelectorAll(".admin-list").forEach((list) => {
-            list.hidden = list.dataset.list !== activeTab;
-        });
-        updateStatusFilter();
-        renderList();
-    });
+    tab.addEventListener("click", () => selectTab(tab.dataset.tab));
 });
 
 search.addEventListener("input", renderList);
