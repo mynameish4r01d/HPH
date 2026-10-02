@@ -41,6 +41,11 @@ a:link{
     --admin-stale-text: #B42318;
     --admin-goal: #18794E;
     --admin-goal-track: #DCDCE0;
+    --admin-mark: rgb(0, 122, 255);
+    --admin-ticket: rgb(255, 255, 255);
+    --admin-ticket-edge: rgba(0, 0, 0, 0.4);
+    --admin-ticket-shadow: rgba(0, 0, 0, 0.07);
+    --admin-ticket-perf: #D1D1D6;
 }
 
 @media (prefers-color-scheme: dark){
@@ -67,6 +72,10 @@ a:link{
         --admin-stale-text: #FF8A80;
         --admin-goal: #4CC38A;
         --admin-goal-track: #3A3A3C;
+        --admin-ticket: #1C1C1E;
+        --admin-ticket-edge: rgba(255, 255, 255, 0.22);
+        --admin-ticket-shadow: rgba(0, 0, 0, 0.5);
+        --admin-ticket-perf: #48484A;
     }
 }
 
@@ -80,6 +89,25 @@ a:link{
     align-items: center;
     gap: 16px;
     font-family: inter;
+
+    .admin-brand{
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 0;
+    }
+
+    /* "| Admin Overview": the divider is the label's left border. */
+    .admin-brand-label{
+        flex-shrink: 0;
+        padding-left: 14px;
+        border-left: 1px solid var(--admin-border);
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 18px;
+        color: var(--admin-muted);
+        white-space: nowrap;
+    }
 
     .admin-logo{
         display: block;
@@ -577,9 +605,24 @@ a:link{
     border-top: 1px solid var(--admin-divider);
     font-size: 13px;
 
-    .admin-referral-label{
+    /* Leaderboard rank; the top three (with an install) get a gold ring. */
+    .admin-referral-rank{
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: var(--admin-bg);
         font-size: 12px;
-        color: var(--admin-subtle);
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+        color: var(--admin-muted);
+
+        &.admin-referral-top{
+            box-shadow: inset 0 0 0 2px var(--admin-star);
+            color: var(--admin-text);
+        }
     }
 
     .admin-referral-code{
@@ -598,15 +641,20 @@ a:link{
         }
     }
 
-    .admin-referral-total{
+    .admin-referral-stats{
         color: var(--admin-subtle);
         font-size: 12px;
+
+        strong{
+            color: var(--admin-text);
+            font-weight: 600;
+        }
     }
 
     .admin-referral-people{
         grid-column: 1 / -1;
         margin: 4px 0 0;
-        padding-left: 18px;
+        padding-left: 52px;
         line-height: 1.7;
     }
 }
@@ -896,6 +944,318 @@ a:link{
     color: var(--admin-stale-text);
 }
 
+/* Pipeline stages between New and the won stage (blue), and Cancelled (grey). */
+.admin-badge-stage{
+    background-color: color-mix(in srgb, var(--admin-mark) 14%, transparent);
+    color: var(--admin-mark);
+}
+
+.admin-badge-off{
+    background: none;
+    box-shadow: inset 0 0 0 1px var(--admin-border);
+    color: var(--admin-muted);
+}
+
+/* Overview "Pipeline" box (renderPipeline() in admin.js). */
+.admin-pipeline-hint{
+    font-size: 12px;
+    color: var(--admin-subtle);
+}
+
+.admin-pipeline{
+    margin: 0 0 24px;
+    padding: 20px;
+    border-radius: 6px;
+    background-color: var(--admin-surface);
+}
+
+.admin-pipeline-group{
+    margin-top: 16px;
+
+    & + .admin-pipeline-group{
+        padding-top: 16px;
+        border-top: 1px solid var(--admin-divider);
+    }
+}
+
+.admin-pipeline-head{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+
+    .admin-pipeline-name{
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .admin-pipeline-sub{
+        font-size: 12px;
+        color: var(--admin-subtle);
+    }
+}
+
+.admin-pipeline-stages{
+    display: grid;
+    grid-template-columns: repeat(var(--stages), minmax(0, 1fr));
+    gap: 8px;
+}
+
+.admin-pipeline-stage{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    min-width: 0;
+    padding: 10px 12px 12px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background-color: var(--admin-bg);
+    color: var(--admin-text);
+    font-family: inter;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover{
+        border-color: var(--admin-accent);
+    }
+
+    .admin-pipeline-count{
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .admin-pipeline-label{
+        max-width: 100%;
+        font-size: 12px;
+        color: var(--admin-subtle);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Share of all entries at this stage. */
+    .admin-pipeline-bar{
+        position: relative;
+        width: 100%;
+        height: 4px;
+        margin-top: 8px;
+        border-radius: 2px;
+        background-color: var(--admin-goal-track);
+        overflow: hidden;
+
+        &::after{
+            content: "";
+            position: absolute;
+            inset: 0 auto 0 0;
+            width: calc(var(--share) * 100%);
+            border-radius: 2px;
+            background-color: var(--admin-mark);
+        }
+    }
+
+    &.admin-pipeline-off .admin-pipeline-bar::after{
+        background-color: var(--admin-subtle);
+    }
+}
+
+/* Stage stepper above the open entry's ticket (appendStage() in admin.js):
+   dots joined by a line, blue up to the current stage. */
+/* Two classes so it beats the plain .admin-actions rule further down. */
+.admin-actions.admin-stage-actions{
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+    /* Sits above the ticket. */
+    margin: 8px 0 28px;
+}
+
+/* Runs edge to edge: the first stage is left-aligned and the last
+   right-aligned, and those two get half the width of the others, which keeps
+   the dots evenly spaced. One grey track (::before) and one blue fill
+   (::after, --progress from admin.js: 0 at the first stage, 1 at the last)
+   run behind the dots, from the first dot's centre to the last's. */
+.admin-stages{
+    --dot: 14px;
+    position: relative;
+    display: flex;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    &::before, &::after{
+        content: "";
+        position: absolute;
+        top: calc(var(--dot) / 2 + 1px);
+        left: calc(var(--dot) / 2);
+        height: 2px;
+        border-radius: 1px;
+    }
+
+    &::before{
+        right: calc(var(--dot) / 2);
+        background-color: var(--admin-border);
+    }
+
+    &::after{
+        width: calc((100% - var(--dot)) * var(--progress, 0));
+        background-color: var(--admin-mark);
+    }
+
+    li{
+        position: relative;
+        /* Above the track and fill. */
+        z-index: 1;
+        flex: 1;
+        min-width: 0;
+
+        &:first-child, &:last-child{
+            flex: 0.5;
+        }
+
+        &:first-child .admin-stage{
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        &:last-child .admin-stage{
+            align-items: flex-end;
+            text-align: right;
+        }
+
+        &:first-child .admin-stage-label, &:last-child .admin-stage-label{
+            white-space: nowrap;
+        }
+    }
+}
+
+.admin-stage{
+    position: relative;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--admin-muted);
+    font-family: inter;
+    font-size: 12px;
+    line-height: 1.3;
+    text-align: center;
+    cursor: pointer;
+
+    .admin-stage-dot{
+        position: relative;
+        width: var(--dot);
+        height: var(--dot);
+        margin-top: 2px;
+        box-sizing: border-box;
+        border: 2px solid var(--admin-border);
+        border-radius: 50%;
+        background-color: var(--admin-bg);
+        transition: transform 0.15s ease;
+    }
+
+    &:hover .admin-stage-dot{
+        transform: scale(1.2);
+        border-color: var(--admin-mark);
+    }
+
+    &:disabled{
+        cursor: default;
+    }
+
+    &[aria-current="step"]{
+        color: var(--admin-text);
+        font-weight: 600;
+        cursor: default;
+
+        .admin-stage-dot{
+            transform: none;
+            box-shadow: 0 0 0 4px color-mix(in srgb, var(--admin-mark) 25%, transparent);
+        }
+    }
+}
+
+.admin-stages li.reached .admin-stage{
+    color: var(--admin-text);
+
+    .admin-stage-dot{
+        border-color: var(--admin-mark);
+        background-color: var(--admin-mark);
+    }
+}
+
+/* Cancelled: the whole line greys out. */
+.admin-stages-off{
+    opacity: 0.5;
+}
+
+/* Right-aligned, under the end of the stepper. */
+.admin-stage-buttons{
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+}
+
+/* Last stage (Installed/Delivered): no buttons, so no empty row, unless it's
+   showing a save error from the stepper. */
+.admin-stage-buttons:not(:has(button, .admin-action-error:not(:empty))){
+    display: none;
+}
+
+/* Above the list: "12 of 40 shown" and Export CSV. */
+.admin-list-bar{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-top: 12px;
+
+    .admin-list-count{
+        font-size: 12px;
+        color: var(--admin-subtle);
+    }
+}
+
+.admin-export{
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 30px;
+    padding: 0 10px 0 8px;
+    border: 1px solid var(--admin-border);
+    border-radius: 4px;
+    background: none;
+    color: var(--admin-text);
+    font-family: inter;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+
+    .material-symbols-rounded{
+        font-size: 16px;
+    }
+
+    &:hover{
+        border-color: var(--admin-accent);
+    }
+
+    &:disabled{
+        opacity: 0.4;
+        cursor: default;
+    }
+}
+
 .admin-stars{
     font-size: 14px;
     letter-spacing: 1px;
@@ -936,10 +1296,11 @@ a:link{
         font-size: 18px;
     }
 
+    /* "Mark as done" / "Mark as contacted": blue in light and dark mode. */
     &.admin-action-primary{
-        border-color: var(--admin-accent);
-        background-color: var(--admin-accent);
-        color: var(--admin-on-accent);
+        border-color: var(--admin-mark);
+        background-color: var(--admin-mark);
+        color: rgb(255, 255, 255);
     }
 
     &:disabled{
@@ -984,10 +1345,174 @@ a:link{
         }
     }
 
-    /* Long free-text fields (address, message) span both columns. */
+    /* Long free-text fields (message, note) span both columns. */
     &.admin-detail-wide{
         grid-column: 1 / -1;
     }
+}
+
+/* Click-to-copy details (makeCopyable() in admin.js). */
+.admin-detail-copy{
+    position: relative;
+    /* Highlight hugs the value instead of stretching to the grid row. */
+    align-self: start;
+    margin: -6px -8px;
+    padding: 6px 36px 6px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+
+    &:hover, &:focus-within{
+        background-color: color-mix(in srgb, var(--admin-text) 6%, transparent);
+    }
+
+    &.copied{
+        background-color: color-mix(in srgb, var(--admin-mark) 12%, transparent);
+    }
+
+    .admin-copy{
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        height: 26px;
+        min-width: 26px;
+        padding: 0 4px;
+        box-sizing: border-box;
+        justify-content: center;
+        border: none;
+        border-radius: 4px;
+        background: none;
+        color: var(--admin-subtle);
+        font-family: inter;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.15s ease;
+
+        .material-symbols-rounded{
+            font-size: 16px;
+        }
+
+        &:hover{
+            color: var(--admin-text);
+        }
+    }
+
+    &:hover .admin-copy, .admin-copy:focus-visible{
+        opacity: 1;
+    }
+
+    .admin-copy-done{
+        display: none;
+    }
+
+    &.copied .admin-copy{
+        opacity: 1;
+        color: var(--admin-mark);
+
+        .admin-copy-done{
+            display: inline;
+        }
+    }
+}
+
+/* Touch screens have no hover: keep the copy icon faintly visible. */
+@media (hover: none){
+    .admin-detail-copy .admin-copy{
+        opacity: 0.6;
+    }
+}
+
+/* Entry details as a ticket (ticket() in admin.js): stub, perforation with a
+   notch each side, then the details, with a torn zigzag bottom edge.
+   --notch-y is the perforation's height from the top, matching the stub's
+   height; --tear-w / --tear-h are each zigzag tooth's width and depth. */
+.admin-ticket{
+    --notch-y: 52px;
+    --notch-r: 15px;
+    --tear-w: 40px;
+    --tear-h: 20px;
+    margin: 0 0 20px;
+    /* Outline + soft shadow; a filter follows the masked notches, a border wouldn't. */
+    filter: drop-shadow(0 0 0.75px var(--admin-ticket-edge)) drop-shadow(0 8px 18px var(--admin-ticket-shadow));
+}
+
+.admin-ticket-paper{
+    position: relative;
+    /* Square bottom corners: the torn edge replaces them. */
+    border-radius: 10px 10px 0 0;
+    background-color: var(--admin-ticket);
+    /* Three mask layers that don't overlap: the left and right halves (each
+       with its notch) stop --tear-h above the bottom, and a strip of
+       downward-pointing triangles fills that last bit. "round" fits a whole
+       number of teeth across the width. */
+    -webkit-mask:
+        radial-gradient(circle var(--notch-r) at left var(--notch-y), transparent 98%, #000) left top / 51% calc(100% - var(--tear-h)) no-repeat,
+        radial-gradient(circle var(--notch-r) at right var(--notch-y), transparent 98%, #000) right top / 51% calc(100% - var(--tear-h)) no-repeat,
+        conic-gradient(from -45deg at 50% 100%, #000 90deg, transparent 0) left bottom / var(--tear-w) var(--tear-h) round no-repeat;
+    mask:
+        radial-gradient(circle var(--notch-r) at left var(--notch-y), transparent 98%, #000) left top / 51% calc(100% - var(--tear-h)) no-repeat,
+        radial-gradient(circle var(--notch-r) at right var(--notch-y), transparent 98%, #000) right top / 51% calc(100% - var(--tear-h)) no-repeat,
+        conic-gradient(from -45deg at 50% 100%, #000 90deg, transparent 0) left bottom / var(--tear-w) var(--tear-h) round no-repeat;
+
+    /* Perforation between the notches. */
+    &::after{
+        content: "";
+        position: absolute;
+        top: calc(var(--notch-y) - 1px);
+        left: calc(var(--notch-r) + 8px);
+        right: calc(var(--notch-r) + 8px);
+        border-top: 2px dashed var(--admin-ticket-perf);
+    }
+
+    /* The details sit on the ticket, not in their own grey box. */
+    .admin-details{
+        margin: 0;
+        /* Extra bottom room for the torn edge. */
+        padding: 24px 28px calc(26px + var(--tear-h));
+        border-radius: 0;
+        background: none;
+    }
+}
+
+.admin-ticket-stub{
+    height: var(--notch-y);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 0 28px;
+    box-sizing: border-box;
+}
+
+.admin-ticket-kind{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--admin-subtle);
+    white-space: nowrap;
+
+    .material-symbols-rounded{
+        font-size: 20px;
+        color: var(--admin-text);
+    }
+}
+
+.admin-ticket-no{
+    flex-shrink: 0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    font-variant-numeric: tabular-nums;
 }
 
 .admin-attachments{
@@ -1202,6 +1727,316 @@ a:link{
 }
 
 
+/* ------------------------------------------------- desktop: sidebar layout */
+/* Signed in on desktop, the page fills the window: the top bar, a pinned
+   sidebar on the left (tabs, filters and the list, which scrolls on its own)
+   and the overview or the open entry on the right (also scrolling on its own).
+   Phones keep the single column below. */
+
+.admin-back{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px 0 10px;
+    border: 1px solid var(--admin-border);
+    border-radius: 4px;
+    background: none;
+    color: var(--admin-text);
+    font-family: inter;
+    font-size: 13px;
+    cursor: pointer;
+
+    .material-symbols-rounded{
+        font-size: 18px;
+    }
+
+    &:hover{
+        border-color: var(--admin-accent);
+    }
+}
+
+@media only screen and (min-width:751px){
+    body:has(.admin-dashboard:not([hidden])){
+        .admin-bar{
+            width: auto;
+            padding: 0 24px;
+            box-sizing: border-box;
+            border-bottom: 1px solid var(--admin-border);
+        }
+
+        .admin-page{
+            width: 100%;
+            padding: 0;
+        }
+    }
+
+    .admin-dashboard{
+        display: grid;
+        grid-template-columns: 360px minmax(0, 1fr);
+        grid-template-areas: "sidebar main";
+        height: calc(100vh - 80px);
+    }
+
+    .admin-sidebar{
+        grid-area: sidebar;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        padding: 20px 16px 0;
+        box-sizing: border-box;
+        border-right: 1px solid var(--admin-border);
+    }
+
+    .admin-main{
+        /* Top padding, also used to pin .admin-detail-sticky to the very top. */
+        --main-pad-top: 40px;
+        grid-area: main;
+        min-width: 0;
+        overflow-y: auto;
+        padding: var(--main-pad-top) 48px 80px;
+        box-sizing: border-box;
+    }
+
+    .admin-overview, .admin-detail-pane{
+        max-width: 1000px;
+        margin: 0 auto;
+    }
+
+    /* The open entry (ticket) reads better a little narrower than the overview. */
+    .admin-detail-pane{
+        max-width: 620px;
+    }
+
+    /* Toolbar stacked: tabs across the top, then search and the filter. */
+    .admin-sidebar .admin-toolbar{
+        flex-direction: column;
+        flex-wrap: nowrap;
+        align-items: stretch;
+        gap: 10px;
+        padding-bottom: 14px;
+    }
+
+    .admin-sidebar .admin-tab{
+        flex: 1 1 auto;
+        padding: 0 6px;
+        font-size: 12px;
+    }
+
+    .admin-sidebar .admin-filters{
+        flex-direction: column-reverse;
+    }
+
+    .admin-sidebar .admin-search{
+        max-width: none;
+        flex: none;
+    }
+
+    .admin-sidebar .admin-load-error{
+        margin-top: 12px;
+    }
+
+    .admin-sidebar .admin-product-filter{
+        margin: 12px 0 0;
+    }
+
+    .admin-sidebar .admin-product-chip{
+        flex: 1 1 calc(50% - 4px);
+        padding: 6px 10px;
+    }
+
+    /* The list: the only part of the sidebar that scrolls. */
+    .admin-list-scroll{
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        margin: 8px -16px 0;
+        padding: 0 8px 24px;
+    }
+
+    .admin-sidebar .admin-empty{
+        padding: 24px 8px;
+    }
+
+    /* Sidebar rows: name and tags, details line, then the date. */
+    .admin-sidebar .admin-entry{
+        border-bottom: none;
+        border-radius: 6px;
+
+        summary{
+            flex-direction: column;
+            align-items: stretch;
+            gap: 4px;
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        /* Hover is a lighter grey than the selected row, so the two differ. */
+        &:hover summary{
+            background-color: color-mix(in srgb, var(--admin-surface) 55%, transparent);
+        }
+
+        &.admin-entry-selected summary{
+            background-color: var(--admin-surface);
+        }
+
+        .admin-entry-title{
+            font-size: 14px;
+        }
+
+        .admin-entry-meta{
+            font-size: 12px;
+        }
+
+        .admin-entry-date{
+            font-size: 11px;
+        }
+
+        .admin-chevron{
+            display: none;
+        }
+
+        /* Entries open in the pane, never in the sidebar. */
+        > :not(summary){
+            display: none;
+        }
+    }
+
+    .admin-sidebar .admin-entry + .admin-entry{
+        margin-top: 2px;
+    }
+
+    /* The open entry in the pane: its summary becomes the heading. */
+    /* Back button + name line, pinned to the top of the right-hand panel
+       while the entry scrolls under it. Sticky offsets count from inside the
+       scroll container's padding, so `top` cancels .admin-main's top padding
+       to pin it flush with the top edge. The negative margin pulls it into
+       that padding so it sits where it did before pinning. */
+    .admin-detail-sticky{
+        position: sticky;
+        top: calc(-1 * var(--main-pad-top));
+        z-index: 2;
+        /* 24px wider each side so the ticket's shadow doesn't show beside it. */
+        margin: -24px -24px 24px;
+        padding: 24px 24px 18px;
+        background-color: var(--admin-bg);
+    }
+
+    .admin-detail-head{
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+
+    /* Copy of the entry's summary line (see showEntry()). */
+    .admin-detail-title{
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    /* The entry's own summary is replaced by the pinned copy above. */
+    .admin-detail-body .admin-entry-full > summary{
+        display: none;
+    }
+
+    .admin-detail-kind{
+        font-size: 13px;
+        color: var(--admin-subtle);
+    }
+
+    .admin-entry.admin-entry-full{
+        border-bottom: none;
+
+        summary{
+            padding: 0 0 24px;
+            cursor: default;
+        }
+
+        .admin-entry-title{
+            font-size: 28px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            white-space: normal;
+        }
+
+        .admin-entry-heading{
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .admin-entry-meta{
+            font-size: 14px;
+            white-space: normal;
+        }
+
+        .admin-entry-date{
+            align-self: flex-start;
+            margin-top: 10px;
+        }
+
+        .admin-chevron{
+            display: none;
+        }
+
+        /* Completed entries stay readable here; only the list dims them. */
+        &.admin-entry-done .admin-entry-title,
+        &.admin-entry-done .admin-entry-meta{
+            opacity: 1;
+        }
+    }
+
+    .admin-entry-full .admin-actions{
+        margin-top: 0;
+    }
+}
+
+@media only screen and (min-width:751px) and (max-width:1100px){
+    .admin-dashboard{
+        grid-template-columns: 320px minmax(0, 1fr);
+    }
+
+    .admin-main{
+        --main-pad-top: 32px;
+        padding: var(--main-pad-top) 28px 64px;
+    }
+
+    .admin-stats{
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .admin-pipeline-stages{
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+/* Narrow desktop: the portfolio counters go 2 x 2, as on phones. */
+@media only screen and (min-width:751px) and (max-width:1000px){
+    .admin-portfolio-grid{
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .admin-portfolio-item{
+        padding: 14px 16px;
+
+        &:nth-child(odd){
+            padding-left: 0;
+            border-left: none;
+        }
+
+        &:nth-child(-n+2){
+            padding-top: 0;
+        }
+
+        &:nth-child(n+3){
+            border-top: 1px solid var(--admin-divider);
+            padding-bottom: 0;
+        }
+    }
+}
+
+
 /* ------------------------------------------------------------- mobile */
 
 @media only screen and (max-width:750px){
@@ -1283,11 +2118,41 @@ a:link{
         display: none;
     }
 
+    /* Smaller label and spacing so the logo keeps more of its width. */
+    .admin-bar .admin-brand{
+        gap: 10px;
+    }
+
+    .admin-bar .admin-brand-label{
+        padding-left: 10px;
+        font-size: 12px;
+    }
+
     .admin-entry .admin-entry-date{
         display: none;
     }
 
     .admin-details{
         grid-template-columns: 1fr;
+    }
+
+    .admin-ticket-stub{
+        padding: 0 20px;
+    }
+
+    .admin-ticket-paper .admin-details{
+        padding: 20px 20px calc(20px + var(--tear-h));
+    }
+
+    .admin-pipeline-stages{
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .admin-stage{
+        font-size: 11px;
+    }
+
+    .admin-referral-people{
+        padding-left: 0;
     }
 }

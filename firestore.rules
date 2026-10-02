@@ -8,12 +8,14 @@ service cloud.firestore {
 
     // "Schedule a Visit" requests from the website (HPH RENEWABLE/schedule-a-visit/).
     // Anyone may submit a well-formed request; only admins can read them and
-    // mark them done / not done (HPH RENEWABLE/admin/). Nobody can change
-    // anything else or delete them from the website.
+    // move them through the quote pipeline (HPH RENEWABLE/admin/). Nobody can
+    // change anything else or delete them from the website.
+    // Stages: keep in step with TABS.visits.pipeline in HPH RENEWABLE/admin/admin.js.
     match /visitRequests/{requestId} {
       allow create: if isValidVisitRequest(request.resource.data);
       allow read: if isAdmin();
-      allow update: if isAdmin() && isValidStatusChange();
+      allow update: if isAdmin() && (isValidStatusChange()
+        || isValidStageChange(['new', 'contacted', 'scheduled', 'visited', 'quoted', 'installed']));
       allow delete: if false;
     }
 
@@ -27,12 +29,14 @@ service cloud.firestore {
     }
 
     // "Join the Waitlist" sign-ups from the product pages (HPH RENEWABLE/join-waitlist/).
-    // Anyone may sign up; only admins can read them and mark them contacted /
-    // not contacted (same status fields as visit requests).
+    // Anyone may sign up; only admins can read them and move them through the
+    // waitlist pipeline (same stage fields as visit requests).
+    // Stages: keep in step with TABS.waitlist.pipeline in HPH RENEWABLE/admin/admin.js.
     match /waitlist/{signupId} {
       allow create: if isValidWaitlist(request.resource.data);
       allow read: if isAdmin();
-      allow update: if isAdmin() && isValidStatusChange();
+      allow update: if isAdmin() && (isValidStatusChange()
+        || isValidStageChange(['new', 'contacted', 'reserved', 'delivered', 'cancelled']));
       allow delete: if false;
     }
 
@@ -46,8 +50,21 @@ service cloud.firestore {
                                      'lerin.hermosa@hphtechsolutions.com'];
     }
 
-    // Admin "Mark as done" / "Mark as contacted" (and undo): only status, completedAt and
-    // completedBy may change, and they must agree with each other.
+    // Admin pipeline stage change: only stage, stageUpdatedAt and stageUpdatedBy
+    // may change; the stage must be one of `stages`, stamped now, by this admin.
+    function isValidStageChange(stages) {
+      let data = request.resource.data;
+      return data.diff(resource.data).affectedKeys()
+               .hasOnly(['stage', 'stageUpdatedAt', 'stageUpdatedBy'])
+        && data.stage in stages
+        && data.stageUpdatedAt == request.time
+        && data.stageUpdatedBy == request.auth.token.email;
+    }
+
+    // Older admin "Mark as done" / "Mark as contacted" (and undo), from before
+    // pipeline stages; kept so an admin page left open on the old version still
+    // works. Only status, completedAt and completedBy may change, and they must
+    // agree with each other.
     function isValidStatusChange() {
       let data = request.resource.data;
       return data.diff(resource.data).affectedKeys()

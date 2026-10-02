@@ -2293,36 +2293,33 @@ body.menu-open{
     }
 }
 
-/* Opening: fills the first screen below the nav (the page's top padding
-   clears the nav's white fade), with a huge two-line headline. */
+/* Opening: fills the first screen below the 80px nav, with a huge two-line
+   headline. It pulls up over the page's 270px top padding so the text is
+   centred in the visible screen, not pushed low by that padding. */
 .adv-hero{
     position: relative;
-    min-height: calc(100vh - 270px);
+    margin-top: -190px;
+    min-height: calc(100vh - 80px);
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding-bottom: 72px;
+    padding: 72px 0;
     box-sizing: border-box;
+}
+
+.adv-hero-content{
+    text-align: center;
 }
 
 .adv-hero-content > *{
     animation: adv-rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 
-.adv-hero-content > :nth-child(2){ animation-delay: 0.1s; }
-.adv-hero-content > :nth-child(3){ animation-delay: 0.25s; }
-.adv-hero-content > :nth-child(4){ animation-delay: 0.4s; }
-
-.adv-hero-eyebrow{
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--sim-subtle);
-}
+.adv-hero-content > :nth-child(2){ animation-delay: 0.15s; }
+.adv-hero-content > :nth-child(3){ animation-delay: 0.3s; }
 
 .adv-hero-title{
-    margin: 16px 0 0;
+    margin: 0;
     font-size: clamp(56px, 8.5vw, 112px);
     font-weight: 600;
     line-height: 1;
@@ -2333,10 +2330,13 @@ body.menu-open{
     display: block;
 }
 
-/* A black bar drawn through "greed" just after the headline appears. */
+/* A green bar drawn through "Greed" just after the headline appears, while
+   the word fades to 32%. The fade animates the text colour, not opacity, so
+   the bar (drawn inside the word) stays fully green. */
 .adv-strike{
     position: relative;
     white-space: nowrap;
+    animation: adv-strike-fade 0.6s cubic-bezier(0.6, 0, 0.2, 1) 0.9s forwards;
 
     &::after{
         content: "";
@@ -2354,29 +2354,33 @@ body.menu-open{
 }
 
 .adv-hero-sub{
-    margin: 28px 0 0;
+    margin: 28px auto 0;
     max-width: 620px;
     font-size: 19px;
     line-height: 1.6;
     color: var(--sim-muted);
 }
 
+/* Two equal-width columns, each as wide as the longer label, centred. */
 .adv-hero-actions{
-    margin-top: 36px;
-    display: flex;
-    flex-wrap: wrap;
+    margin-top: 162px;
+    margin-inline: auto;
+    width: fit-content;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
 }
 
 .adv-btn{
-    height: 48px;
-    padding: 0 24px;
+    height: 44px;
+    padding: 0 28px;
     box-sizing: border-box;
-    border-radius: 6px;
+    border-radius: 26px;
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     font-family: inter;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
     transition: opacity 0.2s ease, border-color 0.2s ease;
 }
@@ -2423,6 +2427,11 @@ body.menu-open{
     to{ transform: scaleX(1); }
 }
 
+@keyframes adv-strike-fade{
+    from{ color: var(--sim-text); }
+    to{ color: color-mix(in srgb, var(--sim-text) 32%, transparent); }
+}
+
 @keyframes adv-bob{
     0%, 100%{ transform: translate(-50%, 0); }
     50%{ transform: translate(-50%, 6px); }
@@ -2433,6 +2442,11 @@ body.menu-open{
         animation: none;
     }
 
+    .adv-strike{
+        animation: none;
+        color: color-mix(in srgb, var(--sim-text) 32%, transparent);
+    }
+
     .adv-strike::after{
         animation: none;
         transform: scaleX(1);
@@ -2441,8 +2455,9 @@ body.menu-open{
 
 @media only screen and (max-width:750px){
     .adv-hero{
+        margin-top: 0;
         min-height: calc(100svh - 64px - env(safe-area-inset-top) - 32px);
-        padding-bottom: 64px;
+        padding: 0 0 64px;
     }
 
     .adv-hero-title{
@@ -2451,16 +2466,20 @@ body.menu-open{
 
     .adv-hero-sub{
         margin-top: 20px;
-        font-size: 16px;
+        font-size: 14px;
     }
 
     .adv-hero-actions{
         margin-top: 28px;
+        width: 90%;
 
+        /* Phones keep the smaller size. */
         .adv-btn{
             flex: 1;
             justify-content: center;
+            height: 38px;
             padding: 0 16px;
+            font-size: 12px;
         }
     }
 

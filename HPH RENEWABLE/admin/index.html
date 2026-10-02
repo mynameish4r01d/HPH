@@ -32,9 +32,13 @@
 <body>
 
     <header class="admin-bar">
-        <a href="../home/index.html" class="admin-logo">
-            <img src="../global-elements/HPH Renewable Black.png" alt="HPH Renewable" class="img">
-        </a>
+        <!-- Logo, then "| Admin Overview" so it's clear this is the admin page. -->
+        <div class="admin-brand">
+            <a href="../home/index.html" class="admin-logo">
+                <img src="../global-elements/HPH Renewable Black.png" alt="HPH Renewable" class="img">
+            </a>
+            <span class="admin-brand-label">Admin Overview</span>
+        </div>
 
         <div class="admin-account" hidden>
             <span class="admin-account-email"></span>
@@ -77,143 +81,187 @@
         </section>
 
         <section class="admin-dashboard" hidden>
-            <div class="admin-heading">
-                <h1 class="admin-title">Overview</h1>
-                <button type="button" class="admin-refresh" title="Refresh">
-                    <span class="material-symbols-rounded">refresh</span>
-                    Refresh
-                </button>
+            <!-- Desktop: the sidebar (tabs, filters, list) is pinned on the left and
+                 a clicked entry opens in .admin-detail-pane on the right, in place of
+                 the overview. Phones keep one column: overview, then the list, with
+                 entries opening in place. -->
+            <div class="admin-main">
+                <div class="admin-overview">
+                    <div class="admin-heading">
+                        <h1 class="admin-title">Overview</h1>
+                        <button type="button" class="admin-refresh" title="Refresh">
+                            <span class="material-symbols-rounded">refresh</span>
+                            Refresh
+                        </button>
+                    </div>
+
+                    <!-- Live portfolio counters, filled in by ../portfolio-counters.js
+                         (same Google Sheet as the Home and Portfolio pages). -->
+                    <section class="admin-portfolio" aria-label="Installed portfolio">
+                        <div class="admin-portfolio-head">
+                            <span class="admin-portfolio-title">Installed portfolio</span>
+                            <span class="admin-portfolio-status">
+                                <span class="admin-portfolio-dot" data-portfolio-status-dot></span>
+                                <span data-portfolio-status-text>Loading&hellip;</span>
+                            </span>
+                        </div>
+                        <div class="admin-portfolio-grid">
+                            <div class="admin-portfolio-item">
+                                <span class="admin-portfolio-value loading" data-portfolio-count="inverters">&mdash;</span>
+                                <span class="admin-portfolio-label">Micro inverters installed</span>
+                            </div>
+                            <div class="admin-portfolio-item">
+                                <span class="admin-portfolio-value loading" data-portfolio-count="panels">&mdash;</span>
+                                <span class="admin-portfolio-label">Solar panels installed</span>
+                            </div>
+                            <div class="admin-portfolio-item">
+                                <span class="admin-portfolio-value loading" data-portfolio-count="inverter-capacity" data-unit="kW">&mdash;</span>
+                                <span class="admin-portfolio-label">Total inverter capacity</span>
+                            </div>
+                            <div class="admin-portfolio-item">
+                                <span class="admin-portfolio-value loading" data-portfolio-count="solar-capacity" data-unit="kWp">&mdash;</span>
+                                <span class="admin-portfolio-label">Total solar capacity</span>
+                            </div>
+                        </div>
+                        <!-- Install goal: GOALS in ../portfolio-counters.js. -->
+                        <div class="admin-goal" data-portfolio-goal="inverters" role="progressbar" aria-label="MX2250 installs toward the goal of 1,000" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
+                            <div class="admin-goal-head">
+                                <span class="admin-goal-title">Goal: 1,000 MX2250 installs</span>
+                                <span class="admin-goal-text" data-portfolio-goal-text>&mdash;</span>
+                            </div>
+                            <div class="admin-goal-track"><div class="admin-goal-fill"></div></div>
+                        </div>
+                        <div class="admin-portfolio-error" data-portfolio-error></div>
+                    </section>
+
+                    <!-- Customer impact: installed MX2250s × SAVINGS_PER_MX2250_YEAR in
+                         ../portfolio-counters.js (currently ₱49,600 a year; may change). -->
+                    <section class="admin-impact" aria-label="Customer impact">
+                        <div class="admin-portfolio-head">
+                            <span class="admin-portfolio-title">Customer impact</span>
+                            <span class="admin-impact-note">Estimate: about ₱49,600 a year per MX2250. This rate may change.</span>
+                        </div>
+                        <div class="admin-impact-grid">
+                            <div class="admin-portfolio-item">
+                                <span class="admin-portfolio-value loading" data-portfolio-count="yearly-savings">&mdash;</span>
+                                <span class="admin-portfolio-label">Customer savings per year, all installs</span>
+                            </div>
+                            <div class="admin-portfolio-item">
+                                <span class="admin-portfolio-value loading" data-portfolio-count="lifetime-savings">&mdash;</span>
+                                <span class="admin-portfolio-label">Customer savings over 25 years</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <div class="admin-stats">
+                        <div class="admin-stat">
+                            <span class="admin-stat-value" data-stat="visits-open">–</span>
+                            <span class="admin-stat-label">Ocular site visit requests</span>
+                        </div>
+                        <div class="admin-stat">
+                            <span class="admin-stat-value" data-stat="waitlist">–</span>
+                            <span class="admin-stat-label">Waitlist sign-ups</span>
+                        </div>
+                        <div class="admin-stat">
+                            <span class="admin-stat-value" data-stat="feedback">–</span>
+                            <span class="admin-stat-label">Feedback</span>
+                        </div>
+                        <div class="admin-stat">
+                            <span class="admin-stat-value" data-stat="rating">–</span>
+                            <span class="admin-stat-label">Average rating</span>
+                        </div>
+                        <div class="admin-stat">
+                            <span class="admin-stat-value" data-stat="referrals">–</span>
+                            <span class="admin-stat-label">Referred visits</span>
+                        </div>
+                    </div>
+
+                    <!-- Stale alert: open visit requests / waitlist sign-ups with no
+                         contact after STALE_WARN_HOURS (admin.js). Filled in by admin.js. -->
+                    <div class="admin-stale" role="status" hidden></div>
+
+                    <!-- Pipeline: how many entries are at each stage. Filled in by admin.js. -->
+                    <section class="admin-pipeline" aria-label="Pipeline">
+                        <div class="admin-portfolio-head">
+                            <span class="admin-portfolio-title">Pipeline</span>
+                            <span class="admin-pipeline-hint">Click a stage to list who's in it.</span>
+                        </div>
+                        <div class="admin-pipeline-groups"></div>
+                    </section>
+
+                    <!-- Referral leaderboard: visit requests grouped by referral code,
+                         ranked by installs, then referrals. -->
+                    <details class="admin-referrals" open hidden>
+                        <summary>
+                            <span class="material-symbols-rounded">emoji_events</span>
+                            <span class="admin-referrals-title">Referral leaderboard</span>
+                            <span class="admin-referrals-count"></span>
+                            <span class="material-symbols-rounded admin-chevron">expand_more</span>
+                        </summary>
+                        <div class="admin-referrals-list"></div>
+                    </details>
+                </div>
+
+                <div class="admin-detail-pane" hidden>
+                    <!-- Stays pinned at the top while the entry scrolls. The title
+                         is a copy of the entry's summary line, filled in by showEntry(). -->
+                    <div class="admin-detail-sticky">
+                        <div class="admin-detail-head">
+                            <button type="button" class="admin-back">
+                                <span class="material-symbols-rounded">arrow_back</span>
+                                Back to overview
+                            </button>
+                            <span class="admin-detail-kind"></span>
+                        </div>
+                        <div class="admin-entry admin-entry-full admin-detail-title"></div>
+                    </div>
+                    <div class="admin-detail-body"></div>
+                </div>
             </div>
 
-            <!-- Live portfolio counters, filled in by ../portfolio-counters.js
-                 (same Google Sheet as the Home and Portfolio pages). -->
-            <section class="admin-portfolio" aria-label="Installed portfolio">
-                <div class="admin-portfolio-head">
-                    <span class="admin-portfolio-title">Installed portfolio</span>
-                    <span class="admin-portfolio-status">
-                        <span class="admin-portfolio-dot" data-portfolio-status-dot></span>
-                        <span data-portfolio-status-text>Loading&hellip;</span>
-                    </span>
-                </div>
-                <div class="admin-portfolio-grid">
-                    <div class="admin-portfolio-item">
-                        <span class="admin-portfolio-value loading" data-portfolio-count="inverters">&mdash;</span>
-                        <span class="admin-portfolio-label">Micro inverters installed</span>
+            <aside class="admin-sidebar" aria-label="Submissions">
+                <div class="admin-toolbar">
+                    <div class="admin-tabs" role="tablist">
+                        <button type="button" class="admin-tab active" role="tab" aria-selected="true" data-tab="visits">
+                            Ocular Visits <span class="admin-tab-count" data-count="visits"></span>
+                        </button>
+                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="waitlist">
+                            Waitlist <span class="admin-tab-count" data-count="waitlist"></span>
+                        </button>
+                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="feedback">
+                            Feedback <span class="admin-tab-count" data-count="feedback"></span>
+                        </button>
                     </div>
-                    <div class="admin-portfolio-item">
-                        <span class="admin-portfolio-value loading" data-portfolio-count="panels">&mdash;</span>
-                        <span class="admin-portfolio-label">Solar panels installed</span>
-                    </div>
-                    <div class="admin-portfolio-item">
-                        <span class="admin-portfolio-value loading" data-portfolio-count="inverter-capacity" data-unit="kW">&mdash;</span>
-                        <span class="admin-portfolio-label">Total inverter capacity</span>
-                    </div>
-                    <div class="admin-portfolio-item">
-                        <span class="admin-portfolio-value loading" data-portfolio-count="solar-capacity" data-unit="kWp">&mdash;</span>
-                        <span class="admin-portfolio-label">Total solar capacity</span>
-                    </div>
-                </div>
-                <!-- Install goal: GOALS in ../portfolio-counters.js. -->
-                <div class="admin-goal" data-portfolio-goal="inverters" role="progressbar" aria-label="MX2250 installs toward the goal of 1,000" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="0">
-                    <div class="admin-goal-head">
-                        <span class="admin-goal-title">Goal: 1,000 MX2250 installs</span>
-                        <span class="admin-goal-text" data-portfolio-goal-text>&mdash;</span>
-                    </div>
-                    <div class="admin-goal-track"><div class="admin-goal-fill"></div></div>
-                </div>
-                <div class="admin-portfolio-error" data-portfolio-error></div>
-            </section>
 
-            <!-- Customer impact: installed MX2250s × SAVINGS_PER_MX2250_YEAR in
-                 ../portfolio-counters.js (currently ₱49,600 a year; may change). -->
-            <section class="admin-impact" aria-label="Customer impact">
-                <div class="admin-portfolio-head">
-                    <span class="admin-portfolio-title">Customer impact</span>
-                    <span class="admin-impact-note">Estimate: about ₱49,600 a year per MX2250. This rate may change.</span>
-                </div>
-                <div class="admin-impact-grid">
-                    <div class="admin-portfolio-item">
-                        <span class="admin-portfolio-value loading" data-portfolio-count="yearly-savings">&mdash;</span>
-                        <span class="admin-portfolio-label">Customer savings per year, all installs</span>
-                    </div>
-                    <div class="admin-portfolio-item">
-                        <span class="admin-portfolio-value loading" data-portfolio-count="lifetime-savings">&mdash;</span>
-                        <span class="admin-portfolio-label">Customer savings over 25 years</span>
+                    <div class="admin-filters">
+                        <!-- Options (the active tab's stages) come from admin.js. -->
+                        <select class="admin-status-filter" aria-label="Filter by stage"></select>
+
+                        <input type="search" class="admin-search" placeholder="Search name, phone, email, message…" aria-label="Search submissions">
                     </div>
                 </div>
-            </section>
 
-            <div class="admin-stats">
-                <div class="admin-stat">
-                    <span class="admin-stat-value" data-stat="visits-open">–</span>
-                    <span class="admin-stat-label">Ocular site visit requests</span>
-                </div>
-                <div class="admin-stat">
-                    <span class="admin-stat-value" data-stat="waitlist">–</span>
-                    <span class="admin-stat-label">Waitlist sign-ups</span>
-                </div>
-                <div class="admin-stat">
-                    <span class="admin-stat-value" data-stat="feedback">–</span>
-                    <span class="admin-stat-label">Feedback</span>
-                </div>
-                <div class="admin-stat">
-                    <span class="admin-stat-value" data-stat="rating">–</span>
-                    <span class="admin-stat-label">Average rating</span>
-                </div>
-                <div class="admin-stat">
-                    <span class="admin-stat-value" data-stat="referrals">–</span>
-                    <span class="admin-stat-label">Referred visits</span>
-                </div>
-            </div>
+                <p class="admin-error admin-load-error" role="alert" hidden></p>
 
-            <!-- Stale alert: open visit requests / waitlist sign-ups with no
-                 contact after STALE_WARN_HOURS (admin.js). Filled in by admin.js. -->
-            <div class="admin-stale" role="status" hidden></div>
+                <!-- Waitlist only: filter by product, with per-product totals. -->
+                <div class="admin-product-filter" role="group" aria-label="Filter waitlist by product" hidden></div>
 
-            <!-- Who referred whom: visit requests grouped by referral code. -->
-            <details class="admin-referrals" hidden>
-                <summary>
-                    <span class="material-symbols-rounded">group_add</span>
-                    <span class="admin-referrals-title">Referrals</span>
-                    <span class="admin-referrals-count"></span>
-                    <span class="material-symbols-rounded admin-chevron">expand_more</span>
-                </summary>
-                <div class="admin-referrals-list"></div>
-            </details>
-
-            <div class="admin-toolbar">
-                <div class="admin-tabs" role="tablist">
-                    <button type="button" class="admin-tab active" role="tab" aria-selected="true" data-tab="visits">
-                        Ocular Visits <span class="admin-tab-count" data-count="visits"></span>
-                    </button>
-                    <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="waitlist">
-                        Waitlist <span class="admin-tab-count" data-count="waitlist"></span>
-                    </button>
-                    <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="feedback">
-                        Feedback <span class="admin-tab-count" data-count="feedback"></span>
+                <!-- How many entries the list shows, and a CSV export of them. -->
+                <div class="admin-list-bar">
+                    <span class="admin-list-count"></span>
+                    <button type="button" class="admin-export" title="Download what the list shows as a CSV file">
+                        <span class="material-symbols-rounded">download</span>
+                        Export CSV
                     </button>
                 </div>
 
-                <div class="admin-filters">
-                    <select class="admin-status-filter" aria-label="Filter by status">
-                        <option value="all">All requests</option>
-                        <option value="new">Active</option>
-                        <option value="done">Complete</option>
-                        <option value="stale">No contact 48h+</option>
-                    </select>
-
-                    <input type="search" class="admin-search" placeholder="Search name, phone, email, message…" aria-label="Search submissions">
+                <!-- Desktop: only this part scrolls; the tabs and filters stay put. -->
+                <div class="admin-list-scroll">
+                    <div class="admin-list" data-list="visits"></div>
+                    <div class="admin-list" data-list="waitlist" hidden></div>
+                    <div class="admin-list" data-list="feedback" hidden></div>
                 </div>
-            </div>
-
-            <p class="admin-error admin-load-error" role="alert" hidden></p>
-
-            <!-- Waitlist only: filter by product, with per-product totals. -->
-            <div class="admin-product-filter" role="group" aria-label="Filter waitlist by product" hidden></div>
-
-            <div class="admin-list" data-list="visits"></div>
-            <div class="admin-list" data-list="waitlist" hidden></div>
-            <div class="admin-list" data-list="feedback" hidden></div>
+            </aside>
         </section>
     </main>
 

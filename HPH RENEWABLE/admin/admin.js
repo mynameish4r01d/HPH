@@ -68,10 +68,21 @@ const refreshButton = document.querySelector(".admin-refresh");
 const staleAlert = document.querySelector(".admin-stale");
 const referrals = document.querySelector(".admin-referrals");
 const productFilter = document.querySelector(".admin-product-filter");
+const listCount = document.querySelector(".admin-list-count");
+const exportButton = document.querySelector(".admin-export");
+const mainArea = document.querySelector(".admin-main");
+const overview = document.querySelector(".admin-overview");
+const detailPane = document.querySelector(".admin-detail-pane");
+
+// Desktop layout (sidebar + detail pane); matches the 750px mobile breakpoint
+// in styles.css. Phones open entries in place instead.
+const desktop = window.matchMedia("(min-width: 751px)");
 
 let data = { visits: [], waitlist: [], feedback: [] };
 let activeTab = "visits";
 let activeProduct = "all";
+// The entry shown in the detail pane (desktop), as { tab, id }.
+let selected = null;
 
 
 // ---------------------------------------------------------------- helpers
@@ -111,6 +122,7 @@ authSdk.onAuthStateChanged(auth, async (user) => {
     if (!user) {
         account.hidden = true;
         data = { visits: [], waitlist: [], feedback: [] };
+        closeEntry();
         show(loginSection);
         return;
     }
@@ -253,6 +265,8 @@ async function loadSubmissions() {
         data = { visits, waitlist, feedback };
         renderStats();
         renderList();
+        // Re-show the open entry with the fresh data (or close it if it's gone).
+        if (selected) showEntry(selected.tab, selected.id);
     } catch (err) {
         console.error("Admin: loading submissions failed", err);
         loadError.textContent = err.code === "permission-denied"
@@ -270,45 +284,95 @@ refreshButton.addEventListener("click", loadSubmissions);
 
 // ---------------------------------------------------------------- display
 
-// Per-tab settings. Tabs with `status` get a done/not-done toggle (status,
-// completedAt, completedBy — see isValidStatusChange() in /firestore.rules)
-// and the status filter.
+// Per-tab settings. Tabs with a `pipeline` get stages: a badge on each entry,
+// a stepper on the open entry, the stage filter and the overview's Pipeline
+// box. A stage change saves stage, stageUpdatedAt and stageUpdatedBy (see
+// isValidStageChange() in /firestore.rules, which lists the same stage keys,
+// so keep both in step). Entries from before stages existed only have
+// `status` ("new"/"done"); stageOf() reads a "done" one as `legacyDone`.
+// `offPath` stages (Cancelled) sit off the stepper's line; `closed` ones end
+// the pipeline and are dimmed in the list; `won` counts toward conversion.
 const TABS = {
     visits: {
         collection: "visitRequests",
+        label: "Ocular visit request",
         render: (entry) => renderVisit(entry),
-        status: { badge: "Complete", openBadge: "Active", mark: "Mark as done", undo: "Mark as not done", marked: "Marked done", open: "Active", done: "Complete", all: "All requests", stale: "No contact 48h+", noun: ["ocular visit request", "ocular visit requests"] },
+        pipeline: {
+            name: "Ocular visits",
+            stages: [
+                { key: "new", label: "New" },
+                { key: "contacted", label: "Contacted" },
+                { key: "scheduled", label: "Visit scheduled" },
+                { key: "visited", label: "Visited" },
+                { key: "quoted", label: "Quote sent" },
+                { key: "installed", label: "Installed" },
+            ],
+            legacyDone: "visited",
+            legacyMarked: "Marked done",
+            won: "installed",
+            closed: ["installed"],
+            all: "All requests",
+            noun: ["ocular visit request", "ocular visit requests"],
+        },
     },
     waitlist: {
         collection: "waitlist",
+        label: "Waitlist sign-up",
         render: (entry) => renderWaitlist(entry),
-        status: { badge: "Contacted", mark: "Mark as contacted", undo: "Mark as not contacted", marked: "Marked contacted", open: "Not contacted", done: "Contacted", all: "All sign-ups", stale: "No contact 48h+", noun: ["waitlist sign-up", "waitlist sign-ups"] },
+        pipeline: {
+            name: "Waitlist",
+            stages: [
+                { key: "new", label: "New" },
+                { key: "contacted", label: "Contacted" },
+                { key: "reserved", label: "Reserved" },
+                { key: "delivered", label: "Delivered" },
+                { key: "cancelled", label: "Cancelled", offPath: true },
+            ],
+            legacyDone: "contacted",
+            legacyMarked: "Marked contacted",
+            won: "delivered",
+            closed: ["delivered", "cancelled"],
+            all: "All sign-ups",
+            noun: ["waitlist sign-up", "waitlist sign-ups"],
+        },
     },
     feedback: {
         collection: "feedback",
+        label: "Feedback",
         render: (entry) => renderFeedback(entry),
     },
 };
 
-function isDone(entry) {
-    return entry.status === "done";
+function stageOf(tab, entry) {
+    const { stages, legacyDone } = TABS[tab].pipeline;
+    if (stages.some((s) => s.key === entry.stage)) return entry.stage;
+    return entry.status === "done" ? legacyDone : "new";
 }
 
-// Hours since an open entry was submitted; null once it's done (or has no date).
-function hoursWaiting(entry) {
+function stageInfo(tab, key) {
+    return TABS[tab].pipeline.stages.find((s) => s.key === key);
+}
+
+function isClosed(tab, entry) {
+    return TABS[tab].pipeline.closed.includes(stageOf(tab, entry));
+}
+
+// Hours since an entry still at "New" was submitted; null once it has moved
+// on (or has no date).
+function hoursWaiting(tab, entry) {
     const created = toDate(entry.createdAt);
-    if (isDone(entry) || !created) return null;
+    if (stageOf(tab, entry) !== "new" || !created) return null;
     return (Date.now() - created.getTime()) / 3600000;
 }
 
-function isStale(entry) {
-    const hours = hoursWaiting(entry);
+function isStale(tab, entry) {
+    const hours = hoursWaiting(tab, entry);
     return hours !== null && hours >= STALE_WARN_HOURS;
 }
 
 // Amber "No contact · 2d" from 48 h, red "Stale · 3d" from 72 h.
-function staleBadge(entry) {
-    const hours = hoursWaiting(entry);
+function staleBadge(tab, entry) {
+    const hours = hoursWaiting(tab, entry);
     if (hours === null || hours < STALE_WARN_HOURS) return null;
     const days = Math.floor(hours / 24);
     const late = hours >= STALE_HOURS;
@@ -318,42 +382,102 @@ function staleBadge(entry) {
     return badge;
 }
 
+// Stage tag: green for New, black for the won stage (Installed/Delivered),
+// grey for Cancelled, blue for the stages in between.
+function stageBadge(tab, entry) {
+    const key = stageOf(tab, entry);
+    const stage = stageInfo(tab, key);
+    let kind = "admin-badge-stage";
+    if (key === "new") kind = "admin-badge-active";
+    else if (key === TABS[tab].pipeline.won) kind = "";
+    else if (stage.offPath) kind = "admin-badge-off";
+    return el("span", `admin-badge ${kind}`.trim(), stage.label);
+}
+
 function plural(count, [one, many]) {
     return `${count} ${count === 1 ? one : many}`;
 }
 
-// Banner above the tabs: how many open entries are past 48 h, per tab, each
-// a link that shows them.
+// Banner above the tabs: how many entries are still at "New" past 48 h, per
+// tab, each a link that shows them.
 function renderStaleAlert() {
     const parts = ["visits", "waitlist"]
-        .map((tab) => ({ tab, entries: data[tab].filter(isStale) }))
+        .map((tab) => ({ tab, entries: data[tab].filter((e) => isStale(tab, e)) }))
         .filter(({ entries }) => entries.length);
     if (!parts.length) {
         staleAlert.hidden = true;
         return;
     }
     const total = parts.reduce((sum, { entries }) => sum + entries.length, 0);
-    const late = parts.reduce((sum, { entries }) => sum + entries.filter((e) => hoursWaiting(e) >= STALE_HOURS).length, 0);
+    const late = parts.reduce((sum, { tab, entries }) => sum + entries.filter((e) => hoursWaiting(tab, e) >= STALE_HOURS).length, 0);
 
     const text = el("span", "admin-stale-text");
     text.append(el("strong", "", `${total} waiting over ${STALE_WARN_HOURS} hours with no contact`));
     if (late) text.append(` (${late} over ${STALE_HOURS} hours)`);
     const links = el("span", "admin-stale-links");
     for (const { tab, entries } of parts) {
-        const link = el("button", "admin-stale-link", plural(entries.length, TABS[tab].status.noun));
+        const link = el("button", "admin-stale-link", plural(entries.length, TABS[tab].pipeline.noun));
         link.type = "button";
-        link.addEventListener("click", () => {
-            selectTab(tab);
-            statusFilter.value = "stale";
-            renderList();
-        });
+        link.addEventListener("click", () => showStage(tab, "stale"));
         links.append(link);
     }
     staleAlert.replaceChildren(el("span", "material-symbols-rounded", "schedule"), text, links);
     staleAlert.hidden = false;
 }
 
-// Who referred whom: visit requests grouped by referral code, most referrals first.
+// Switches the sidebar to `tab`, filtered to one stage (or "stale"/"all").
+function showStage(tab, value) {
+    selectTab(tab);
+    statusFilter.value = value;
+    renderList();
+}
+
+// Overview "Pipeline" box: how many entries sit at each stage, per tab, with
+// a bar for each stage's share. Clicking a stage lists those entries.
+function renderPipeline() {
+    const groups = ["visits", "waitlist"].map((tab) => {
+        const { name, stages, won } = TABS[tab].pipeline;
+        const total = data[tab].length;
+        const counts = stages.map((stage) => ({
+            stage,
+            count: data[tab].filter((e) => stageOf(tab, e) === stage.key).length,
+        }));
+        const wins = counts.find(({ stage }) => stage.key === won).count;
+
+        const head = el("div", "admin-pipeline-head");
+        head.append(
+            el("span", "admin-pipeline-name", name),
+            el("span", "admin-pipeline-sub", total
+                ? `${wins} of ${total} ${stageInfo(tab, won).label.toLowerCase()} · ${Math.round((wins / total) * 100)}%`
+                : "Nothing yet"),
+        );
+
+        const row = el("div", "admin-pipeline-stages");
+        row.style.setProperty("--stages", stages.length);
+        for (const { stage, count } of counts) {
+            const cell = el("button", stage.offPath ? "admin-pipeline-stage admin-pipeline-off" : "admin-pipeline-stage");
+            cell.type = "button";
+            cell.title = `List ${stage.label.toLowerCase()} ${TABS[tab].pipeline.noun[1]}`;
+            const bar = el("span", "admin-pipeline-bar");
+            bar.style.setProperty("--share", total ? count / total : 0);
+            cell.append(
+                el("span", "admin-pipeline-count", String(count)),
+                el("span", "admin-pipeline-label", stage.label),
+                bar,
+            );
+            cell.addEventListener("click", () => showStage(tab, stage.key));
+            row.append(cell);
+        }
+
+        const group = el("div", "admin-pipeline-group");
+        group.append(head, row);
+        return group;
+    });
+    document.querySelector(".admin-pipeline-groups").replaceChildren(...groups);
+}
+
+// Referral leaderboard: visit requests grouped by referral code, ranked by how
+// many reached the won stage (Installed), then by how many were referred.
 function renderReferrals() {
     const groups = new Map();
     for (const v of data.visits) {
@@ -365,38 +489,42 @@ function renderReferrals() {
     referrals.hidden = !groups.size;
     if (!groups.size) return;
 
-    const referred = [...groups.values()].reduce((sum, list) => sum + list.length, 0);
-    referrals.querySelector(".admin-referrals-count").textContent =
-        `${plural(groups.size, ["code", "codes"])} · ${plural(referred, ["referred visit", "referred visits"])}`;
+    const won = TABS.visits.pipeline.won;
+    const board = [...groups.entries()]
+        .map(([code, list]) => ({ code, list, wins: list.filter((v) => stageOf("visits", v) === won).length }))
+        .sort((a, b) => b.wins - a.wins || b.list.length - a.list.length || a.code.localeCompare(b.code));
 
-    const rows = [...groups.entries()]
-        .sort(([a, x], [b, y]) => y.length - x.length || a.localeCompare(b))
-        .map(([code, list]) => {
-            const row = el("div", "admin-referral");
-            const codeButton = el("button", "admin-referral-code", code);
-            codeButton.type = "button";
-            codeButton.title = `Show visit requests referred by ${code}`;
-            codeButton.addEventListener("click", () => {
-                selectTab("visits");
-                statusFilter.value = "all";
-                search.value = code;
-                renderList();
-            });
-            const people = el("ul", "admin-referral-people");
-            people.append(...list.map((v) => {
-                const item = el("li");
-                item.append(el("span", "", v.name || "(no name)"));
-                item.append(el("span", "admin-muted", ` · ${formatDate(toDate(v.createdAt))}${isDone(v) ? " · visited" : ""}`));
-                return item;
-            }));
-            row.append(
-                el("span", "admin-referral-label", "Referred by"),
-                codeButton,
-                el("span", "admin-referral-total", plural(list.length, ["referral", "referrals"])),
-                people,
-            );
-            return row;
+    const referred = board.reduce((sum, { list }) => sum + list.length, 0);
+    const installs = board.reduce((sum, { wins }) => sum + wins, 0);
+    referrals.querySelector(".admin-referrals-count").textContent =
+        `${plural(board.length, ["code", "codes"])} · ${plural(referred, ["referred visit", "referred visits"])} · ${installs} installed`;
+
+    const rows = board.map(({ code, list, wins }, i) => {
+        const row = el("div", "admin-referral");
+        const rank = el("span", i < 3 && wins ? `admin-referral-rank admin-referral-top` : "admin-referral-rank", String(i + 1));
+        rank.setAttribute("aria-label", `Rank ${i + 1}`);
+        const codeButton = el("button", "admin-referral-code", code);
+        codeButton.type = "button";
+        codeButton.title = `Show visit requests referred by ${code}`;
+        codeButton.addEventListener("click", () => {
+            search.value = code;
+            showStage("visits", "all");
         });
+        const stats = el("span", "admin-referral-stats");
+        stats.append(
+            el("strong", "", `${wins} installed`),
+            ` · ${plural(list.length, ["referral", "referrals"])} · ${Math.round((wins / list.length) * 100)}% converted`,
+        );
+        const people = el("ul", "admin-referral-people");
+        people.append(...list.map((v) => {
+            const item = el("li");
+            item.append(el("span", "", v.name || "(no name)"));
+            item.append(el("span", "admin-muted", ` · ${formatDate(toDate(v.createdAt))} · ${stageInfo("visits", stageOf("visits", v)).label}`));
+            return item;
+        }));
+        row.append(rank, codeButton, stats, people);
+        return row;
+    });
     referrals.querySelector(".admin-referrals-list").replaceChildren(...rows);
 }
 
@@ -433,7 +561,7 @@ function renderProductFilter() {
 }
 
 function renderStats() {
-    const openVisits = data.visits.filter((v) => !isDone(v)).length;
+    const openVisits = data.visits.filter((v) => !isClosed("visits", v)).length;
     const ratings = data.feedback.map((f) => f.rating).filter((r) => typeof r === "number");
     const average = ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : "–";
 
@@ -450,6 +578,7 @@ function renderStats() {
         document.querySelector(`[data-count="${key}"]`).textContent = data[key].length;
     }
     renderStaleAlert();
+    renderPipeline();
     renderReferrals();
     renderProductFilter();
 }
@@ -470,23 +599,40 @@ function matches(entry, term) {
     return Object.values(entry).flatMap(searchableText).some((text) => text.toLowerCase().includes(term));
 }
 
-function renderList() {
+// The active tab's entries that match the search, stage filter and (waitlist)
+// product chip: what the list shows, and what Export CSV downloads.
+function filteredEntries() {
     const term = search.value.trim().toLowerCase();
-    const list = document.querySelector(`[data-list="${activeTab}"]`);
-    const wanted = TABS[activeTab].status ? statusFilter.value : "all";
+    const wanted = TABS[activeTab].pipeline ? statusFilter.value : "all";
     const product = activeTab === "waitlist" ? activeProduct : "all";
     const entries = data[activeTab].filter((entry) => matches(entry, term)
         && (wanted === "all"
-            || (wanted === "stale" ? isStale(entry) : (wanted === "done") === isDone(entry)))
+            || (wanted === "stale" ? isStale(activeTab, entry)
+                : wanted === "open" ? !isClosed(activeTab, entry)
+                : stageOf(activeTab, entry) === wanted))
         && (product === "all" || waitlistProducts(entry).includes(product)));
-    const render = TABS[activeTab].render;
+    return { entries, filtered: Boolean(term) || wanted !== "all" || product !== "all" };
+}
 
+function renderList() {
+    const list = document.querySelector(`[data-list="${activeTab}"]`);
+    const { entries, filtered } = filteredEntries();
+    const total = data[activeTab].length;
+    listCount.textContent = filtered ? `${entries.length} of ${total} shown` : plural(total, ["entry", "entries"]);
+    exportButton.disabled = !entries.length;
     if (!entries.length) {
-        const filtered = term || wanted !== "all" || product !== "all";
         list.replaceChildren(el("p", "admin-empty", filtered ? "No matches." : "Nothing submitted yet."));
         return;
     }
-    list.replaceChildren(...entries.map(render));
+    list.replaceChildren(...entries.map((entry) => renderEntry(activeTab, entry)));
+    markSelected();
+}
+
+// An entry's <details>, tagged with its id so the sidebar can find it.
+function renderEntry(tab, entry) {
+    const details = TABS[tab].render(entry);
+    details.dataset.id = entry.id;
+    return details;
 }
 
 function detailRow(label, value, { href, wide } = {}) {
@@ -501,20 +647,71 @@ function detailRow(label, value, { href, wide } = {}) {
         dd.textContent = value === "" || value === undefined || value === null ? "—" : value;
     }
     row.append(dd);
+    if (value !== "" && value !== undefined && value !== null) makeCopyable(row, label, String(value));
     return row;
 }
 
-// `meta` is text or a node (e.g. the feedback stars). `badge` shows when
-// done; `openBadge` (visit requests' green "Active" tag) when not.
-// `stale` is the amber/red no-contact tag from staleBadge(), if any.
-function entryShell(title, meta, date, { done, badge, openBadge, stale } = {}) {
-    const details = el("details", done ? "admin-entry admin-entry-done" : "admin-entry");
+// Click a detail (or its copy icon) to copy its value. Clicking a phone/email
+// link still calls/emails; the icon copies it. A drag-selection is left alone
+// so part of a value can still be copied by hand.
+function makeCopyable(row, label, text) {
+    row.classList.add("admin-detail-copy");
+    const button = el("button", "admin-copy");
+    button.type = "button";
+    button.title = `Copy ${label.toLowerCase()}`;
+    button.setAttribute("aria-label", `Copy ${label.toLowerCase()}`);
+    const icon = el("span", "material-symbols-rounded", "content_copy");
+    button.append(icon, el("span", "admin-copy-done", "Copied"));
+    row.querySelector("dd").append(button);
+
+    let timer;
+    row.addEventListener("click", async (e) => {
+        if (e.target.closest("a")) return;
+        if (!button.contains(e.target) && String(window.getSelection())) return;
+        try {
+            await copyText(text);
+        } catch (err) {
+            console.error("Admin: copy failed", err);
+            return;
+        }
+        row.classList.add("copied");
+        icon.textContent = "check";
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+            row.classList.remove("copied");
+            icon.textContent = "content_copy";
+        }, 1400);
+    });
+}
+
+async function copyText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return;
+    }
+    // Fallback for plain-http pages, where the Clipboard API isn't available.
+    const area = el("textarea");
+    area.value = text;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.opacity = "0";
+    document.body.append(area);
+    area.select();
+    const ok = document.execCommand("copy");
+    area.remove();
+    if (!ok) throw new Error("execCommand copy failed");
+}
+
+// `meta` is text or a node (e.g. the feedback stars). `badge` is the stage
+// tag from stageBadge(); `stale` the amber/red no-contact tag from
+// staleBadge(), if any. `dim` (closed entries) fades the row in the list.
+function entryShell(title, meta, date, { dim, badge, stale } = {}) {
+    const details = el("details", dim ? "admin-entry admin-entry-done" : "admin-entry");
     const summary = el("summary");
     const main = el("div", "admin-entry-main");
     const heading = el("span", "admin-entry-heading");
     heading.append(el("span", "admin-entry-title", title || "(no name)"));
-    if (done && badge) heading.append(el("span", "admin-badge", badge));
-    if (!done && openBadge) heading.append(el("span", "admin-badge admin-badge-active", openBadge));
+    if (badge) heading.append(badge);
     if (stale) heading.append(stale);
     main.append(heading);
     const metaLine = el("span", "admin-entry-meta");
@@ -530,10 +727,10 @@ function entryShell(title, meta, date, { done, badge, openBadge, stale } = {}) {
 function renderVisit(v) {
     const referral = (v.referralCode || "").trim();
     const meta = [v.product, v.propertyType, v.phone, referral && `Referred by ${referral}`].filter(Boolean).join(" · ");
-    const done = isDone(v);
-    const { badge, openBadge } = TABS.visits.status;
     const paths = Array.isArray(v.attachments) ? v.attachments : [];
-    const details = entryShell(v.name, meta, toDate(v.createdAt), { done, badge, openBadge, stale: staleBadge(v) });
+    const details = entryShell(v.name, meta, toDate(v.createdAt), {
+        dim: isClosed("visits", v), badge: stageBadge("visits", v), stale: staleBadge("visits", v),
+    });
     if (paths.length) {
         // Paperclip + count on the collapsed entry, so bills are easy to spot.
         const clip = el("span", "admin-entry-files");
@@ -546,7 +743,7 @@ function renderVisit(v) {
     list.append(
         detailRow("Phone", v.phone, { href: v.phone ? `tel:${v.phone.replace(/[^\d+]/g, "")}` : "" }),
         detailRow("Email", v.email, { href: v.email ? `mailto:${v.email}` : "" }),
-        detailRow("Address", v.address, { wide: true }),
+        detailRow("Address", v.address),
         detailRow("Property type", v.propertyType),
         detailRow("Product", v.product),
         detailRow("Monthly bill", v.monthlyBill),
@@ -557,14 +754,14 @@ function renderVisit(v) {
         detailRow("Submitted", formatDate(toDate(v.createdAt))),
         detailRow("Request ID", v.id),
     );
-    appendStatus("visits", v, list, details);
+    appendStage("visits", v, list, details);
 
     if (paths.length) {
         const files = el("div", "admin-attachments");
         files.append(el("span", "admin-attachments-label", `Attachments (${paths.length})`));
         const fileList = el("ul", "admin-attachment-grid");
         files.append(fileList);
-        details.insertBefore(files, details.querySelector(".admin-actions"));
+        details.append(files);
 
         // Files are only fetched the first time the entry is opened.
         details.addEventListener("toggle", () => {
@@ -593,7 +790,7 @@ function renderFeedback(f) {
         detailRow("OK to publish", f.allowPublish ? "Yes" : "No"),
         detailRow("Submitted", formatDate(toDate(f.createdAt))),
     );
-    details.append(list);
+    details.append(ticket("feedback", f, list));
     return details;
 }
 
@@ -615,8 +812,9 @@ function renderWaitlist(w) {
     const address = w.address || w.location || "";
     const estimate = Number.isFinite(w.estimatedTotal) ? `₱${w.estimatedTotal.toLocaleString("en-PH")}` : "";
     const meta = [products, estimate, w.phone].filter(Boolean).join(" · ");
-    const done = isDone(w);
-    const details = entryShell(w.name, meta, toDate(w.createdAt), { done, badge: TABS.waitlist.status.badge, stale: staleBadge(w) });
+    const details = entryShell(w.name, meta, toDate(w.createdAt), {
+        dim: isClosed("waitlist", w), badge: stageBadge("waitlist", w), stale: staleBadge("waitlist", w),
+    });
 
     const list = el("dl", "admin-details");
     list.append(
@@ -624,70 +822,223 @@ function renderWaitlist(w) {
         detailRow("Order", waitlistItems(w).join("\n")),
         detailRow("Estimated total", estimate ? `${estimate}\nFrom starting prices; not a quotation` : ""),
         detailRow("System", w.system ? `${w.system} system` : ""),
-        detailRow("Home / delivery address", address, { wide: true }),
+        detailRow("Home / delivery address", address),
         detailRow("Phone", w.phone, { href: w.phone ? `tel:${w.phone.replace(/[^\d+]/g, "")}` : "" }),
         detailRow("Email", w.email, { href: w.email ? `mailto:${w.email}` : "" }),
         detailRow("Note", w.message, { wide: true }),
         detailRow("Submitted", formatDate(toDate(w.createdAt))),
     );
-    appendStatus("waitlist", w, list, details);
+    appendStage("waitlist", w, list, details);
     return details;
 }
 
-// Adds the "Marked done/contacted" row and the toggle button to an entry.
-function appendStatus(tab, entry, list, details) {
-    const labels = TABS[tab].status;
-    const done = isDone(entry);
-    if (done) {
-        const by = entry.completedBy ? ` by ${entry.completedBy}` : "";
-        list.append(detailRow(labels.marked, `${formatDate(toDate(entry.completedAt))}${by}`, { wide: true }));
-    }
-    details.append(list);
-
-    const actions = el("div", "admin-actions");
-    const toggle = el("button", done ? "admin-action" : "admin-action admin-action-primary");
-    toggle.type = "button";
-    toggle.append(
-        el("span", "material-symbols-rounded", done ? "undo" : "check_circle"),
-        done ? labels.undo : labels.mark,
-    );
-    const actionError = el("span", "admin-action-error");
-    toggle.addEventListener("click", () => setDone(tab, entry, !done, details, toggle, actionError));
-    actions.append(toggle, actionError);
-    details.append(actions);
+// An entry's details laid out as a ticket: a stub with the kind of entry and
+// a short ticket number (start of the Firestore id), a perforation with a
+// notch on each side, then the details. The notches are cut by a CSS mask on
+// .admin-ticket-paper; the outline and shadow come from a filter on the outer
+// .admin-ticket, so they follow the notches.
+function ticket(tab, entry, list) {
+    const outer = el("div", "admin-ticket");
+    const paper = el("div", "admin-ticket-paper");
+    const stub = el("div", "admin-ticket-stub");
+    const kind = el("span", "admin-ticket-kind");
+    kind.append(el("span", "material-symbols-rounded", "confirmation_number"), TABS[tab].label);
+    stub.append(kind);
+    if (entry.id) stub.append(el("span", "admin-ticket-no", `No. ${entry.id.slice(0, 6).toUpperCase()}`));
+    paper.append(stub, list);
+    outer.append(paper);
+    return outer;
 }
 
-// Only status, completedAt and completedBy may change — see /firestore.rules.
-async function setDone(tab, entry, done, details, button, errorText) {
-    button.disabled = true;
+// Adds the stage stepper (click any stage to set it), a blue "Move to <next
+// stage>" button and, for pipelines with an off-path stage (waitlist:
+// Cancelled), a button to set or undo it; then the ticket, with its "Stage
+// updated" row.
+function appendStage(tab, entry, list, details) {
+    const pipeline = TABS[tab].pipeline;
+    const current = stageOf(tab, entry);
+    if (entry.stageUpdatedAt) {
+        const by = entry.stageUpdatedBy ? ` by ${entry.stageUpdatedBy}` : "";
+        list.append(detailRow("Stage updated", `${formatDate(toDate(entry.stageUpdatedAt))}${by}`, { wide: true }));
+    } else if (entry.status === "done") {
+        // Marked done/contacted before stages existed.
+        const by = entry.completedBy ? ` by ${entry.completedBy}` : "";
+        list.append(detailRow(pipeline.legacyMarked, `${formatDate(toDate(entry.completedAt))}${by}`, { wide: true }));
+    }
+    const actions = el("div", "admin-actions admin-stage-actions");
+    const error = el("span", "admin-action-error");
+    const save = (key) => setStage(tab, entry, key, details, actions, error);
+
+    const path = pipeline.stages.filter((s) => !s.offPath);
+    const at = path.findIndex((s) => s.key === current); // -1 when off the path (Cancelled)
+    const stepper = el("ol", at === -1 ? "admin-stages admin-stages-off" : "admin-stages");
+    stepper.setAttribute("aria-label", "Stage");
+    // How far the blue line runs: 0 at the first stage, 1 at the last.
+    stepper.style.setProperty("--progress", at > 0 ? at / (path.length - 1) : 0);
+    path.forEach((stage, i) => {
+        const item = el("li", i <= at ? "reached" : "");
+        const button = el("button", "admin-stage");
+        button.type = "button";
+        button.append(el("span", "admin-stage-dot"), el("span", "admin-stage-label", stage.label));
+        if (stage.key === current) {
+            button.setAttribute("aria-current", "step");
+            button.title = `Current stage: ${stage.label}`;
+        } else {
+            button.title = `Set stage to ${stage.label}`;
+            button.addEventListener("click", () => save(stage.key));
+        }
+        item.append(button);
+        stepper.append(item);
+    });
+
+    const buttons = el("div", "admin-stage-buttons");
+    const next = at === -1 ? null : path[at + 1];
+    if (next) {
+        const move = el("button", "admin-action admin-action-primary");
+        move.type = "button";
+        move.append(el("span", "material-symbols-rounded", "arrow_forward"), `Move to ${next.label}`);
+        move.addEventListener("click", () => save(next.key));
+        buttons.append(move);
+    }
+    for (const stage of pipeline.stages.filter((s) => s.offPath)) {
+        const on = current === stage.key;
+        const button = el("button", "admin-action");
+        button.type = "button";
+        button.append(
+            el("span", "material-symbols-rounded", on ? "undo" : "block"),
+            on ? "Reopen as New" : `Mark as ${stage.label.toLowerCase()}`,
+        );
+        button.addEventListener("click", () => save(on ? "new" : stage.key));
+        buttons.append(button);
+    }
+    buttons.prepend(error);
+    actions.append(stepper, buttons);
+    details.append(actions, ticket(tab, entry, list));
+}
+
+// Only stage, stageUpdatedAt and stageUpdatedBy may change — see
+// isValidStageChange() in /firestore.rules.
+async function setStage(tab, entry, stage, details, actions, errorText) {
+    const buttons = actions.querySelectorAll("button");
+    buttons.forEach((b) => { b.disabled = true; });
     errorText.textContent = "";
     const email = auth.currentUser ? auth.currentUser.email : null;
     try {
         await firestore.updateDoc(firestore.doc(db, TABS[tab].collection, entry.id), {
-            status: done ? "done" : "new",
-            completedAt: done ? firestore.serverTimestamp() : null,
-            completedBy: done ? email : null,
+            stage,
+            stageUpdatedAt: firestore.serverTimestamp(),
+            stageUpdatedBy: email,
         });
-        entry.status = done ? "done" : "new";
-        entry.completedAt = done ? firestore.Timestamp.now() : null;
-        entry.completedBy = done ? email : null;
+        entry.stage = stage;
+        entry.stageUpdatedAt = firestore.Timestamp.now();
+        entry.stageUpdatedBy = email;
 
         renderStats();
-        if (statusFilter.value === "all") {
-            const updated = TABS[tab].render(entry);
+        if (detailPane.contains(details)) {
+            // Desktop: refresh the sidebar row's tags and the open entry.
+            renderList();
+            showEntry(tab, entry.id);
+        } else if (statusFilter.value === "all") {
+            const updated = renderEntry(tab, entry);
             updated.open = true;
             details.replaceWith(updated);
         } else {
             renderList();
         }
     } catch (err) {
-        console.error("Admin: status update failed", err);
+        console.error("Admin: stage update failed", err);
         errorText.textContent = err.code === "permission-denied"
             ? "Permission denied. Publish the latest /firestore.rules in the Firebase console."
             : "Couldn't save. Check your connection and try again.";
-        button.disabled = false;
+        buttons.forEach((b) => { b.disabled = false; });
     }
 }
+
+
+// ------------------------------------------------------------------ export
+
+// Export CSV: what the list shows (active tab, search, stage filter, product
+// chip), for Excel or Google Sheets. Starts with a byte-order mark so Excel
+// reads ₱ and ñ correctly.
+const CSV_COLUMNS = {
+    visits: [
+        ["Submitted", (v) => csvDate(toDate(v.createdAt))],
+        ["Name", (v) => v.name],
+        ["Phone", (v) => v.phone],
+        ["Email", (v) => v.email],
+        ["Address", (v) => v.address],
+        ["Property type", (v) => v.propertyType],
+        ["Product", (v) => v.product],
+        ["Monthly bill", (v) => v.monthlyBill],
+        ["Preferred date", (v) => v.preferredDate],
+        ["Preferred time", (v) => v.preferredTime],
+        ["Referral code", (v) => (v.referralCode || "").trim().toUpperCase()],
+        ["Message", (v) => v.message],
+        ["Stage", (v) => stageInfo("visits", stageOf("visits", v)).label],
+        ["Stage updated", (v) => csvDate(toDate(v.stageUpdatedAt || v.completedAt))],
+        ["Updated by", (v) => v.stageUpdatedBy || v.completedBy],
+        ["Attachments", (v) => (Array.isArray(v.attachments) ? v.attachments.length : 0)],
+        ["Request ID", (v) => v.id],
+    ],
+    waitlist: [
+        ["Submitted", (w) => csvDate(toDate(w.createdAt))],
+        ["Name", (w) => w.name],
+        ["Phone", (w) => w.phone],
+        ["Email", (w) => w.email],
+        ["Home / delivery address", (w) => w.address || w.location],
+        ["System", (w) => w.system],
+        ["Order", (w) => waitlistItems(w).join("; ")],
+        ["Estimated total (PHP)", (w) => (Number.isFinite(w.estimatedTotal) ? w.estimatedTotal : "")],
+        ["Note", (w) => w.message],
+        ["Stage", (w) => stageInfo("waitlist", stageOf("waitlist", w)).label],
+        ["Stage updated", (w) => csvDate(toDate(w.stageUpdatedAt || w.completedAt))],
+        ["Updated by", (w) => w.stageUpdatedBy || w.completedBy],
+        ["Sign-up ID", (w) => w.id],
+    ],
+    feedback: [
+        ["Submitted", (f) => csvDate(toDate(f.createdAt))],
+        ["Name", (f) => f.name],
+        ["Rating", (f) => f.rating],
+        ["Feedback", (f) => f.message],
+        ["Contact", (f) => f.contact],
+        ["OK to publish", (f) => (f.allowPublish ? "Yes" : "No")],
+        ["Feedback ID", (f) => f.id],
+    ],
+};
+
+// "2026-10-02 14:05": sorts correctly and spreadsheets read it as a date.
+function csvDate(date) {
+    if (!date) return "";
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+// Quotes a value if needed. Text from the public forms that starts with
+// = + - @ gets a leading ' so a spreadsheet shows it instead of running it
+// as a formula.
+function csvCell(value) {
+    let text = value === undefined || value === null ? "" : String(value);
+    if (typeof value === "string" && /^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+    return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+exportButton.addEventListener("click", () => {
+    const { entries } = filteredEntries();
+    const columns = CSV_COLUMNS[activeTab];
+    const rows = [
+        columns.map(([heading]) => csvCell(heading)),
+        ...entries.map((entry) => columns.map(([, get]) => csvCell(get(entry)))),
+    ];
+    const csv = "﻿" + rows.map((row) => row.join(",")).join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const link = el("a");
+    link.href = url;
+    link.download = `hph-${activeTab}-${csvDate(new Date()).slice(0, 10)}.csv`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
 
 let storagePromise = null;
 
@@ -838,16 +1189,103 @@ function openViewer(images, index) {
 }
 
 
+// ------------------------------------------------------------ detail pane
+
+// Desktop: a clicked sidebar entry opens in the right-hand pane in place of
+// the overview. It's a fresh render of the same <details>, kept open, so the
+// done/contacted toggle and attachments work just as they do inline.
+function showEntry(tab, id) {
+    const entry = data[tab].find((e) => e.id === id);
+    if (!entry) {
+        closeEntry();
+        return;
+    }
+    const sameEntry = selected && selected.tab === tab && selected.id === id;
+    selected = { tab, id };
+
+    const details = renderEntry(tab, entry);
+    details.classList.add("admin-entry-full");
+    details.open = true;
+    detailPane.querySelector(".admin-detail-kind").textContent = TABS[tab].label;
+    // The pinned header shows the summary line (name, tags, details, date);
+    // the entry's own summary is hidden in the pane.
+    detailPane.querySelector(".admin-detail-title").replaceChildren(
+        ...[...details.querySelector("summary").children]
+            .filter((child) => !child.classList.contains("admin-chevron"))
+            .map((child) => child.cloneNode(true)),
+    );
+    detailPane.querySelector(".admin-detail-body").replaceChildren(details);
+    overview.hidden = true;
+    detailPane.hidden = false;
+    // A different entry starts at the top; a refresh of the same one stays put.
+    if (!sameEntry) mainArea.scrollTop = 0;
+    markSelected();
+}
+
+function closeEntry() {
+    selected = null;
+    detailPane.hidden = true;
+    detailPane.querySelector(".admin-detail-body").replaceChildren();
+    detailPane.querySelector(".admin-detail-title").replaceChildren();
+    overview.hidden = false;
+    markSelected();
+}
+
+// Highlights the open entry in the sidebar list.
+function markSelected() {
+    document.querySelectorAll(".admin-list .admin-entry").forEach((entry) => {
+        const on = Boolean(selected) && entry.closest(".admin-list").dataset.list === selected.tab
+            && entry.dataset.id === selected.id;
+        entry.classList.toggle("admin-entry-selected", on);
+        entry.querySelector("summary").setAttribute("aria-current", String(on));
+    });
+}
+
+// On desktop a sidebar entry opens in the pane instead of expanding in place.
+document.querySelectorAll(".admin-list").forEach((list) => {
+    list.addEventListener("click", (e) => {
+        if (!desktop.matches) return;
+        const summary = e.target.closest("summary");
+        if (!summary || !list.contains(summary)) return;
+        e.preventDefault();
+        showEntry(list.dataset.list, summary.parentElement.dataset.id);
+    });
+});
+
+// The open entry in the pane can't be collapsed.
+detailPane.addEventListener("click", (e) => {
+    if (e.target.closest("summary")) e.preventDefault();
+});
+
+detailPane.querySelector(".admin-back").addEventListener("click", closeEntry);
+
+// Shrinking to the phone layout: back to entries opening in place.
+desktop.addEventListener("change", () => {
+    if (!desktop.matches && selected) closeEntry();
+});
+
+
 // ------------------------------------------------------------------- tabs
 
-// Shows the status filter on tabs that have one, with that tab's wording.
+// The stage filter, rebuilt with the active tab's stages (hidden on tabs
+// without a pipeline). Keeps the choice when the new tab has it.
 function updateStatusFilter() {
-    const labels = TABS[activeTab].status;
-    statusFilter.hidden = !labels;
-    if (!labels) return;
-    for (const option of statusFilter.options) {
-        option.textContent = labels[option.value === "new" ? "open" : option.value];
-    }
+    const pipeline = TABS[activeTab].pipeline;
+    statusFilter.hidden = !pipeline;
+    if (!pipeline) return;
+    const previous = statusFilter.value;
+    const option = (value, label) => {
+        const node = el("option", "", label);
+        node.value = value;
+        return node;
+    };
+    statusFilter.replaceChildren(
+        option("all", pipeline.all),
+        option("open", "Open (not closed)"),
+        ...pipeline.stages.map((stage) => option(stage.key, stage.label)),
+        option("stale", `No contact ${STALE_WARN_HOURS}h+`),
+    );
+    statusFilter.value = [...statusFilter.options].some((o) => o.value === previous) ? previous : "all";
 }
 
 function selectTab(name) {
