@@ -1,13 +1,20 @@
-// Live portfolio counters, shared by the Home and Portfolio pages.
+// Live portfolio counters, shared by the Home, Portfolio, Our Advocacy and
+// Admin pages.
 //
 // Counts Micro Inverter and Solar Panel serial numbers (and their total kW /
-// kWp capacity) straight from the "HPH Renewable Master Database" Google
-// Sheet — the same sheet the installation-report form writes to — and
-// refreshes every 30 seconds while the tab is visible.
+// kWp capacity) and refreshes every 30 seconds while the tab is visible.
 //
-// Speed: only the two serial-number columns are requested (COLUMNS_QUERY),
-// the last counts are remembered in localStorage and shown instantly on the
-// next visit, and background refreshes don't dim the numbers.
+// Source: Firebase first. Each installation added on the admin page's
+// Installs tab has a public `installCounts/<installId>` document holding just
+// { inverters, panels } (panels include any whose serial wasn't recorded),
+// and the totals are a Firestore sum query over those, so no client details
+// reach visitors' browsers. While that collection is empty (before the
+// one-time import from the sheet) or Firebase can't be reached, the counts
+// come from the "HPH Renewable Master Database" Google Sheet as before.
+//
+// Speed: only the two serial-number columns of the sheet are requested
+// (COLUMNS_QUERY), the last counts are remembered in localStorage and shown
+// instantly on the next visit, and background refreshes don't dim the numbers.
 //
 // Any element on the page can show a value by carrying one of these markers
 // (desktop and mobile copies are all filled in):
@@ -24,6 +31,12 @@
 // Capacity elements also need data-unit="kW" / "kWp" for the unit label.
 
 (function () {
+    // Where this script lives, so firebase-config.js (next to it) can be found
+    // from any page depth.
+    const SCRIPT_URL = document.currentScript ? document.currentScript.src : location.href;
+    // Same Firebase SDK version as the admin page.
+    const FIREBASE_BASE = "https://www.gstatic.com/firebasejs/12.3.0";
+
     const SHEET_ID = "1I7w59tsa54pBLcBUs2T55pb-8lvfLKzCe0in_eY41WY";
     const SHEET_CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
     // Just the serial-number columns (F = Micro Inverter SN, H = Solar Panel
@@ -225,6 +238,69 @@
         );
     }
 
+    // Firebase (loaded on first use). Resolves to null when the project isn't
+    // set up yet (firebase-config.js still has YOUR_ placeholders). Uses its
+    // own named app so it never clashes with the admin page's default app.
+    let firebasePromise = null;
+
+    function loadFirebase() {
+        if (!firebasePromise) {
+            firebasePromise = (async () => {
+                const { firebaseConfig } = await import(new URL("firebase-config.js", SCRIPT_URL).href);
+                if (!firebaseConfig || String(firebaseConfig.projectId || "").startsWith("YOUR_")) return null;
+                const [appSdk, fs] = await Promise.all([
+                    import(`${FIREBASE_BASE}/firebase-app.js`),
+                    import(`${FIREBASE_BASE}/firebase-firestore.js`),
+                ]);
+                const app = appSdk.getApps().find((a) => a.name === "portfolio-counters")
+                    || appSdk.initializeApp(firebaseConfig, "portfolio-counters");
+                return { fs, db: fs.getFirestore(app) };
+            })().catch((err) => {
+                firebasePromise = null;
+                throw err;
+            });
+        }
+        return firebasePromise;
+    }
+
+    // Totals from the public `installCounts` collection; null while it's
+    // empty (not imported yet), so the sheet is used instead.
+    async function firebaseCounts() {
+        const firebase = await loadFirebase();
+        if (!firebase) return null;
+        const { fs, db } = firebase;
+        const totals = await fs.getAggregateFromServer(fs.collection(db, "installCounts"), {
+            inverters: fs.sum("inverters"),
+            panels: fs.sum("panels"),
+            installs: fs.count(),
+        });
+        const { inverters, panels, installs } = totals.data();
+        return installs > 0 ? { inverters: inverters || 0, panels: panels || 0 } : null;
+    }
+
+    async function sheetCounts() {
+        let rows = await fetchRows(COLUMNS_QUERY);
+        let indexes = columnIndexes(rows[0]);
+        if (indexes.includes(-1)) {
+            console.warn("Portfolio counters: serial-number columns moved; reading the whole sheet. Update COLUMNS_QUERY.");
+            rows = await fetchRows("");
+            indexes = columnIndexes(rows[0]);
+        }
+
+        const missing = METRICS.find((metric, i) => indexes[i] === -1);
+        if (missing) throw new Error(`Column "${missing.column}" not found in sheet`);
+
+        const dataRows = rows.slice(1);
+        const counts = {};
+        METRICS.forEach((metric, i) => {
+            counts[metric.key] = dataRows.reduce(
+                (total, r) => total + countPortfolioTokens(r[indexes[i]], metric.pattern),
+                0
+            );
+        });
+        return counts;
+    }
+
     async function loadPortfolioCounts() {
         // Only the very first load (nothing cached) shows the dimmed state;
         // later refreshes swap the numbers in quietly.
@@ -234,25 +310,13 @@
         }
 
         try {
-            let rows = await fetchRows(COLUMNS_QUERY);
-            let indexes = columnIndexes(rows[0]);
-            if (indexes.includes(-1)) {
-                console.warn("Portfolio counters: serial-number columns moved; reading the whole sheet. Update COLUMNS_QUERY.");
-                rows = await fetchRows("");
-                indexes = columnIndexes(rows[0]);
+            let counts = null;
+            try {
+                counts = await firebaseCounts();
+            } catch (err) {
+                console.warn("Portfolio counters: Firebase count failed; reading the Google Sheet instead", err);
             }
-
-            const missing = METRICS.find((metric, i) => indexes[i] === -1);
-            if (missing) throw new Error(`Column "${missing.column}" not found in sheet`);
-
-            const dataRows = rows.slice(1);
-            const counts = {};
-            METRICS.forEach((metric, i) => {
-                counts[metric.key] = dataRows.reduce(
-                    (total, r) => total + countPortfolioTokens(r[indexes[i]], metric.pattern),
-                    0
-                );
-            });
+            if (!counts) counts = await sheetCounts();
 
             showCounts(counts);
             writeCache(counts);

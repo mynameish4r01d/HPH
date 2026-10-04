@@ -2037,6 +2037,363 @@ a:link{
 }
 
 
+/* ===== INSTALLS (installations / serial numbers) ===== */
+
+/* The encoder account: no overview dashboard, no Feedback tab, no sheet
+   import (admin.js sets body[data-role]). Its three tabs sit in one row. */
+body[data-role="encoder"]{
+    .admin-overview, .admin-tab[data-tab="feedback"], .admin-import-sheet{
+        display: none !important;
+    }
+}
+
+@media only screen and (min-width:751px){
+    body[data-role="encoder"] .admin-sidebar .admin-tabs{
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Sidebar: "Add installation", and for admins "Import from Google Sheet". */
+.admin-install-actions{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+
+    .admin-action{
+        height: 34px;
+        font-size: 12px;
+    }
+}
+
+.admin-import-status{
+    flex-basis: 100%;
+    margin: 2px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--admin-subtle);
+}
+
+/* Delete: red outline. */
+.admin-action.admin-action-danger{
+    border-color: color-mix(in srgb, var(--admin-error) 45%, transparent);
+    color: var(--admin-error);
+
+    &:hover{
+        border-color: var(--admin-error);
+    }
+}
+
+/* Edit / Delete above an install's ticket, right-aligned. */
+.admin-actions.admin-install-entry-actions{
+    justify-content: flex-end;
+    margin: 4px 0 24px;
+}
+
+/* Add / edit form. */
+.admin-install-form{
+    margin-bottom: 24px;
+}
+
+.admin-install-grid{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 20px;
+
+    .admin-install-wide{
+        grid-column: 1 / -1;
+    }
+
+    textarea{
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px 12px;
+        border: 1px solid var(--admin-border);
+        border-radius: 4px;
+        background-color: var(--admin-field);
+        color: var(--admin-text);
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        resize: vertical;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+        &:focus{
+            border-color: var(--admin-accent);
+            box-shadow: 0 0 0 3px rgba(125, 129, 135, 0.18);
+        }
+
+        &.invalid{
+            border-color: var(--admin-error);
+        }
+    }
+}
+
+/* "4 MX2250 serials · not recognised: …" under each serial box. */
+.admin-serial-summary{
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--admin-subtle);
+    overflow-wrap: anywhere;
+
+    &.bad{
+        color: var(--admin-error);
+    }
+}
+
+/* Calculated capacity in the install form: "5.2 kWp · 8 panels × 650 W". */
+.admin-capacity-value{
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0 4px;
+    min-height: 44px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border-radius: 4px;
+    background-color: var(--admin-surface);
+    font-size: 14px;
+    color: var(--admin-subtle);
+
+    strong{
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--admin-text);
+    }
+}
+
+.admin-install-form-actions{
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin-top: 24px;
+
+    .admin-install-error{
+        flex: 1 1 240px;
+        margin: 0;
+        text-align: right;
+    }
+}
+
+@media only screen and (min-width:751px){
+    /* Four tabs: two rows of two in the sidebar. */
+    .admin-sidebar .admin-tabs{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media only screen and (max-width:750px){
+    /* Phones use the right-hand pane only for the install form and a just-
+       saved installation: it sits at the top of the page, not pinned. */
+    .admin-detail-pane{
+        margin-bottom: 32px;
+    }
+
+    .admin-detail-head{
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        margin-bottom: 14px;
+    }
+
+    .admin-detail-kind{
+        font-size: 13px;
+        color: var(--admin-subtle);
+    }
+
+    .admin-detail-title{
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 20px;
+        border-bottom: none;
+
+        .admin-entry-title{
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            white-space: normal;
+        }
+
+        .admin-entry-heading{
+            flex-wrap: wrap;
+        }
+
+        .admin-entry-meta{
+            white-space: normal;
+        }
+
+        .admin-chevron{
+            display: none;
+        }
+    }
+
+    .admin-detail-body .admin-entry-full{
+        border-bottom: none;
+
+        > summary{
+            display: none;
+        }
+    }
+
+    .admin-install-grid{
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .admin-install-form-actions .admin-install-error{
+        text-align: left;
+    }
+}
+
+/* ===== EDIT DETAILS (visit requests, waitlist) ===== */
+
+/* Dropdowns in the edit form, styled like its text boxes. */
+.admin-install-grid .admin-select{
+    width: 100%;
+    min-height: 44px;
+    padding: 0 36px 0 12px;
+    box-sizing: border-box;
+    border: 1px solid var(--admin-border);
+    border-radius: 4px;
+    background-color: var(--admin-field);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%237D8187' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    color: var(--admin-text);
+    font-family: inter;
+    font-size: 16px;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+
+    &:focus{
+        border-color: var(--admin-accent);
+        box-shadow: 0 0 0 3px rgba(125, 129, 135, 0.18);
+    }
+}
+
+.admin-install-grid textarea[name="message"]{
+    font-family: inter;
+}
+
+/* Attachments: saved and new files, each removable, then a drop zone with
+   "Add files". The zone turns blue while files are dragged over it. */
+.admin-edit-files{
+    gap: 8px;
+}
+
+.admin-edit-drop{
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    padding: 14px 16px;
+    border: 1.5px dashed var(--admin-border);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--admin-subtle);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+
+    > .material-symbols-rounded{
+        font-size: 22px;
+    }
+
+    .admin-action{
+        height: 34px;
+        font-size: 12px;
+    }
+}
+
+.admin-edit-files.dragging .admin-edit-drop{
+    border-color: var(--admin-mark);
+    background-color: color-mix(in srgb, var(--admin-mark) 8%, transparent);
+    color: var(--admin-mark);
+
+    .admin-edit-drop-text{
+        font-weight: 600;
+    }
+}
+
+/* Touch screens can't drag files in: just the button. */
+@media (hover: none){
+    .admin-edit-drop-text{
+        display: none;
+    }
+}
+
+.admin-edit-file-list{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    &:empty{
+        display: none;
+    }
+}
+
+.admin-edit-file{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 8px 8px 8px 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    font-size: 13px;
+
+    > .material-symbols-rounded{
+        flex-shrink: 0;
+        font-size: 20px;
+        color: var(--admin-subtle);
+    }
+
+    &.is-new{
+        border-style: dashed;
+        border-color: var(--admin-mark);
+    }
+}
+
+.admin-edit-file-name{
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-edit-file-detail{
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--admin-subtle);
+}
+
+.admin-edit-file-remove{
+    flex-shrink: 0;
+    display: flex;
+    padding: 4px;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    color: var(--admin-subtle);
+    cursor: pointer;
+
+    .material-symbols-rounded{ font-size: 18px; }
+
+    &:hover{
+        color: var(--admin-error);
+        background-color: var(--admin-surface);
+    }
+}
+
 /* ------------------------------------------------------------- mobile */
 
 @media only screen and (max-width:750px){

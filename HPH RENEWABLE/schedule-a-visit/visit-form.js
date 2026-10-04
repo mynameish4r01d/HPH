@@ -25,7 +25,15 @@ const SHRINK_OVER_BYTES = 2 * 1024 * 1024;
 const SHRINK_MAX_EDGE = 2400;
 const SHRINKABLE_TYPE = /^image\/(jpeg|png|webp)$/;
 
-const PRODUCTS = ["MX2250", "MSU4000 Elite", "MAU5000 Elite", "B4000 Elite", "B5000 Elite"];
+// "Interested in": Micro Inverter, Battery, or both. Product pages link here
+// with ?product=<name>; that pre-ticks the matching interest.
+const INTEREST_BY_PRODUCT = {
+    "MX2250": "Micro Inverter",
+    "MSU4000 Elite": "Battery",
+    "MAU5000 Elite": "Battery",
+    "B4000 Elite": "Battery",
+    "B5000 Elite": "Battery",
+};
 
 const isConfigured = Boolean(firebaseConfig && firebaseConfig.projectId && !firebaseConfig.projectId.startsWith("YOUR_"));
 
@@ -49,9 +57,9 @@ const today = new Date();
 form.querySelector('[name="preferredDate"]').min =
     new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
-// Product pages link here with ?product=<name>; pre-select it.
 const product = new URLSearchParams(window.location.search).get("product");
-if (PRODUCTS.includes(product)) form.querySelector('[name="product"]').value = product;
+const interest = INTEREST_BY_PRODUCT[product];
+if (interest) form.querySelector(`[name="interest"][value="${interest}"]`).checked = true;
 
 // Referral links can carry ?ref=<code>; pre-fill it.
 const referral = new URLSearchParams(window.location.search).get("ref");
@@ -327,7 +335,10 @@ form.addEventListener("submit", async (e) => {
                 email: value("email"),
                 address: value("address"),
                 propertyType: value("propertyType"),
-                product: value("product"),
+                // Saved in the `product` field (see /firestore.rules):
+                // "Micro Inverter", "Battery", "Micro Inverter + Battery",
+                // or "Not sure yet" when neither is ticked.
+                product: data.getAll("interest").join(" + ") || "Not sure yet",
                 monthlyBill: value("monthlyBill"),
                 preferredDate: value("preferredDate"),
                 preferredTime: value("preferredTime"),

@@ -8,15 +8,25 @@ service firebase.storage {
 
     // Files attached to "Schedule a Visit" requests (HPH RENEWABLE/schedule-a-visit/).
     // Anyone may upload a new image or PDF of up to 10 MB into a request's
-    // folder; only admins can download them (HPH RENEWABLE/admin/); nobody
-    // can replace or delete files from the website.
+    // folder (staff too, when adding a bill for a client); only admins and the
+    // encoder account can download them or delete them (HPH RENEWABLE/admin/:
+    // removing an attachment while editing, or an admin deleting the
+    // request); nobody can replace files.
     match /visitRequests/{requestId}/{fileName} {
       allow create: if resource == null
                     && request.resource.size <= 10 * 1024 * 1024
                     && (request.resource.contentType.matches('image/.*')
                         || request.resource.contentType == 'application/pdf');
-      allow get: if isAdmin();
-      allow list, update, delete: if false;
+      allow get, delete: if isAdmin() || isEncoder();
+      allow list, update: if false;
+    }
+
+    // The encoder account (sees visit request attachments, can add or remove
+    // them while editing). Keep in step with ENCODER_EMAILS in
+    // HPH RENEWABLE/admin/admin.js and isEncoder() in /firestore.rules.
+    function isEncoder() {
+      return request.auth != null
+        && request.auth.token.email in ['inquiries@hphtechsolutions.com'];
     }
 
     // Keep in step with ADMIN_EMAILS in HPH RENEWABLE/admin/admin.js and

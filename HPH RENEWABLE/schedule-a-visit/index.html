@@ -302,18 +302,23 @@
                     <span class="visit-hint"></span>
                 </label>
 
-                <label class="visit-field">
-                    <span class="visit-label">Product of interest</span>
-                    <select name="product">
-                        <option value="Not sure yet">Not sure yet</option>
-                        <option value="MX2250">MX2250</option>
-                        <option value="MSU4000 Elite">MSU4000 Elite</option>
-                        <option value="MAU5000 Elite">MAU5000 Elite</option>
-                        <option value="B4000 Elite">B4000 Elite</option>
-                        <option value="B5000 Elite">B5000 Elite</option>
-                    </select>
+                <!-- Pick one or both; none ticked is saved as "Not sure yet". -->
+                <div class="visit-field" role="group" aria-labelledby="visit-interest-label">
+                    <span class="visit-label" id="visit-interest-label">Interested in <span class="visit-optional">(pick one or both)</span></span>
+                    <div class="visit-interest">
+                        <label class="visit-chip">
+                            <input type="checkbox" name="interest" value="Micro Inverter">
+                            <span class="material-symbols-rounded" aria-hidden="true">solar_power</span>
+                            <span>Micro Inverter</span>
+                        </label>
+                        <label class="visit-chip">
+                            <input type="checkbox" name="interest" value="Battery">
+                            <span class="material-symbols-rounded" aria-hidden="true">battery_charging_full</span>
+                            <span>Battery</span>
+                        </label>
+                    </div>
                     <span class="visit-hint"></span>
-                </label>
+                </div>
 
                 <label class="visit-field">
                     <span class="visit-label">Average monthly electric bill</span>

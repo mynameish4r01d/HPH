@@ -8,36 +8,106 @@ service cloud.firestore {
 
     // "Schedule a Visit" requests from the website (HPH RENEWABLE/schedule-a-visit/).
     // Anyone may submit a well-formed request; only admins can read them and
-    // move them through the quote pipeline (HPH RENEWABLE/admin/). Nobody can
-    // change anything else or delete them from the website.
+    // move them through the quote pipeline, correct their details and
+    // attachments, or delete them (HPH RENEWABLE/admin/). The encoder account
+    // can do all of that except delete. The public can't change or delete
+    // anything.
     // Stages: keep in step with TABS.visits.pipeline in HPH RENEWABLE/admin/admin.js.
     match /visitRequests/{requestId} {
       allow create: if isValidVisitRequest(request.resource.data);
-      allow read: if isAdmin();
-      allow update: if isAdmin() && (isValidStatusChange()
-        || isValidStageChange(['new', 'contacted', 'scheduled', 'visited', 'quoted', 'installed']));
-      allow delete: if false;
+      allow read: if isStaff();
+      allow update: if (isAdmin() && isValidStatusChange())
+        || (isStaff()
+            && (isValidStageChange(['new', 'contacted', 'scheduled', 'visited', 'quoted', 'installed'])
+                || isValidVisitEdit()));
+      allow delete: if isAdmin();
     }
 
     // "Share Your Experience" feedback from the website (HPH RENEWABLE/feedback/).
     // Same idea: anyone may submit well-formed feedback; only admins can
-    // read it; nobody can change or delete it from the website.
+    // read or delete it; nobody can change it (it's the customer's words).
     match /feedback/{feedbackId} {
       allow create: if isValidFeedback(request.resource.data);
-      allow read: if isAdmin();
-      allow update, delete: if false;
+      allow read, delete: if isAdmin();
+      allow update: if false;
     }
 
     // "Join the Waitlist" sign-ups from the product pages (HPH RENEWABLE/join-waitlist/).
-    // Anyone may sign up; only admins can read them and move them through the
-    // waitlist pipeline (same stage fields as visit requests).
+    // Anyone may sign up; only admins can read them, move them through the
+    // waitlist pipeline (same stage fields as visit requests), correct their
+    // contact details, or delete them. The encoder account can do all of
+    // that except delete.
     // Stages: keep in step with TABS.waitlist.pipeline in HPH RENEWABLE/admin/admin.js.
     match /waitlist/{signupId} {
       allow create: if isValidWaitlist(request.resource.data);
-      allow read: if isAdmin();
-      allow update: if isAdmin() && (isValidStatusChange()
-        || isValidStageChange(['new', 'contacted', 'reserved', 'delivered', 'cancelled']));
-      allow delete: if false;
+      allow read: if isStaff();
+      allow update: if (isAdmin() && isValidStatusChange())
+        || (isStaff()
+            && (isValidStageChange(['new', 'contacted', 'reserved', 'delivered', 'cancelled'])
+                || isValidWaitlistEdit()));
+      allow delete: if isAdmin();
+    }
+
+    // Installations (HPH RENEWABLE/admin/, "Installs" tab), which replaced the
+    // installation Google Sheet. One document per install with the client's
+    // details, its serial numbers and its panel count (panels whose serial
+    // wasn't recorded still count). Admins and the encoder account can read
+    // them and add new ones. Admins can edit or delete any install, and the
+    // encoder only the ones it added. Imports from the sheet (source "sheet")
+    // are admin-only.
+    match /installs/{installId} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && isValidInstall(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.createdBy == request.auth.token.email
+        && request.resource.data.updatedAt == null
+        && request.resource.data.updatedBy == null
+        && (request.resource.data.source == 'admin' || isAdmin());
+      allow update: if (isAdmin()
+            || (isEncoder() && resource.data.createdBy == request.auth.token.email))
+        && isValidInstall(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.source == resource.data.source
+        && request.resource.data.sheetTimestamp == resource.data.sheetTimestamp
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.token.email;
+      allow delete: if isAdmin()
+        || (isEncoder() && resource.data.createdBy == request.auth.token.email);
+    }
+
+    // Public totals per install: { inverters, panels }, no client details.
+    // The public portfolio counters (HPH RENEWABLE/portfolio-counters.js) add
+    // these up. Written in the same batch as the install and must match it
+    // (MX2250 serials listed, panelCount); removed with it.
+    match /installCounts/{installId} {
+      allow read: if true;
+      allow create, update: if isStaff()
+        && request.resource.data.keys().hasOnly(['inverters', 'panels'])
+        && request.resource.data.keys().hasAll(['inverters', 'panels'])
+        && existsAfter(/databases/$(database)/documents/installs/$(installId))
+        && request.resource.data.inverters
+             == getAfter(/databases/$(database)/documents/installs/$(installId)).data.inverterSerials.size()
+        && request.resource.data.panels
+             == getAfter(/databases/$(database)/documents/installs/$(installId)).data.panelCount;
+      allow delete: if isStaff()
+        && !existsAfter(/databases/$(database)/documents/installs/$(installId));
+    }
+
+    // One document per recorded MX2250 / solar panel serial, its ID being the
+    // serial itself, so a serial can't be recorded on two installs. Holds
+    // only { type, installId }. Written in the same batch as the install that
+    // lists the serial, and removed with it; never changed.
+    match /serials/{serial} {
+      allow read: if isStaff();
+      allow create: if isStaff() && isValidSerial(serial, request.resource.data);
+      allow update: if false;
+      allow delete: if isAdmin()
+        || (isEncoder()
+            && exists(/databases/$(database)/documents/installs/$(resource.data.installId))
+            && get(/databases/$(database)/documents/installs/$(resource.data.installId)).data.createdBy
+                 == request.auth.token.email);
     }
 
     // Admin page sign-in (Firebase Authentication, email + password).
@@ -50,6 +120,63 @@ service cloud.firestore {
                                      'lerin.hermosa@hphtechsolutions.com'];
     }
 
+    // The encoder account: signs in on the admin page without the overview
+    // dashboard or feedback. It manages installations (only its own), and
+    // views, edits and moves visit requests and waitlist sign-ups through the
+    // pipeline, but can't delete them. Keep in step with ENCODER_EMAILS in
+    // HPH RENEWABLE/admin/admin.js and isEncoder() in /storage.rules.
+    function isEncoder() {
+      return request.auth != null
+        && request.auth.token.email in ['inquiries@hphtechsolutions.com'];
+    }
+
+    function isStaff() {
+      return isAdmin() || isEncoder();
+    }
+
+    function isValidInstall(data) {
+      let fields = ['clientName', 'email', 'contact', 'address', 'installDate', 'capacityKwp',
+                    'inverterSerials', 'panelSerials', 'panelCount', 'batterySerials', 'source',
+                    'sheetTimestamp', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && isText(data.clientName, 1, 150)
+        && isText(data.email, 0, 200)
+        && isText(data.contact, 0, 100)
+        && isText(data.address, 0, 300)
+        // "YYYY-MM-DD", or empty.
+        && isText(data.installDate, 0, 10)
+        && (data.capacityKwp == null
+            || (data.capacityKwp is number && data.capacityKwp >= 0 && data.capacityKwp <= 100000))
+        && data.inverterSerials is list && data.inverterSerials.size() <= 100
+        && data.panelSerials is list && data.panelSerials.size() <= 400
+        // Panels installed, including any whose serial wasn't recorded.
+        && data.panelCount is int
+        && data.panelCount >= data.panelSerials.size() && data.panelCount <= 2000
+        && data.batterySerials is list && data.batterySerials.size() <= 50
+        && data.source in ['admin', 'sheet']
+        && isText(data.sheetTimestamp, 0, 40)
+        && data.createdBy is string;
+    }
+
+    // A serial's document: the ID must be a well-formed serial of its type
+    // (not an all-zero placeholder), and the install it points to must list
+    // it once this write is done.
+    function isValidSerial(serial, data) {
+      let install = getAfter(/databases/$(database)/documents/installs/$(data.installId));
+      return data.keys().hasOnly(['type', 'installId'])
+        && data.keys().hasAll(['type', 'installId'])
+        && data.installId is string
+        && ((data.type == 'inverter'
+               && serial.matches('^Y[0-9A-Z]{15}$')
+               && !serial.matches('^Y0+$')
+               && serial in install.data.inverterSerials)
+            || (data.type == 'panel'
+               && serial.matches('^Z[0-9A-Z]{18}$')
+               && !serial.matches('^Z0+$')
+               && serial in install.data.panelSerials));
+    }
+
     // Admin pipeline stage change: only stage, stageUpdatedAt and stageUpdatedBy
     // may change; the stage must be one of `stages`, stamped now, by this admin.
     function isValidStageChange(stages) {
@@ -59,6 +186,48 @@ service cloud.firestore {
         && data.stage in stages
         && data.stageUpdatedAt == request.time
         && data.stageUpdatedBy == request.auth.token.email;
+    }
+
+    // Admin "Edit details" on a visit request: only the client's answers and
+    // the attachment list may change (same limits as the public form, but up
+    // to 10 files, since admins can add bills for the client), stamped with
+    // who edited it and when.
+    function isValidVisitEdit() {
+      let data = request.resource.data;
+      return data.diff(resource.data).affectedKeys()
+               .hasOnly(['name', 'phone', 'email', 'address', 'propertyType', 'product',
+                         'monthlyBill', 'preferredDate', 'preferredTime', 'referralCode',
+                         'message', 'attachments', 'editedAt', 'editedBy'])
+        && isText(data.name, 1, 100)
+        && isText(data.phone, 7, 30)
+        && isText(data.email, 0, 200)
+        && isText(data.address, 3, 300)
+        && data.propertyType in ['Residential', 'Commercial', 'Industrial']
+        && isText(data.product, 1, 50)
+        && isText(data.monthlyBill, 0, 50)
+        && isText(data.preferredDate, 0, 10)
+        && isText(data.preferredTime, 1, 50)
+        && isText(data.message, 0, 2000)
+        && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
+        && data.attachments is list
+        && data.attachments.size() <= 10
+        && data.editedAt == request.time
+        && data.editedBy == request.auth.token.email;
+    }
+
+    // Admin "Edit details" on a waitlist sign-up: contact details and the
+    // note only (the order and estimate stay as the visitor submitted them).
+    function isValidWaitlistEdit() {
+      let data = request.resource.data;
+      return data.diff(resource.data).affectedKeys()
+               .hasOnly(['name', 'phone', 'email', 'address', 'message', 'editedAt', 'editedBy'])
+        && isText(data.name, 1, 100)
+        && isText(data.phone, 7, 30)
+        && isText(data.email, 0, 200)
+        && isText(data.address, 5, 300)
+        && isText(data.message, 0, 2000)
+        && data.editedAt == request.time
+        && data.editedBy == request.auth.token.email;
     }
 
     // Older admin "Mark as done" / "Mark as contacted" (and undo), from before

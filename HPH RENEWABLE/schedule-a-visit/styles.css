@@ -541,6 +541,65 @@ body.menu-open{
     }
 }
 
+/* "Interested in": two tick-chips, Micro Inverter and Battery (one, both or
+   neither). The real checkbox is hidden; the chip shows its state. */
+.visit-interest{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.visit-chip{
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 10px;
+    box-sizing: border-box;
+    border: 1px solid var(--visit-border);
+    border-radius: 4px;
+    background-color: var(--visit-field);
+    color: var(--visit-text);
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+
+    input{
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .material-symbols-rounded{
+        font-size: 18px;
+        color: var(--visit-subtle);
+    }
+
+    &:hover{
+        border-color: var(--visit-subtle);
+    }
+
+    &:has(input:focus-visible){
+        box-shadow: 0 0 0 3px rgba(125, 129, 135, 0.18);
+        border-color: var(--visit-accent);
+    }
+
+    &:has(input:checked){
+        border-color: var(--visit-accent);
+        background-color: var(--visit-accent);
+        color: var(--visit-on-accent);
+
+        .material-symbols-rounded{
+            color: inherit;
+        }
+    }
+}
+
 /* Short explanation under a field's label (e.g. why we ask for bills). */
 .visit-field-note{
     margin-top: -2px;

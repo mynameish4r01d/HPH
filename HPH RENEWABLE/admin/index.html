@@ -231,6 +231,9 @@
                         <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="feedback">
                             Feedback <span class="admin-tab-count" data-count="feedback"></span>
                         </button>
+                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="installs">
+                            Installs <span class="admin-tab-count" data-count="installs"></span>
+                        </button>
                     </div>
 
                     <div class="admin-filters">
@@ -246,6 +249,20 @@
                 <!-- Waitlist only: filter by product, with per-product totals. -->
                 <div class="admin-product-filter" role="group" aria-label="Filter waitlist by product" hidden></div>
 
+                <!-- Installs only: add one (the form opens on the right), and for full
+                     admins a one-time import of the old installation Google Sheet. -->
+                <div class="admin-install-actions" hidden>
+                    <button type="button" class="admin-action admin-action-primary admin-add-install">
+                        <span class="material-symbols-rounded">add</span>
+                        Add installation
+                    </button>
+                    <button type="button" class="admin-action admin-import-sheet" title="Copy every installation from the old Google Sheet into Firebase (rows already imported are skipped)">
+                        <span class="material-symbols-rounded">cloud_download</span>
+                        Import from Google Sheet
+                    </button>
+                    <p class="admin-import-status" role="status" hidden></p>
+                </div>
+
                 <!-- How many entries the list shows, and a CSV export of them. -->
                 <div class="admin-list-bar">
                     <span class="admin-list-count"></span>
@@ -260,6 +277,7 @@
                     <div class="admin-list" data-list="visits"></div>
                     <div class="admin-list" data-list="waitlist" hidden></div>
                     <div class="admin-list" data-list="feedback" hidden></div>
+                    <div class="admin-list" data-list="installs" hidden></div>
                 </div>
             </aside>
         </section>
