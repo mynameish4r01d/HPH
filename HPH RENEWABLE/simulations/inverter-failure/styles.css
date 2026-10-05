@@ -688,8 +688,7 @@ body.menu-open{
 .sim-tag text{
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     text-anchor: middle;
     fill: #FFFFFF;
 }
@@ -800,8 +799,11 @@ body.menu-open{
     }
 }
 
-.fail-scene-wrap{
-    border-radius: 10px;
+/* The diagram runs edge to edge across its card (cancelling the card's
+   side padding) so the panels are as large as possible. */
+.fail-card .fail-scene-wrap{
+    margin: 0 -16px;
+    border-radius: 0;
 }
 
 .fail-scene{
@@ -829,7 +831,8 @@ body.menu-open{
     text-anchor: middle;
 }
 
-.fail-panel-tag text{ font-size: 9px; letter-spacing: 0.05em; }
+.fail-scene .fail-panel-tag text{ font-size: 9px; letter-spacing: 0.04em; }
+.fail-scene .fail-watt-tag text{ font-size: 8px; letter-spacing: 0.02em; }
 
 .fail-inverter{
     cursor: pointer;
@@ -933,18 +936,23 @@ body.menu-open{
         font-size: 13px;
     }
 
-    .fail-panel-tag text{
+    .fail-scene .fail-panel-tag text{
         font-size: 10px;
+    }
+
+    .fail-scene .fail-watt-tag text{
+        font-size: 10px;
+        letter-spacing: 0;
     }
 
     .fail-card{
         padding: 12px;
     }
 
-    /* Stay inside the card (the shared phone rule makes scenes full-bleed). */
+    /* Edge to edge across the card (its padding is 12px on phones). */
     .fail-card .fail-scene-wrap{
-        margin: 0;
-        border-radius: 10px;
+        margin: 0 -12px;
+        border-radius: 0;
     }
 }
 

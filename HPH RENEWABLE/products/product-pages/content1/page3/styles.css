@@ -717,6 +717,8 @@ body.menu-open{
         width: 100%;
         height: 100%;
         --poster-color: transparent;
+        /* model-viewer only fades turned-away hotspots to 25%; hide them fully. */
+        --min-hotspot-opacity: 0;
         --progress-bar-color: #1A1A1A;
     }
 
@@ -729,7 +731,9 @@ body.menu-open{
         transform: translateX(-50%);
         padding: 6px 12px;
         border-radius: 100px;
-        background-color: rgba(255, 255, 255, 0.9);
+        background-color: rgba(255, 255, 255, 0.6);
+        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(8px);
         color: #1A1A1A;
         font-family: inter;
         font-size: 12px;
@@ -741,6 +745,294 @@ body.menu-open{
 
 .mobile-carousel-slide-3d .model-hint{
     bottom: 30px;
+}
+
+/* Capacity labels beside each stacked unit (model-viewer hotspots, added by
+   the page script): a short line from the unit's edge, then its name and
+   capacity. model-viewer centres each on its point and sets data-visible while
+   that side faces the camera; the label is shifted to start at the point. */
+.unit-spot{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    /* Start 12px right of the point, so the line clears the unit. */
+    transform: translateX(calc(50% + 12px));
+    color: #1A1A1A;
+    font-family: inter;
+    font-size: 11px;
+    white-space: nowrap;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.9);
+    pointer-events: none;
+    animation: unit-spot-in 0.35s ease both;
+    transition: opacity 0.2s ease;
+
+    /* The line and the dot where it meets the unit are blue, like the product
+       pages' blue "Micro Hybrid Storage Unit" / "AC Coupled Unit" line, so
+       they show against both the dark unit and the light stage. */
+    position: relative;
+
+    &::before{
+        content: "";
+        width: 64px;
+        height: 1.5px;
+        border-radius: 1px;
+        background-color: #007AFF;
+    }
+
+    &::after{
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: -3px;
+        width: 6px;
+        height: 6px;
+        margin-top: -3px;
+        border-radius: 50%;
+        background-color: #007AFF;
+    }
+
+    .unit-spot-text{
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+    }
+
+    .unit-spot-name{
+        font-weight: 600;
+    }
+
+    .unit-spot-kwh{
+        color: #757575;
+        font-weight: 500;
+    }
+
+    &:not([data-visible]){
+        opacity: 0;
+    }
+}
+
+/* Phones: a shorter line and the capacity under the name, so the labels fit
+   beside the stack. */
+@media (max-width: 750px){
+    .unit-spot{
+        gap: 6px;
+        transform: translateX(calc(50% + 6px));
+        font-size: 10px;
+
+        &::before{
+            width: 40px;
+        }
+
+        .unit-spot-text{
+            flex-direction: column;
+            gap: 0;
+            line-height: 1.25;
+        }
+    }
+}
+
+/* Phones: a single stack slides left so the labels on its right clear the
+   screen edge and the next arrow. With several stacks there's no room for the
+   labels, so they're hidden (the steppers give the totals), and "Elite" is
+   dropped from the head unit's label. */
+@media (max-width: 750px){
+    .mobile-carousel-slide-3d model-viewer{
+        transition: transform 0.4s ease;
+    }
+
+    /* Labels are clipped at the viewer's edge, so instead of moving the model,
+       the front labels get a shorter line and the port labels (Right view,
+       zoomed in) a longer one, so their text clears the panel. */
+    .unit-spot.spot-front::before{
+        width: 24px;
+    }
+
+    .unit-spot.spot-right::before{
+        width: 56px;
+    }
+
+    .mobile-carousel-slide-3d.multi-stack .unit-spot,
+    .unit-spot .unit-spot-extra{
+        display: none;
+    }
+}
+
+@media (max-width: 750px) and (prefers-reduced-motion: reduce){
+    .mobile-carousel-slide-3d model-viewer{
+        transition: none;
+    }
+}
+
+/* Each side's labels show only while that side faces the camera: the unit and
+   batteries from the front, the ports from the right (view-* classes set by
+   the page script). With batteries stacked, the ports also need the Right
+   view selected (.ports-ok). */
+.carousel-slide-3d:not(.view-front) .spot-front,
+.mobile-carousel-slide-3d:not(.view-front) .spot-front,
+.carousel-slide-3d:not(.view-right) .spot-right,
+.mobile-carousel-slide-3d:not(.view-right) .spot-right,
+.carousel-slide-3d:not(.ports-ok) .spot-right,
+.mobile-carousel-slide-3d:not(.ports-ok) .spot-right,
+.carousel-slide-3d:not(.view-bottom) .spot-bottom,
+.mobile-carousel-slide-3d:not(.view-bottom) .spot-bottom{
+    opacity: 0 !important;
+}
+
+/* The battery connector sits well in from the underside's edge, so its line
+   is long enough to reach past the unit onto the light background. */
+.unit-spot.spot-bottom::before{
+    width: 120px;
+}
+
+@media (max-width: 750px){
+    .unit-spot.spot-bottom::before{
+        width: 90px;
+    }
+}
+
+@keyframes unit-spot-in{
+    from{ opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .unit-spot{
+        animation: none;
+    }
+}
+
+/* Steppers on the 3D slide, kept minimal and styled after Apple's controls:
+   no card, just columns over the stage, each a small caption above an
+   iOS-style ( − n + ) capsule (head units and B5000 per unit), then the total
+   as a large figure. Apple's system font where it exists (San Francisco on
+   Apple devices), Inter elsewhere. */
+.model-stack-group{
+    position: absolute;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 8px 20px;
+    color: #1D1D1F;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", inter, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    white-space: nowrap;
+
+    .model-stack, .model-stack-total{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .model-stack-caption{
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: -0.005em;
+        color: #6E6E73;
+    }
+
+    /* iOS stepper: one capsule, ( − n + ). */
+    .model-stack-stepper{
+        display: flex;
+        align-items: center;
+        height: 30px;
+        border-radius: 15px;
+        background-color: rgba(118, 118, 128, 0.12);
+        overflow: hidden;
+    }
+
+    .model-stack-label{
+        min-width: 14px;
+        text-align: center;
+        font-size: 15px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .model-stack-btn{
+        display: grid;
+        place-items: center;
+        width: 32px;
+        height: 100%;
+        padding: 0;
+        border: none;
+        background-color: transparent;
+        color: #1D1D1F;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: background-color 0.2s ease;
+
+        span{
+            font-size: 17px;
+            font-variation-settings: "wght" 500;
+        }
+
+        &:hover:not(:disabled){
+            background-color: rgba(0, 0, 0, 0.04);
+        }
+
+        &:active:not(:disabled){
+            background-color: rgba(0, 0, 0, 0.1);
+            transition-duration: 0s;
+        }
+
+        &:focus-visible{
+            outline: 2px solid #0071E3;
+            outline-offset: -2px;
+            border-radius: 15px;
+        }
+
+        &:disabled{
+            color: rgba(60, 60, 67, 0.25);
+            cursor: default;
+        }
+    }
+
+    /* Estimated starting price, on its own line under the steppers. */
+    .model-stack-price{
+        flex-basis: 100%;
+        margin: 0;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 500;
+        color: #6E6E73;
+
+        strong{
+            font-weight: 600;
+            color: #1D1D1F;
+            font-variant-numeric: tabular-nums;
+        }
+    }
+
+    /* The total: a dark capsule the same size as the steppers, so it lines up
+       with them and stands out as the result. */
+    .model-stack-kwh{
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 3px;
+        min-width: 64px;
+        height: 30px;
+        box-sizing: border-box;
+        padding: 0 14px;
+        border-radius: 15px;
+        background-color: #1D1D1F;
+        color: rgba(245, 245, 247, 0.7);
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 30px;
+        font-variant-numeric: tabular-nums;
+
+        .model-stack-kwh-num{
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            color: #FFFFFF;
+        }
+    }
 }
 
 
@@ -1149,7 +1441,7 @@ body.menu-open{
     .mobile-carousel{
         position: relative;
         margin: 0 -24px;
-        aspect-ratio: 1 / 1;
+        aspect-ratio: 5 / 6;
         overflow: hidden;
         background-color: var(--m-surface);
 
@@ -1351,4 +1643,279 @@ body.menu-open{
     a{
         color: var(--m-text, #1A1A1A);
     }
+}
+
+
+/* Desktop: the page fits the window and doesn't scroll. The carousel and the
+   right column fill the height under the nav; in the right column the title,
+   price and note stay put, only the spec cards scroll, and Join The Waitlist
+   stays pinned at the bottom. Mobile keeps its normal scrolling page. */
+@media (min-width: 751px){
+    html, body{
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .desktop{
+        .content-container{
+            .flex-box{
+                align-items: stretch;
+
+                .box1, .box2{
+                    height: calc(100vh - 115px - 32px);
+                }
+
+                .box2{
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+
+                    .text-container-content{
+                        flex: 1;
+                        min-height: 0;
+                        display: flex;
+                        flex-direction: column;
+
+                        .grid-box{
+                            flex: 1;
+                            height: auto;
+                            min-height: 0;
+                            overflow-y: auto;
+                            overscroll-behavior: contain;
+                            scrollbar-width: thin;
+                        }
+                    }
+
+                    .btn-container{
+                        flex: none;
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* Front / Back / Left / Right views on the 3D slide: an iOS-style segmented
+   control at the bottom, with a white thumb that slides to the chosen view
+   (hidden after the model is dragged). The "Drag to rotate" hint sits above it. */
+/* The views control and the dimensions button sit together at the bottom. */
+.model-tools{
+    position: absolute;
+    bottom: 34px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mobile-carousel-slide-3d .model-tools{
+    bottom: 26px;
+}
+
+.model-views{
+    position: relative;
+    display: flex;
+    padding: 2px;
+    border-radius: 9px;
+    background-color: rgba(118, 118, 128, 0.12);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", inter, sans-serif;
+    -webkit-font-smoothing: antialiased;
+
+    .model-view-thumb{
+        position: absolute;
+        top: 2px;
+        bottom: 2px;
+        left: 0;
+        border-radius: 7px;
+        background-color: #FFFFFF;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+        opacity: 0;
+        transition: transform 0.25s cubic-bezier(0.3, 0.7, 0.4, 1), width 0.25s ease, opacity 0.2s ease;
+    }
+
+    &.has-view .model-view-thumb{
+        opacity: 1;
+    }
+
+    .model-view-btn{
+        position: relative;
+        min-width: 58px;
+        height: 28px;
+        padding: 0 12px;
+        border: none;
+        border-radius: 7px;
+        background: transparent;
+        color: #1D1D1F;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+
+        &[aria-pressed="true"]{
+            font-weight: 600;
+        }
+
+        &:focus-visible{
+            outline: 2px solid #0071E3;
+            outline-offset: -2px;
+        }
+    }
+}
+
+.carousel-slide-3d .model-hint, .mobile-carousel-slide-3d .model-hint{
+    transition: opacity 0.3s ease;
+}
+
+.carousel-slide-3d.used .model-hint, .mobile-carousel-slide-3d.used .model-hint{
+    opacity: 0;
+}
+
+.carousel-slide-3d:has(.model-views) .model-hint{
+    bottom: 76px;
+}
+
+
+.mobile-carousel-slide-3d:has(.model-views) .model-hint{
+    bottom: 64px;
+}
+
+@media (prefers-reduced-motion: reduce){
+    .model-views .model-view-thumb{
+        transition: none;
+    }
+}
+
+/* Carousel arrows: transparent until hovered, then the white circle and
+   shadow. Phones have no hover, so they show it while being tapped. */
+.desktop{
+    .content-container{
+        .flex-box{
+            .box1{
+                .carousel{
+                    .carousel-arrow{
+                        background-color: transparent;
+                        box-shadow: none;
+                        transition: background-color 0.2s ease, box-shadow 0.2s ease;
+
+                        &:hover{
+                            background-color: rgba(255, 255, 255, 0.95);
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+.mobile{
+    .mobile-carousel{
+        .mobile-carousel-arrow{
+            background-color: transparent;
+            box-shadow: none;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+
+            &:active{
+                background-color: rgba(255, 255, 255, 0.95);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+            }
+        }
+    }
+}
+
+/* Dimensions button: round, like the views control; yellow while on, to match
+   the measurement lines. */
+.model-measure{
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(118, 118, 128, 0.12);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    color: #1D1D1F;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.2s ease, color 0.2s ease;
+
+    span{
+        font-size: 18px;
+    }
+
+    &:hover{
+        background-color: rgba(118, 118, 128, 0.2);
+    }
+
+    &[aria-pressed="true"]{
+        background-color: #FFCC00;
+        color: #000000;
+    }
+
+    &:focus-visible{
+        outline: 2px solid #0071E3;
+        outline-offset: 2px;
+    }
+}
+
+/* Dimension lines and labels, drawn over the 3D view by the page script. The
+   unit and port labels step aside while they're on. */
+.model-dims{
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+
+    &.on{
+        opacity: 1;
+    }
+
+    svg{
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+
+        line{
+            stroke: #FFCC00;
+            stroke-width: 2;
+            stroke-linecap: round;
+        }
+    }
+
+    /* Measurements: black text on a small yellow tag beside each line, placed
+       by the page script on the side away from the model; the lines are yellow
+       too, like Apple's Measure app. */
+    .dim-label{
+        position: absolute;
+        padding: 2px 7px;
+        border-radius: 6px;
+        background-color: #FFCC00;
+        color: #000000;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", inter, sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+    }
+}
+
+.dims-on .unit-spot{
+    opacity: 0 !important;
+}
+
+.dim-end{
+    width: 0;
+    height: 0;
+    pointer-events: none;
 }

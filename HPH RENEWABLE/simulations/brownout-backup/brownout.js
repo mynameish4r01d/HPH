@@ -3,14 +3,14 @@
 // How long an MSU4000 Elite or MAU5000 Elite (plus extension batteries) keeps
 // a home running through a brownout, with optional solar panels recharging it
 // in daytime. Backup limits and switch time are from the TSUN data sheets in
-// product-data-sheets/: 2,500 W off-grid output (MSU4000 Elite), 3,600 W
-// (MAU5000 Elite, Plug & Play), switch time ≤10 ms.
+// product-data-sheets/: 2,500 W off-grid output (MSU4000 Elite), 6,000 W
+// (MAU5000 Elite, Pro version, which is what we sell), switch time ≤10 ms.
 // Illustrative only (see the page footnote).
 
 (function () {
     const SYSTEMS = {
         msu: { name: "MSU4000 Elite", battery: "B4000 Elite", baseKwh: 4, addKwh: 4, maxW: 2500 },
-        mau: { name: "MAU5000 Elite", battery: "B5000 Elite", baseKwh: 5.024, addKwh: 5.024, maxW: 3600 },
+        mau: { name: "MAU5000 Elite", battery: "B5000 Elite", baseKwh: 5.024, addKwh: 5.024, maxW: 6000 },
     };
     const MAX_EXTRA = 4;
     const USABLE = 0.9;      // 10% kept in reserve to protect the battery

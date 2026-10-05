@@ -26,7 +26,7 @@ a:hover { text-decoration: underline; }
 .btn-primary { color: var(--white); background: var(--black); }
 .btn-nav { font-size: 13px; padding: 11px 22px; }
 
-.eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 20px; }
+.eyebrow { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; margin-bottom: 20px; }
 .page-hero { padding: 96px 32px 72px; }
 .page-hero h1 { font-size: 44px; line-height: 1.15; font-weight: 700; margin: 0; max-width: 820px; letter-spacing: -0.01em; text-wrap: pretty; }
 
@@ -42,7 +42,7 @@ a:hover { text-decoration: underline; }
 .mv-section { background: var(--black); color: var(--white); }
 .mv-inner { padding: 110px 32px; display: grid; grid-template-columns: 1fr 1px 1fr; gap: 64px; }
 .mv-divider { background: var(--border-invert); }
-.mv-label { font-size: 13px; font-weight: 600; letter-spacing: 0.14em; color: var(--text-muted-invert); text-transform: uppercase; margin-bottom: 28px; }
+.mv-label { font-size: 13px; font-weight: 600; letter-spacing: 0.01em; color: var(--text-muted-invert); margin-bottom: 28px; }
 .mv-statement { font-size: 27px; line-height: 1.5; font-weight: 400; margin: 0; letter-spacing: -0.005em; text-wrap: pretty; }
 
 .cta-band.light { background: var(--white); color: var(--black); border-bottom: 1px solid var(--gray); }
@@ -54,7 +54,7 @@ a:hover { text-decoration: underline; }
 .footer-grid { padding: 56px 32px 32px; display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 40px; }
 .footer-brand { font-weight: 700; font-size: 16px; margin-bottom: 12px; }
 .footer-addr { font-size: 13px; line-height: 1.7; color: var(--text-muted-invert); max-width: 280px; margin: 0; }
-.footer-heading { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; color: var(--text-muted-invert); text-transform: uppercase; margin-bottom: 14px; }
+.footer-heading { font-size: 12px; font-weight: 600; letter-spacing: 0.01em; color: var(--text-muted-invert); margin-bottom: 14px; }
 .footer-links { display: flex; flex-direction: column; gap: 10px; }
 .footer-links a, .footer-contact a { text-decoration: none; font-size: 14px; color: var(--white); }
 .footer-bottom { padding: 20px 32px; border-top: 1px solid var(--border-invert); font-size: 12px; color: var(--text-muted-invert); }

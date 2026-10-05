@@ -23,7 +23,7 @@
 
   <link rel="icon" type="image/x-icon" href="../../../../global-elements/favicon.png">
 
-    <title>HPH RENEWABLE</title>
+    <title>HPH Renewable</title>
 
     <!--JAVA SCRIPT-->
     <script defer src="../../../../app.js"></script>
@@ -94,7 +94,6 @@
                                 <div class="mega-heading">Simulations</div>
                                 <a href="../../../../simulations/how-solar-panels-work/index.html" class="mega-link">How Solar Panels Work</a>
                                 <a href="../../../../simulations/panel-angle-and-direction/index.html" class="mega-link">Panel Angle and Direction</a>
-                                <a href="../../../../simulations/savings-calculator/index.html" class="mega-link">Savings Calculator</a>
                                 <a href="../../../../simulations/inverter-failure/index.html" class="mega-link">Micro vs String Inverter: Failure</a>
                                 <a href="../../../../simulations/brownout-backup/index.html" class="mega-link">Brownout Backup Simulator</a>
                             </div>
@@ -177,8 +176,40 @@
                             </div>
                             <!-- 3D model: optimised from elements/msu4000elite.gltf (see CLAUDE.md) -->
                             <div class="carousel-slide carousel-slide-3d">
-                                <model-viewer class="model" src="elements/msu4000elite.glb" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"></model-viewer>
+                                <model-viewer class="model" src="elements/msu4000elite.glb" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div></model-viewer>
                                 <div class="model-hint">Drag to rotate</div>
+                                <div class="model-dims" aria-hidden="true">
+                                    <svg class="model-dims-lines"></svg>
+                                    <span class="dim-label" data-dim="w"></span>
+                                    <span class="dim-label" data-dim="h"></span>
+                                    <span class="dim-label" data-dim="d"></span>
+                                </div>
+                                <div class="model-tools">
+                                    <div class="model-views" role="group" aria-label="View the unit from">
+                                        <span class="model-view-thumb" aria-hidden="true"></span>
+                                        <button type="button" class="model-view-btn" data-theta="0" aria-pressed="false">Front</button>
+                                        <button type="button" class="model-view-btn" data-theta="180" aria-pressed="false">Back</button>
+                                        <button type="button" class="model-view-btn" data-theta="-90" aria-pressed="false">Left</button>
+                                        <button type="button" class="model-view-btn" data-theta="90" aria-pressed="false">Right</button>
+                                        <button type="button" class="model-view-btn" data-theta="0" data-phi="175" data-view="bottom" aria-pressed="false">Bottom</button>
+                                    </div>
+                                    <button type="button" class="model-measure" aria-pressed="false" aria-label="Show dimensions" title="Dimensions"><span class="material-symbols-rounded">straighten</span></button>
+                                </div>
+                                <div class="model-stack-group" role="group" aria-label="Build your system">
+                                    <div class="model-stack" data-kind="batteries">
+                                        <span class="model-stack-caption">B4000 batteries</span>
+                                        <div class="model-stack-stepper">
+                                            <button type="button" class="model-stack-btn" data-step="-1" aria-label="Remove a B4000 Elite battery"><span class="material-symbols-rounded">remove</span></button>
+                                            <span class="model-stack-label" aria-live="polite">0</span>
+                                            <button type="button" class="model-stack-btn" data-step="1" aria-label="Add a B4000 Elite battery underneath"><span class="material-symbols-rounded">add</span></button>
+                                        </div>
+                                    </div>
+                                    <div class="model-stack-total">
+                                        <span class="model-stack-caption">Total</span>
+                                        <span class="model-stack-kwh" aria-live="polite"><span class="model-stack-kwh-num">4</span> kWh</span>
+                                    </div>
+                                    <p class="model-stack-price" aria-live="polite">From <strong class="model-stack-price-num">₱120,000</strong> (estimate) · Final price in your quote</p>
+                                </div>
                             </div>
                             <div class="carousel-slide carousel-placeholder-2">
                                 <video class="video" muted loop playsinline>
@@ -239,18 +270,18 @@
 
                                         <div class="box3">
                                             <div class="sub-title">Battery type</div>
-                                            <div class="title">LiFe PO4</div>
+                                            <div class="title">LiFePO₄</div>
                                         </div>
                                     </div>
 
                                     <div class="flex2">
                                         <div class="box3">
                                             <div class="sub-title">Output Power</div>
-                                            <div class="title">2250W</div>
+                                            <div class="title">2500W</div>
                                         </div>
 
                                         <div class="box3">
-                                            <div class="sub-title">Frequesncy</div>
+                                            <div class="sub-title">Frequency</div>
                                             <div class="title">50 / 60Hz</div>
                                         </div>
                                     </div>
@@ -286,7 +317,7 @@
                                     <div class="flex2">
                                         <div class="box3">
                                             <div class="sub-title">Dust & Water Rating</div>
-                                            <div class="title">IP67 Rating</div>
+                                            <div class="title">IP65 Rating</div>
                                         </div>
 
                                         <div class="box3">
@@ -314,7 +345,7 @@
                                     <div class="flex">
                                         <div class="box3">
                                             <div class="sub-title">Warranty</div>
-                                            <div class="title">12 Years</div>
+                                            <div class="title">10 Years</div>
                                         </div>
 
                                         <div class="box3">
@@ -362,7 +393,6 @@
                         <div class="menu-heading">Simulations</div>
                         <a href="../../../../simulations/how-solar-panels-work/index.html" class="menu-link">How Solar Panels Work</a>
                         <a href="../../../../simulations/panel-angle-and-direction/index.html" class="menu-link">Panel Angle and Direction</a>
-                        <a href="../../../../simulations/savings-calculator/index.html" class="menu-link">Savings Calculator</a>
                         <a href="../../../../simulations/inverter-failure/index.html" class="menu-link">Micro vs String Inverter: Failure</a>
                         <a href="../../../../simulations/brownout-backup/index.html" class="menu-link">Brownout Backup Simulator</a>
 
@@ -434,8 +464,40 @@
                     <img src="elements/photo/element1.png" alt="MSU4000 Elite" class="mobile-product-img">
                 </div>
                 <div class="mobile-carousel-slide mobile-carousel-slide-3d">
-                    <model-viewer src="elements/msu4000elite.glb" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"></model-viewer>
+                    <model-viewer src="elements/msu4000elite.glb" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div></model-viewer>
                     <div class="model-hint">Drag to rotate</div>
+                    <div class="model-dims" aria-hidden="true">
+                        <svg class="model-dims-lines"></svg>
+                        <span class="dim-label" data-dim="w"></span>
+                        <span class="dim-label" data-dim="h"></span>
+                        <span class="dim-label" data-dim="d"></span>
+                    </div>
+                    <div class="model-tools">
+                        <div class="model-views" role="group" aria-label="View the unit from">
+                            <span class="model-view-thumb" aria-hidden="true"></span>
+                            <button type="button" class="model-view-btn" data-theta="0" aria-pressed="false">Front</button>
+                            <button type="button" class="model-view-btn" data-theta="180" aria-pressed="false">Back</button>
+                            <button type="button" class="model-view-btn" data-theta="-90" aria-pressed="false">Left</button>
+                            <button type="button" class="model-view-btn" data-theta="90" aria-pressed="false">Right</button>
+                            <button type="button" class="model-view-btn" data-theta="0" data-phi="175" data-view="bottom" aria-pressed="false">Bottom</button>
+                        </div>
+                        <button type="button" class="model-measure" aria-pressed="false" aria-label="Show dimensions" title="Dimensions"><span class="material-symbols-rounded">straighten</span></button>
+                    </div>
+                    <div class="model-stack-group" role="group" aria-label="Build your system">
+                        <div class="model-stack" data-kind="batteries">
+                            <span class="model-stack-caption">B4000 batteries</span>
+                            <div class="model-stack-stepper">
+                                <button type="button" class="model-stack-btn" data-step="-1" aria-label="Remove a B4000 Elite battery"><span class="material-symbols-rounded">remove</span></button>
+                                <span class="model-stack-label" aria-live="polite">0</span>
+                                <button type="button" class="model-stack-btn" data-step="1" aria-label="Add a B4000 Elite battery underneath"><span class="material-symbols-rounded">add</span></button>
+                            </div>
+                        </div>
+                        <div class="model-stack-total">
+                            <span class="model-stack-caption">Total</span>
+                            <span class="model-stack-kwh" aria-live="polite"><span class="model-stack-kwh-num">4</span> kWh</span>
+                        </div>
+                        <p class="model-stack-price" aria-live="polite">From <strong class="model-stack-price-num">₱120,000</strong> (estimate) · Final price in your quote</p>
+                    </div>
                 </div>
                 <div class="mobile-carousel-slide">
                     <video class="mobile-product-img" muted loop playsinline>
@@ -481,9 +543,9 @@
                 <h2 class="mobile-spec-group-title">Power</h2>
                 <div class="mobile-spec-grid">
                     <div class="mobile-spec"><div class="mobile-spec-label">Capacity</div><div class="mobile-spec-value">4000Wh</div></div>
-                    <div class="mobile-spec"><div class="mobile-spec-label">Battery type</div><div class="mobile-spec-value">LiFe PO4</div></div>
-                    <div class="mobile-spec"><div class="mobile-spec-label">Output Power</div><div class="mobile-spec-value">2250W</div></div>
-                    <div class="mobile-spec"><div class="mobile-spec-label">Frequesncy</div><div class="mobile-spec-value">50 / 60Hz</div></div>
+                    <div class="mobile-spec"><div class="mobile-spec-label">Battery type</div><div class="mobile-spec-value">LiFePO₄</div></div>
+                    <div class="mobile-spec"><div class="mobile-spec-label">Output Power</div><div class="mobile-spec-value">2500W</div></div>
+                    <div class="mobile-spec"><div class="mobile-spec-label">Frequency</div><div class="mobile-spec-value">50 / 60Hz</div></div>
                 </div>
             </section>
 
@@ -494,7 +556,7 @@
                     <div class="mobile-spec"><div class="mobile-spec-label">Go Beyond 4kWh</div><div class="mobile-spec-value">Upgrade up to 20kWh</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Scale</div><div class="mobile-spec-value">Up to 100kWh</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Hybrid | On-Off Grid</div><div class="mobile-spec-value">Power always ready</div></div>
-                    <div class="mobile-spec"><div class="mobile-spec-label">Dust & Water Rating</div><div class="mobile-spec-value">IP67 Rating</div></div>
+                    <div class="mobile-spec"><div class="mobile-spec-label">Dust & Water Rating</div><div class="mobile-spec-value">IP65 Rating</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Cooling</div><div class="mobile-spec-value">Natural Convection</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Safe</div><div class="mobile-spec-value">Operates at a lower voltage</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Upgrade Ready</div><div class="mobile-spec-value">Expandable with B4000 Elite</div></div>
@@ -504,7 +566,7 @@
             <section class="mobile-spec-group">
                 <h2 class="mobile-spec-group-title">Warranty & Lifespan</h2>
                 <div class="mobile-spec-grid">
-                    <div class="mobile-spec"><div class="mobile-spec-label">Warranty</div><div class="mobile-spec-value">12 Years</div></div>
+                    <div class="mobile-spec"><div class="mobile-spec-label">Warranty</div><div class="mobile-spec-value">10 Years</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Lifespan</div><div class="mobile-spec-value">10,000 Charging Cycles</div></div>
                 </div>
             </section>
@@ -705,6 +767,379 @@
                 nextBtn.addEventListener("click", () => step(1));
             });
         }
+
+        // 3D slide: stack 0–4 B4000 Elite batteries under the head unit. Each
+        // count is its own pre-built model (see CLAUDE.md), so AR shows the stack too.
+        // Each model also has an "add" and a "remove" animation (from one battery
+        // fewer / more), played once when it loads; its rest pose is the final stack.
+        const STACK_MAX = 4;
+        const PRICES = { head: 120000, batt: 90000 }; // keep in sync with "Starting at" and join-waitlist data-price
+        const stackFile = (n) => `elements/msu4000elite-b4000x${n}.glb`;
+        const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const prefetched = new Set();
+        // Capacity labels pinned beside each unit (model-viewer hotspots), shown
+        // once a battery is stacked. Positions are in the stack files' metres:
+        // the middle of the units' right side (x, z), so the label's dot sits on
+        // the unit, the step between units and the centre of the bottom battery /
+        // of the head unit with no batteries.
+        const SPOTS = { x: 0.246, zHead: 0, zBatt: 0, step: 0.28, battY: 0.154, headY: 0.155, head: "MSU4000 Elite", batt: "B4000", headKwh: 4, battKwh: 4 };
+        document.querySelectorAll(".model-stack-group").forEach((ctrl) => {
+            const viewer = ctrl.parentElement.querySelector("model-viewer");
+            const label = ctrl.querySelector(".model-stack-label");
+            const totalNum = ctrl.querySelector(".model-stack-kwh-num"), totalBox = ctrl.querySelector(".model-stack-total");
+            const priceNum = ctrl.querySelector(".model-stack-price-num");
+            const slide = ctrl.parentElement;
+            const [minus, plus] = ctrl.querySelectorAll(".model-stack-btn");
+            let batteries = 0, pendingAnim = null, pendingCam = null;
+            viewer.animationCrossfadeDuration = 0; // switching add ↔ remove shouldn't blend the two
+            // A stack is pulled back a little (150% of model-viewer's framing, vs its
+            // default 105%) so it starts clear of the stepper and the hint. The max is
+            // raised so that, and the glide down from a taller stack, aren't clamped.
+            viewer.setAttribute("max-camera-orbit", "auto auto 200%");
+            viewer.setAttribute("min-camera-orbit", "auto auto 0.5m"); // so the Right view can zoom in on the ports
+            // The plain head-unit model is centred on its origin; the stack files stand
+            // on y = 0, where the head unit alone is this much higher (metres).
+            const PLAIN_TO_STACK_Y = 0.157;
+            const nextFrame = () => new Promise((r) => requestAnimationFrame(r));
+            // model-viewer re-frames instantly when a new file loads. Put the camera
+            // back where it was, then let it glide to the new framing.
+            async function glideCamera(cam) {
+                const { theta, phi, radius } = cam.orbit, { x, y, z } = cam.target;
+                const goal = `${theta}rad ${phi}rad ${batteries ? 150 : 105}%`;
+                if (reduceMotion.matches) { viewer.cameraOrbit = goal; return; }
+                viewer.cameraTarget = `${x}m ${y + (cam.plain ? PLAIN_TO_STACK_Y : 0)}m ${z}m`;
+                viewer.cameraOrbit = `${theta}rad ${phi}rad ${radius}m`;
+                await viewer.updateComplete;
+                viewer.jumpCameraToGoal();
+                await nextFrame();
+                viewer.interpolationDecay = 160; // slower than the default 50 for this move only
+                const onPorts = viewsBar.querySelector('[data-theta="90"]').getAttribute("aria-pressed") === "true";
+                const onBottom = viewsBar.querySelector('[data-view="bottom"]').getAttribute("aria-pressed") === "true";
+                viewer.cameraTarget = onPorts ? portTarget() : onBottom ? bottomTarget() : "auto auto auto";
+                viewer.cameraOrbit = onPorts ? `${theta}rad ${phi}rad ${PORT_ZOOM.radius}m` : onBottom ? `${theta}rad ${phi}rad ${BOTTOM.radius}m` : goal;
+                setTimeout(() => { viewer.interpolationDecay = 50; }, 1500);
+            }
+            let run = 0;
+            function clearSpots() {
+                viewer.querySelectorAll(".unit-spot").forEach((el) => el.remove());
+                if (typeof clearDims === "function") clearDims();
+            }
+            // The MC4 solar inputs (4 pairs) on the panel at the back of the head unit's
+            // left side, measured from msu4000elite.glb: x and z of the panel, and the
+            // height above the head unit's centre.
+            const MC4 = { x: -0.246, z: -0.144, dy: 0.008, plainY: 0.006 };
+            // The four ports on the panel at the back of the right side, top to bottom,
+            // measured the same way (dy from the head unit's centre; plainY in the plain
+            // head-unit file). Their labels show only while that side faces the camera
+            // (.ports-view), and the unit and battery labels step aside then.
+            const PORTS = { x: 0.246, z: -0.141, list: [
+                { dy: 0.110, plainY: 0.108, name: "On-grid port", sub: "AC grid connection" },
+                { dy: 0.032, plainY: 0.030, name: "Off-grid port", sub: "Backup socket" },
+                { dy: -0.057, plainY: -0.059, name: "Dispatch", sub: "RS485" },
+                { dy: -0.109, plainY: -0.111, name: "Meter / Parallel", sub: "RS485" },
+            ] };
+            // The Right view zooms in on the port panel, with the panel left of centre
+            // so the labels have room.
+            const PORT_ZOOM = { radius: 0.9, z: -0.141 - 0.09, dy: 0 };
+            // The stacking connector on the underside (MSU4000 and B4000 alike), measured
+            // from the models: x and z on the underside, its height in the stack files
+            // and in the plain head-unit file. The Bottom view zooms in on it.
+            const BOTTOM = { x: 0.19, z: 0, y: 0.004, plainY: -0.1525, radius: 1.6 };
+            function bottomTarget() {
+                const y = viewer.src.endsWith("/msu4000elite.glb") ? BOTTOM.plainY : BOTTOM.y;
+                return `${BOTTOM.x + 0.12}m ${y}m ${BOTTOM.z}m`; // connector left of centre, label room on the right
+            }
+            function portTarget() {
+                const mid = viewer.src.endsWith("/msu4000elite.glb") ? -0.002 : SPOTS.headY + batteries * SPOTS.step;
+                return `${PORTS.x}m ${mid + PORT_ZOOM.dy}m ${PORT_ZOOM.z}m`;
+            }
+            // Dimensions: a toggle (ruler button) that draws width, height and depth
+            // lines on the stack, with labels from the TSUN data sheets (MSU4000 Elite
+            // 493 × 305 × 295 mm; each B4000 Elite adds 280 mm of height and is 220 mm
+            // deep, so the head unit sets the depth). Invisible hotspots pin the line
+            // ends to the model; the overlay redraws them whenever the camera moves.
+            const DIMS = { wMm: 493, hMm: 305, battMm: 280, dMm: 295, half: 0.2465, front: 0.1125, back: -0.1825, out: 0.05 };
+            const dimsBox = slide.querySelector(".model-dims"), dimsSvg = dimsBox.querySelector("svg");
+            const measureBtn = slide.querySelector(".model-measure");
+            let dimsOn = false;
+            const cm = (mm) => `${+(mm / 10).toFixed(1)} cm`;
+            function clearDims() {
+                viewer.querySelectorAll(".dim-end").forEach((el) => el.remove());
+                dimsBox.classList.remove("on");
+            }
+            // The width and depth lines run along the bottom edges of the faces turned
+            // towards the camera, and the height line just outside the stack's
+            // right-hand outline, so no line is ever behind or across the model.
+            let box = null, corner = "";
+            function dimEnds(sx, sz, hx, hz) {
+                const { x0, x1, bottom, top } = box, o = DIMS.out;
+                const nx = sx > 0 ? x1 : x0, nz = sz > 0 ? DIMS.front : DIMS.back;
+                const ex = hx > 0 ? x1 + o : x0 - o, ez = hz > 0 ? DIMS.front + o : DIMS.back - o;
+                return { a: [x0, bottom, nz + sz * o], b: [x1, bottom, nz + sz * o],
+                    c: [nx + sx * o, bottom, nz], e: [nx + sx * o, bottom, sz > 0 ? DIMS.back : DIMS.front],
+                    h0: [ex, bottom, ez], h1: [ex, top, ez],
+                    m: [(x0 + x1) / 2, (bottom + top) / 2, (DIMS.front + DIMS.back) / 2] }; // centre, to push labels away from
+            }
+            function placeDims() {
+                const { theta } = viewer.getCameraOrbit();
+                // Nearest corner (camera direction) and the right-hand outline's corner
+                // (the screen's right direction, (cos θ, −sin θ) in x and z).
+                const sx = Math.sin(theta) >= 0 ? 1 : -1, sz = Math.cos(theta) >= 0 ? 1 : -1;
+                const hx = Math.cos(theta) >= 0 ? 1 : -1, hz = -Math.sin(theta) >= 0 ? 1 : -1;
+                const key = `${sx}${sz}${hx}${hz}`;
+                if (key === corner) return false;
+                corner = key;
+                for (const [k, [x, y, z]] of Object.entries(dimEnds(sx, sz, hx, hz))) {
+                    const name = `hotspot-dim-${k}`, position = `${x}m ${y}m ${z}m`;
+                    const el = viewer.querySelector(`[slot="${name}"]`);
+                    if (el) { el.dataset.position = position; viewer.updateHotspot({ name, position }); continue; }
+                    const end = document.createElement("div");
+                    end.className = "dim-end";
+                    end.slot = name;
+                    end.dataset.position = position;
+                    end.dataset.normal = "0m 1m 0m";
+                    viewer.appendChild(end);
+                }
+                return true;
+            }
+            function showDims() {
+                clearDims();
+                slide.classList.toggle("dims-on", dimsOn);
+                if (!dimsOn) return;
+                const plain = viewer.src.endsWith("/msu4000elite.glb");
+                box = { x0: -DIMS.half, x1: DIMS.half, bottom: plain ? -0.157 : 0, top: plain ? 0.153 : 0.309 + 0.2805 * batteries };
+                corner = "";
+                placeDims();
+                dimsBox.querySelector('[data-dim="w"]').textContent = `${cm(DIMS.wMm)} wide`;
+                dimsBox.querySelector('[data-dim="h"]').textContent = `${cm(DIMS.hMm + DIMS.battMm * batteries)} tall`;
+                dimsBox.querySelector('[data-dim="d"]').textContent = `${cm(DIMS.dMm)} deep`;
+                requestAnimationFrame(() => requestAnimationFrame(() => { drawDims(); dimsBox.classList.add("on"); }));
+            }
+            function drawDims() {
+                if (!dimsOn || !box) return;
+                // Moved to another corner: let model-viewer place the new ends first.
+                if (placeDims()) { requestAnimationFrame(() => requestAnimationFrame(drawDims)); return; }
+                const at = (k) => viewer.queryHotspot(`hotspot-dim-${k}`)?.canvasPosition;
+                const pts = { a: at("a"), b: at("b"), c: at("c"), e: at("e"), h0: at("h0"), h1: at("h1"), m: at("m") };
+                if (Object.values(pts).some((p) => !p)) return;
+                const lines = { w: [pts.a, pts.b], h: [pts.h0, pts.h1], d: [pts.c, pts.e] };
+                let svg = "";
+                for (const [k, [p, q]] of Object.entries(lines)) {
+                    // The line, with a short tick across each end to mark the corner.
+                    const len = Math.hypot(q.x - p.x, q.y - p.y) || 1, T = 6;
+                    const nx = -(q.y - p.y) / len * T, ny = (q.x - p.x) / len * T;
+                    svg += `<line x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}"/>`;
+                    for (const e of [p, q]) svg += `<line x1="${e.x - nx}" y1="${e.y - ny}" x2="${e.x + nx}" y2="${e.y + ny}"/>`;
+                    // The label goes beside the line's middle, on the side away from the
+                    // stack's centre, so it never covers the model.
+                    const label = dimsBox.querySelector(`[data-dim="${k}"]`);
+                    const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+                    let ux = -(q.y - p.y) / len, uy = (q.x - p.x) / len;
+                    if (ux * (mx - pts.m.x) + uy * (my - pts.m.y) < 0) { ux = -ux; uy = -uy; }
+                    if (k === "h") {
+                        // The height reads up its line, so it stays narrow beside the stack.
+                        label.style.left = `${mx + ux * 16}px`;
+                        label.style.top = `${my + uy * 16}px`;
+                        label.style.transform = "translate(-50%, -50%) rotate(-90deg)";
+                    } else {
+                        label.style.left = `${mx + ux * 12}px`;
+                        label.style.top = `${my + uy * 12}px`;
+                        label.style.transform = `translate(${-50 + ux * 50}%, ${-50 + uy * 50}%)`;
+                    }
+                }
+                dimsSvg.innerHTML = svg;
+            }
+            viewer.addEventListener("camera-change", drawDims);
+            measureBtn.addEventListener("click", () => {
+                dimsOn = !dimsOn;
+                measureBtn.setAttribute("aria-pressed", String(dimsOn));
+                measureBtn.setAttribute("aria-label", dimsOn ? "Hide dimensions" : "Show dimensions");
+                // Pull back while measuring so the lines and labels fit (and back again).
+                const { theta, phi } = viewer.getCameraOrbit();
+                markView(null);
+                viewer.cameraTarget = "auto auto auto";
+                viewer.cameraOrbit = `${theta}rad ${Math.min(phi, Math.PI * 0.6)}rad ${dimsOn ? 170 : (batteries ? 150 : 105)}%`;
+                showDims();
+            });
+            function showSpots() {
+                clearSpots();
+                showDims();
+                const RIGHT = [0.7071, 0.7071], LEFT = [-0.866, 0.5];
+                const units = [];
+                if (batteries) {
+                    units.push({ x: SPOTS.x, y: SPOTS.headY + batteries * SPOTS.step, z: SPOTS.zHead, n: RIGHT, name: SPOTS.head, sub: `${SPOTS.headKwh} kWh` });
+                    for (let i = batteries - 1; i >= 0; i--) units.push({ x: SPOTS.x, y: SPOTS.battY + i * SPOTS.step, z: SPOTS.zBatt, n: RIGHT, name: SPOTS.batt, sub: `+${SPOTS.battKwh} kWh` });
+                }
+                // Always shown (the ports are on the head unit), on the left, seen from
+                // the front and the left.
+                const plain = viewer.src.endsWith("/msu4000elite.glb");
+                const headMid = SPOTS.headY + batteries * SPOTS.step;
+                units.push({ x: MC4.x, y: plain ? MC4.plainY : headMid + MC4.dy, z: MC4.z, n: LEFT, left: true, name: "MC4 ports", sub: "4 sets", subExtra: " · solar input" });
+                for (const p of PORTS.list) units.push({ x: PORTS.x, y: plain ? p.plainY : headMid + p.dy, z: PORTS.z, n: [1, 0], port: true, name: p.name, sub: p.sub });
+                // The stacking connector under the bottom unit, seen from below.
+                units.push({ x: BOTTOM.x, y: plain ? BOTTOM.plainY : BOTTOM.y, z: BOTTOM.z, bottom: true, name: "Battery connector" });
+                units.forEach((u, i) => {
+                    const el = document.createElement("div");
+                    // Which side's group it belongs to: front (unit and batteries), left
+                    // (MC4) or right (ports); only the group facing the camera shows.
+                    el.className = "unit-spot" + (u.bottom ? " spot-bottom" : u.left ? " unit-spot-left spot-left" : u.port ? " spot-right" : " spot-front");
+                    el.slot = `hotspot-unit-${i}`;
+                    el.dataset.position = `${u.x}m ${u.y}m ${u.z}m`;
+                    el.dataset.normal = u.bottom ? "0m -1m 0m" : `${u.n[0]}m 0m ${u.n[1]}m`;
+                    // model-viewer treats a new hotspot as shown and only adds data-visible
+                    // after hiding it once, so start visible; refreshSpots() has it re-check.
+                    el.dataset.visible = "";
+                    const name = document.createElement("span");
+                    name.className = "unit-spot-name";
+                    // "MSU4000 Elite": the " Elite" is dropped on phones to fit.
+                    const [model, ...rest] = u.port || u.bottom ? [u.name] : u.name.split(" ");
+                    name.textContent = model;
+                    if (rest.length) {
+                        const extra = document.createElement("span");
+                        extra.className = u.left ? "" : "unit-spot-extra";
+                        extra.textContent = " " + rest.join(" ");
+                        name.append(extra);
+                    }
+                    const kwh = document.createElement("span");
+                    kwh.className = "unit-spot-kwh";
+                    kwh.textContent = u.sub;
+                    if (u.subExtra) { // dropped on phones to fit
+                        const more = document.createElement("span");
+                        more.className = "unit-spot-extra";
+                        more.textContent = u.subExtra;
+                        kwh.append(more);
+                    }
+                    const text = document.createElement("span");
+                    text.className = "unit-spot-text";
+                    text.append(name, kwh);
+                    el.append(text);
+                    viewer.appendChild(el);
+                });
+                refreshSpots();
+                updateViewSide();
+            }
+            // Make model-viewer re-check which labels face the camera now (it otherwise
+            // waits for the camera to move), hiding the ones on the far side.
+            function refreshSpots() {
+                requestAnimationFrame(() => viewer.querySelectorAll(".unit-spot").forEach((el) =>
+                    viewer.updateHotspot({ name: el.slot, position: el.dataset.position, normal: el.dataset.normal })));
+            }
+            viewer.addEventListener("load", async () => {
+                const anim = pendingAnim, cam = pendingCam, mine = ++run;
+                pendingAnim = pendingCam = null;
+                if (cam) glideCamera(cam);
+                if (anim && viewer.availableAnimations.includes(anim)) {
+                    // A changed animationName makes model-viewer restart it looping on
+                    // its next update, so let that update run first. play() once then
+                    // pause() leaves it set to play once and hold its last frame.
+                    viewer.animationName = anim;
+                    await viewer.updateComplete;
+                    viewer.play({ repetitions: 1 });
+                    viewer.pause();
+                    // Step the clock ourselves, at most 1/20 s per frame: decoding the new
+                    // model stalls the page, and model-viewer would count the stall as
+                    // animation time and skip to the end. Reduced motion jumps to the end.
+                    const end = viewer.duration;
+                    let t = reduceMotion.matches ? end : 0, last = performance.now();
+                    const tick = (now) => {
+                        if (mine !== run) return;
+                        t = Math.min(end, t + Math.min((now - last) / 1000, 0.05));
+                        last = now;
+                        viewer.currentTime = t;
+                        if (t < end) requestAnimationFrame(tick);
+                        else showSpots();
+                    };
+                    viewer.currentTime = t;
+                    if (t < end) requestAnimationFrame(tick);
+                    else showSpots();
+                } else if (mine === run) showSpots();
+                // Warm the cache for the next tap either way.
+                [batteries - 1, batteries + 1].filter((n) => n >= 0 && n <= STACK_MAX).map(stackFile).forEach((url) => {
+                    if (prefetched.has(url)) return;
+                    prefetched.add(url);
+                    fetch(url, { priority: "low" }).catch(() => prefetched.delete(url));
+                });
+            });
+            function show(step) {
+                pendingAnim = step ? (step > 0 ? "add" : "remove") : null;
+                clearSpots();
+                // Phones slide the stacked model left to make room for the labels.
+                viewer.parentElement.classList.toggle("has-stack", batteries > 0);
+                // Where the camera is now (only on taps, once model-viewer has loaded).
+                pendingCam = step ? { orbit: viewer.getCameraOrbit(), target: viewer.getCameraTarget(), plain: viewer.src.endsWith("/msu4000elite.glb") } : null;
+                // The plain head-unit model is lighter, so it's used until the stack changes.
+                viewer.src = batteries || step ? stackFile(batteries) : "elements/msu4000elite.glb";
+                viewer.alt = batteries ? `3D model of the MSU4000 Elite on ${batteries} B4000 Elite batteries` : "3D model of the MSU4000 Elite";
+                label.textContent = batteries;
+                const kwh = String((4 + batteries * 4));
+                if (totalNum.textContent !== kwh) {
+                    totalNum.textContent = kwh;
+                    // A quick pulse so the change is noticed.
+                    if (step && !reduceMotion.matches) totalBox.animate([{ transform: "scale(1.1)" }, { transform: "scale(1)" }], { duration: 300, easing: "ease-out" });
+                }
+                // Estimated starting price from the "Starting at" prices (the same
+                // figures as the waitlist's data-price); the real price comes in the quote.
+                priceNum.textContent = "₱" + (PRICES.head + batteries * PRICES.batt).toLocaleString("en-PH");
+                minus.disabled = batteries === 0;
+                plus.disabled = batteries === STACK_MAX;
+            }
+            // Front / Back / Left / Right: glide the camera round to that side (Left
+            // and Right as you face the front). Dragging clears the selection.
+            const viewsBar = slide.querySelector(".model-views");
+            const thumb = viewsBar.querySelector(".model-view-thumb");
+            const viewBtns = [...viewsBar.querySelectorAll(".model-view-btn")];
+            function markView(btn) {
+                viewBtns.forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+                viewsBar.classList.toggle("has-view", !!btn);
+                if (btn) {
+                    thumb.style.width = btn.offsetWidth + "px";
+                    thumb.style.transform = `translateX(${btn.offsetLeft}px)`;
+                }
+            }
+            viewsBar.addEventListener("click", (e) => {
+                const btn = e.target.closest(".model-view-btn");
+                if (!btn) return;
+                markView(btn);
+                if (!reduceMotion.matches) {
+                    viewer.interpolationDecay = 140;
+                    setTimeout(() => { viewer.interpolationDecay = 50; }, 1500);
+                }
+                const ports = btn.dataset.theta === "90", bottom = btn.dataset.view === "bottom";
+                viewer.cameraTarget = ports ? portTarget() : bottom ? bottomTarget() : "auto auto auto";
+                viewer.cameraOrbit = ports ? `90deg 80deg ${PORT_ZOOM.radius}m`
+                    : bottom ? `0deg ${btn.dataset.phi}deg ${BOTTOM.radius}m`
+                    : `${btn.dataset.theta}deg 80deg ${batteries ? 150 : 105}%`;
+            });
+            // The "Drag to rotate" hint fades once the visitor has used the slide, which
+            // also frees the space under a tall stack.
+            const dismissHint = () => slide.classList.add("used");
+            viewer.addEventListener("camera-change", (e) => {
+                if (e.detail.source === "user-interaction") { markView(null); dismissHint(); }
+                updateViewSide();
+            });
+            // Which side faces the camera: front (305°–55°, incl. the default angle),
+            // right (55°–145°), back (145°–215°) or left (215°–305°). Only that side's
+            // labels show.
+            function updateViewSide() {
+                const deg = ((viewer.getCameraOrbit().theta * 180 / Math.PI) % 360 + 360) % 360;
+                const below = viewer.getCameraOrbit().phi * 180 / Math.PI > 120;
+                const side = below ? "bottom" : deg < 55 || deg >= 305 ? "front" : deg < 145 ? "right" : deg < 215 ? "back" : "left";
+                for (const k of ["front", "right", "back", "left", "bottom"]) slide.classList.toggle(`view-${k}`, k === side);
+            }
+            viewsBar.addEventListener("click", dismissHint);
+            slide.querySelector(".model-stack-group").addEventListener("click", dismissHint);
+
+            ctrl.addEventListener("click", (e) => {
+                const btn = e.target.closest(".model-stack-btn");
+                if (!btn) return;
+                const next = Math.min(STACK_MAX, Math.max(0, batteries + Number(btn.dataset.step)));
+                if (next === batteries) return;
+                const step = next - batteries;
+                batteries = next;
+                show(step);
+            });
+            show();
+        });
 
         initCarousel(".carousel", ".carousel-slide", ".carousel-track", ".carousel-dots", ".carousel-arrow-prev", ".carousel-arrow-next", "carousel-dot");
         initCarousel(".mobile-carousel", ".mobile-carousel-slide", ".mobile-carousel-track", ".mobile-carousel-dots", ".mobile-carousel-arrow-prev", ".mobile-carousel-arrow-next", "mobile-carousel-dot");

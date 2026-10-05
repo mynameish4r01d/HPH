@@ -14,11 +14,13 @@ service cloud.firestore {
     // anything.
     // Stages: keep in step with TABS.visits.pipeline in HPH RENEWABLE/admin/admin.js.
     match /visitRequests/{requestId} {
-      allow create: if isValidVisitRequest(request.resource.data);
+      allow create: if isValidVisitRequest(request.resource.data)
+        || (isStaff() && isValidCopiedVisit(request.resource.data))
+        || (isAdmin() && isValidOpenSolarVisit(requestId, request.resource.data));
       allow read: if isStaff();
-      allow update: if (isAdmin() && isValidStatusChange())
+      allow update: if (isAdmin() && (isValidStatusChange() || isValidOpenSolarSync()))
         || (isStaff()
-            && (isValidStageChange(['new', 'contacted', 'scheduled', 'visited', 'quoted', 'installed'])
+            && (isValidStageChange(['new', 'contacted', 'scheduled', 'visited', 'quoted', 'installing', 'installed'])
                 || isValidVisitEdit()));
       allow delete: if isAdmin();
     }
@@ -51,8 +53,8 @@ service cloud.firestore {
     // Installations (HPH RENEWABLE/admin/, "Installs" tab), which replaced the
     // installation Google Sheet. One document per install with the client's
     // details, its serial numbers and its panel count (panels whose serial
-    // wasn't recorded still count). Admins and the encoder account can read
-    // them and add new ones. Admins can edit or delete any install, and the
+    // wasn't recorded still count). Admins and the encoder account can read,
+    // add and edit any install. Admins can delete any install, and the
     // encoder only the ones it added. Imports from the sheet (source "sheet")
     // are admin-only.
     match /installs/{installId} {
@@ -64,8 +66,7 @@ service cloud.firestore {
         && request.resource.data.updatedAt == null
         && request.resource.data.updatedBy == null
         && (request.resource.data.source == 'admin' || isAdmin());
-      allow update: if (isAdmin()
-            || (isEncoder() && resource.data.createdBy == request.auth.token.email))
+      allow update: if isStaff()
         && isValidInstall(request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.createdBy == resource.data.createdBy
@@ -103,11 +104,17 @@ service cloud.firestore {
       allow read: if isStaff();
       allow create: if isStaff() && isValidSerial(serial, request.resource.data);
       allow update: if false;
+      // The encoder may remove a serial its edit took off an install (the
+      // install no longer lists it), or the serials of an install of its own
+      // that it's deleting.
       allow delete: if isAdmin()
         || (isEncoder()
-            && exists(/databases/$(database)/documents/installs/$(resource.data.installId))
-            && get(/databases/$(database)/documents/installs/$(resource.data.installId)).data.createdBy
-                 == request.auth.token.email);
+            && ((existsAfter(/databases/$(database)/documents/installs/$(resource.data.installId))
+                 && !(serial in getAfter(/databases/$(database)/documents/installs/$(resource.data.installId)).data.inverterSerials)
+                 && !(serial in getAfter(/databases/$(database)/documents/installs/$(resource.data.installId)).data.panelSerials))
+                || (exists(/databases/$(database)/documents/installs/$(resource.data.installId))
+                    && get(/databases/$(database)/documents/installs/$(resource.data.installId)).data.createdBy
+                         == request.auth.token.email)));
     }
 
     // Admin page sign-in (Firebase Authentication, email + password).
@@ -121,7 +128,8 @@ service cloud.firestore {
     }
 
     // The encoder account: signs in on the admin page without the overview
-    // dashboard or feedback. It manages installations (only its own), and
+    // dashboard or feedback. It adds and edits installations (deleting only
+    // its own), and
     // views, edits and moves visit requests and waitlist sign-ups through the
     // pipeline, but can't delete them. Keep in step with ENCODER_EMAILS in
     // HPH RENEWABLE/admin/admin.js and isEncoder() in /storage.rules.
@@ -213,6 +221,121 @@ service cloud.firestore {
         && data.attachments.size() <= 10
         && data.editedAt == request.time
         && data.editedBy == request.auth.token.email;
+    }
+
+    // An install's Ocular Visits entry, created automatically by the admin page
+    // (staff): with a new install (at Quote sent), or for installs that had
+    // none yet (at Installed). Its ID is "install-<installId>", so it's only
+    // ever created once. Contact details may be blank (installs don't always
+    // have them), there are no attachments, it's dated by the install date,
+    // and it points back to its install (installId).
+    function isValidCopiedVisit(data) {
+      let fields = ['name', 'phone', 'email', 'address', 'propertyType', 'product',
+                    'monthlyBill', 'preferredDate', 'preferredTime', 'message',
+                    'attachments', 'consent', 'sourcePage', 'status', 'createdAt',
+                    'stage', 'stageUpdatedAt', 'stageUpdatedBy', 'installId', 'source'];
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && isText(data.name, 1, 100)
+        && isText(data.phone, 0, 30)
+        && isText(data.email, 0, 200)
+        && isText(data.address, 0, 300)
+        && data.propertyType in ['Residential', 'Commercial', 'Industrial']
+        && isText(data.product, 1, 50)
+        && isText(data.monthlyBill, 0, 50)
+        && isText(data.preferredDate, 0, 10)
+        && isText(data.preferredTime, 1, 50)
+        && isText(data.message, 0, 2000)
+        && data.attachments is list
+        && data.attachments.size() == 0
+        && data.consent is bool
+        && isText(data.sourcePage, 0, 300)
+        && data.status == 'new'
+        && data.createdAt is timestamp
+        && data.stage in ['new', 'contacted', 'scheduled', 'visited', 'quoted', 'installing', 'installed']
+        && data.stageUpdatedAt == request.time
+        && data.stageUpdatedBy == request.auth.token.email
+        && isText(data.installId, 1, 100)
+        && data.source == 'install';
+    }
+
+    // Admin "Import from OpenSolar" (an OpenSolar project export, CSV): a new
+    // visit request for OpenSolar projects not on the dashboard yet. Its ID
+    // is "opensolar-<first project id>", so the same project can't be added
+    // twice, and openSolarIds lists all the client's OpenSolar projects
+    // (alternative designs are grouped into one entry). openSolarLast keeps
+    // what OpenSolar said for the name and contact details, so a later import
+    // can tell a real change in OpenSolar from an old value.
+    function isValidOpenSolarVisit(requestId, data) {
+      let fields = ['name', 'phone', 'email', 'address', 'propertyType', 'product',
+                    'monthlyBill', 'preferredDate', 'preferredTime', 'message',
+                    'attachments', 'consent', 'sourcePage', 'status', 'createdAt',
+                    'stage', 'stageUpdatedAt', 'stageUpdatedBy', 'source',
+                    'openSolarIds', 'openSolarStage', 'openSolarSyncedAt', 'openSolarLast'];
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && isText(data.name, 1, 100)
+        && isText(data.phone, 0, 30)
+        && isText(data.email, 0, 200)
+        && isText(data.address, 0, 300)
+        && data.propertyType in ['Residential', 'Commercial', 'Industrial']
+        && isText(data.product, 1, 50)
+        && isText(data.monthlyBill, 0, 50)
+        && isText(data.preferredDate, 0, 10)
+        && isText(data.preferredTime, 1, 50)
+        && isText(data.message, 0, 2000)
+        && data.attachments is list
+        && data.attachments.size() == 0
+        && data.consent is bool
+        && isText(data.sourcePage, 0, 300)
+        && data.status == 'new'
+        && data.createdAt == request.time
+        && data.stage in ['new', 'contacted', 'scheduled', 'visited', 'quoted', 'installing', 'installed']
+        && data.stageUpdatedAt == request.time
+        && data.stageUpdatedBy == request.auth.token.email
+        && data.source == 'opensolar'
+        && data.openSolarIds is list
+        && data.openSolarIds.size() >= 1 && data.openSolarIds.size() <= 50
+        && requestId == 'opensolar-' + data.openSolarIds[0]
+        && isText(data.openSolarStage, 0, 30)
+        && data.openSolarSyncedAt == request.time
+        && isOpenSolarLast(data.openSolarLast);
+    }
+
+    // What OpenSolar last said: { name, phone, email, address }, all text.
+    function isOpenSolarLast(last) {
+      return last is map
+        && last.keys().hasOnly(['name', 'phone', 'email', 'address'])
+        && isText(last.get('name', ''), 0, 100)
+        && isText(last.get('phone', ''), 0, 30)
+        && isText(last.get('email', ''), 0, 200)
+        && isText(last.get('address', ''), 0, 300);
+    }
+
+    // A later OpenSolar import on an existing visit request: links more
+    // OpenSolar projects, records OpenSolar's stage and details, moves our
+    // stage (the page only ever moves it forward), and updates the name,
+    // phone, email or address (the page does so only when OpenSolar's value
+    // changed since the last import, or ours is empty).
+    function isValidOpenSolarSync() {
+      let data = request.resource.data;
+      return data.diff(resource.data).affectedKeys()
+               .hasOnly(['openSolarIds', 'openSolarStage', 'openSolarSyncedAt', 'openSolarLast',
+                         'stage', 'stageUpdatedAt', 'stageUpdatedBy',
+                         'name', 'phone', 'email', 'address'])
+        && data.openSolarIds is list
+        && data.openSolarIds.size() >= 1 && data.openSolarIds.size() <= 50
+        && isText(data.openSolarStage, 0, 30)
+        && data.openSolarSyncedAt == request.time
+        && (data.get('stage', '') == resource.data.get('stage', '')
+            || (data.stage in ['new', 'contacted', 'scheduled', 'visited', 'quoted', 'installing', 'installed']
+                && data.stageUpdatedAt == request.time
+                && data.stageUpdatedBy == request.auth.token.email))
+        && isOpenSolarLast(data.openSolarLast)
+        && isText(data.name, 1, 100)
+        && isText(data.phone, 0, 30)
+        && isText(data.email, 0, 200)
+        && isText(data.address, 0, 300);
     }
 
     // Admin "Edit details" on a waitlist sign-up: contact details and the

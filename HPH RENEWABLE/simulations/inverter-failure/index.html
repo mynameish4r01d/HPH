@@ -21,7 +21,7 @@
 
   <link rel="icon" type="image/x-icon" href="../../global-elements/favicon.png">
 
-    <title>Micro vs String Inverter: Failure | HPH RENEWABLE</title>
+    <title>Micro vs String Inverter: Failure | HPH Renewable</title>
 
     <!--JAVA SCRIPT-->
     <script defer src="../../app.js"></script>
@@ -92,7 +92,6 @@
                                 <div class="mega-heading">Simulations</div>
                                 <a href="../../simulations/how-solar-panels-work/index.html" class="mega-link">How Solar Panels Work</a>
                                 <a href="../../simulations/panel-angle-and-direction/index.html" class="mega-link">Panel Angle and Direction</a>
-                                <a href="../../simulations/savings-calculator/index.html" class="mega-link">Savings Calculator</a>
                                 <a href="../../simulations/inverter-failure/index.html" class="mega-link">Micro vs String Inverter: Failure</a>
                                 <a href="../../simulations/brownout-backup/index.html" class="mega-link">Brownout Backup Simulator</a>
                             </div>
@@ -191,7 +190,6 @@
                         <div class="menu-heading">Simulations</div>
                         <a href="../../simulations/how-solar-panels-work/index.html" class="menu-link">How Solar Panels Work</a>
                         <a href="../../simulations/panel-angle-and-direction/index.html" class="menu-link">Panel Angle and Direction</a>
-                        <a href="../../simulations/savings-calculator/index.html" class="menu-link">Savings Calculator</a>
                         <a href="../../simulations/inverter-failure/index.html" class="menu-link">Micro vs String Inverter: Failure</a>
                         <a href="../../simulations/brownout-backup/index.html" class="menu-link">Brownout Backup Simulator</a>
 
@@ -279,7 +277,7 @@
                         </div>
                     </header>
                     <div class="sim-scene-wrap fail-scene-wrap">
-                        <svg class="fail-scene" viewBox="0 0 480 330" role="group" aria-label="MX2250 micro inverters: 8 solar panels and their inverter wiring. Tap a panel or inverter to cause a fault.">
+                        <svg class="fail-scene" viewBox="3 0 474 290" role="group" aria-label="MX2250 micro inverters: 8 solar panels and their inverter wiring. Tap a panel or inverter to cause a fault.">
                         <defs>
                             <linearGradient id="micro-sky" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0" stop-color="#5E8FC6"/>
@@ -310,8 +308,8 @@
                             </filter>
                         </defs>
                         <rect x="-100" y="-100" width="700" height="600" fill="url(#micro-sky)"/>
-                        <rect x="-100" y="206" width="700" height="400" fill="url(#micro-ground)"/>
-                        <rect x="-100" y="205.5" width="700" height="1" class="sim-horizon"/>
+                        <rect x="-100" y="195" width="700" height="400" fill="url(#micro-ground)"/>
+                        <rect x="-100" y="194.5" width="700" height="1" class="sim-horizon"/>
                         <g class="fail-wiring"></g>
                         <g class="fail-panels"></g>
                         <g class="fail-inverters"></g>
@@ -334,7 +332,7 @@
                         </div>
                     </header>
                     <div class="sim-scene-wrap fail-scene-wrap">
-                        <svg class="fail-scene" viewBox="0 0 480 330" role="group" aria-label="String inverter: 8 solar panels and their inverter wiring. Tap a panel or inverter to cause a fault.">
+                        <svg class="fail-scene" viewBox="3 0 474 290" role="group" aria-label="String inverter: 8 solar panels and their inverter wiring. Tap a panel or inverter to cause a fault.">
                         <defs>
                             <linearGradient id="string-sky" x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0" stop-color="#5E8FC6"/>
@@ -365,8 +363,8 @@
                             </filter>
                         </defs>
                         <rect x="-100" y="-100" width="700" height="600" fill="url(#string-sky)"/>
-                        <rect x="-100" y="206" width="700" height="400" fill="url(#string-ground)"/>
-                        <rect x="-100" y="205.5" width="700" height="1" class="sim-horizon"/>
+                        <rect x="-100" y="195" width="700" height="400" fill="url(#string-ground)"/>
+                        <rect x="-100" y="194.5" width="700" height="1" class="sim-horizon"/>
                         <g class="fail-wiring"></g>
                         <g class="fail-panels"></g>
                         <g class="fail-inverters"></g>
@@ -394,7 +392,7 @@
                         <button type="button" data-preset="inverter">One inverter fails</button>
                     </div>
                 </div>
-                <p class="sim-hint"><span class="material-symbols-rounded">touch_app</span>Tap a panel to change it: working, dirty (−30%), broken cable. Tap an inverter to make it fail or fix it.</p>
+                <p class="sim-hint"><span class="material-symbols-rounded">touch_app</span>Tap a panel to change it: working (650 W), dirty (455 W, −30%), broken cable (0 W). Tap an inverter to make it fail or fix it.</p>
             </div>
         </section>
 
@@ -423,7 +421,7 @@
             <h2 class="sim-h2">Want a system that keeps working?</h2>
             <p>We'll design an MX2250 micro inverter system for your roof, with panel-level monitoring in the TSUN Smart app.</p>
             <a href="../../schedule-a-visit/index.html" class="sim-cta-button">Schedule a Visit</a>
-            <p class="sim-footnote">This simulation is simplified for illustration: eight 650 W panels in full sun, ignoring inverter power limits and wiring losses. A dirty panel produces 30% less. A broken cable or connector stops that panel, and in a series string it breaks the circuit for the whole string. The string inverter's response to a dirty panel is modelled simply: the string runs at the weak panel's level or bypasses it, whichever gives more power.</p>
+            <p class="sim-footnote">This simulation is simplified for illustration: eight 650 W panels in full sun, ignoring inverter power limits and wiring losses. A dirty panel produces 30% less. A broken cable or connector stops that panel, and in a series string it breaks the circuit for the whole string. The string inverter's response to a dirty panel is modelled simply: every panel in the series string drops to the dirty panel's level (real panels' bypass diodes can soften this a little).</p>
         </section>
     </main>
 

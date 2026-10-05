@@ -22,7 +22,7 @@
 
   <link rel="icon" type="image/x-icon" href="../global-elements/favicon.png">
 
-    <title>Admin | HPH RENEWABLE</title>
+    <title>Admin | HPH Renewable</title>
 
     <!--JAVA SCRIPT-->
     <script type="module" src="admin.js"></script>
@@ -261,6 +261,17 @@
                         Import from Google Sheet
                     </button>
                     <p class="admin-import-status" role="status" hidden></p>
+                </div>
+
+                <!-- Ocular Visits, admins only: import an OpenSolar project export (CSV).
+                     A review screen opens before anything is saved. -->
+                <div class="admin-install-actions admin-visit-actions" hidden>
+                    <button type="button" class="admin-action admin-opensolar-import" title="Import an OpenSolar project export (CSV). Safe to repeat: projects already imported are updated, not duplicated.">
+                        <span class="material-symbols-rounded">upload_file</span>
+                        Import from OpenSolar
+                    </button>
+                    <input type="file" class="admin-opensolar-file" accept=".csv,text/csv" hidden>
+                    <p class="admin-import-status admin-opensolar-status" role="status" hidden></p>
                 </div>
 
                 <!-- How many entries the list shows, and a CSV export of them. -->

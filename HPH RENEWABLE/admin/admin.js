@@ -93,6 +93,10 @@ const installActions = document.querySelector(".admin-install-actions");
 const importButton = document.querySelector(".admin-import-sheet");
 const importStatus = document.querySelector(".admin-import-status");
 const brandLabel = document.querySelector(".admin-brand-label");
+const visitActions = document.querySelector(".admin-visit-actions");
+const openSolarButton = document.querySelector(".admin-opensolar-import");
+const openSolarFile = document.querySelector(".admin-opensolar-file");
+const openSolarStatus = document.querySelector(".admin-opensolar-status");
 
 // Desktop layout (sidebar + detail pane); matches the 750px mobile breakpoint
 // in styles.css. Phones open entries in place instead.
@@ -180,6 +184,8 @@ authSdk.onAuthStateChanged(auth, async (user) => {
     if (role === "encoder") {
         selectTab("installs");
         showInstallForm(null);
+    } else {
+        selectTab(activeTab);
     }
     loadSubmissions();
 });
@@ -309,6 +315,7 @@ async function loadSubmissions() {
         renderStats();
         renderList();
         fillMissingCapacities();
+        syncInstallsToVisits();
         // Re-show the open entry with the fresh data (or close it if it's
         // gone), unless the install form is open.
         if (selected && !formOpen) showEntry(selected.tab, selected.id);
@@ -350,6 +357,8 @@ const TABS = {
                 { key: "scheduled", label: "Visit scheduled" },
                 { key: "visited", label: "Visited" },
                 { key: "quoted", label: "Quote sent" },
+                // Quote accepted, installation under way.
+                { key: "installing", label: "Installing" },
                 { key: "installed", label: "Installed" },
             ],
             legacyDone: "visited",
@@ -483,8 +492,31 @@ function showStage(tab, value) {
     renderList();
 }
 
+// Installs in the Installs tab that aren't the same client as a visit
+// request already at Installed (same phone, last 10 digits, or else the same
+// name), so they aren't counted twice. These are past installs that never
+// went through the visit pipeline.
+function pastInstallsNotInVisits() {
+    const digits = (text) => (text || "").replace(/\D/g, "").slice(-10);
+    const nameKey = (text) => (text || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const installedVisits = data.visits.filter((v) => stageOf("visits", v) === TABS.visits.pipeline.won);
+    const phones = new Set(installedVisits.map((v) => digits(v.phone)).filter((d) => d.length >= 7));
+    const names = new Set(installedVisits.map((v) => nameKey(v.name)).filter(Boolean));
+    // Installs copied into Ocular Visits ("Copy to Ocular Visits") are counted
+    // there, at whatever stage they were given.
+    const linked = new Set(data.visits.map((v) => v.installId).filter(Boolean));
+    return data.installs.filter((i) => {
+        if (linked.has(i.id)) return false;
+        const phone = digits(i.contact);
+        if (phone.length >= 7) return !phones.has(phone);
+        return !names.has(nameKey(i.clientName));
+    });
+}
+
 // Overview "Pipeline" box: how many entries sit at each stage, per tab, with
 // a bar for each stage's share. Clicking a stage lists those entries.
+// The visits row's Installed box also counts past installs from the Installs
+// tab (pastInstallsNotInVisits()); its conversion line stays visits only.
 function renderPipeline() {
     const groups = ["visits", "waitlist"].map((tab) => {
         const { name, stages, won } = TABS[tab].pipeline;
@@ -494,6 +526,9 @@ function renderPipeline() {
             count: data[tab].filter((e) => stageOf(tab, e) === stage.key).length,
         }));
         const wins = counts.find(({ stage }) => stage.key === won).count;
+        const past = tab === "visits" ? pastInstallsNotInVisits().length : 0;
+        // Bar shares are out of everything in the row, past installs included.
+        const barTotal = total + past;
 
         const head = el("div", "admin-pipeline-head");
         head.append(
@@ -509,13 +544,20 @@ function renderPipeline() {
             const cell = el("button", stage.offPath ? "admin-pipeline-stage admin-pipeline-off" : "admin-pipeline-stage");
             cell.type = "button";
             cell.title = `List ${stage.label.toLowerCase()} ${TABS[tab].pipeline.noun[1]}`;
+            const extra = stage.key === won ? past : 0;
+            const shown = count + extra;
             const bar = el("span", "admin-pipeline-bar");
-            bar.style.setProperty("--share", total ? count / total : 0);
+            bar.style.setProperty("--share", barTotal ? shown / barTotal : 0);
             cell.append(
-                el("span", "admin-pipeline-count", String(count)),
+                el("span", "admin-pipeline-count", String(shown)),
                 el("span", "admin-pipeline-label", stage.label),
-                bar,
             );
+            if (extra) {
+                // "3 visits + 20 past installs"; clicking still lists the visits.
+                cell.append(el("span", "admin-pipeline-note", `${plural(count, ["visit", "visits"])} + ${extra} past ${extra === 1 ? "install" : "installs"}`));
+                cell.title = `${plural(count, ["visit request", "visit requests"])} at Installed, plus ${extra} past ${extra === 1 ? "install" : "installs"} from the Installs tab. Click to list the visit requests.`;
+            }
+            cell.append(bar);
             cell.addEventListener("click", () => showStage(tab, stage.key));
             row.append(cell);
         }
@@ -807,6 +849,15 @@ function renderVisit(v) {
         detailRow("Submitted", formatDate(toDate(v.createdAt))),
         detailRow("Request ID", v.id),
     );
+    if (v.source === "install") list.append(detailRow("Source", "Added automatically from the Installs tab", { wide: true }));
+    if (v.source === "opensolar") list.append(detailRow("Source", "Imported from OpenSolar", { wide: true }));
+    const openSolarIds = serialList(v.openSolarIds);
+    if (openSolarIds.length) {
+        list.append(
+            detailRow(`OpenSolar ${openSolarIds.length === 1 ? "project" : "projects"}`, openSolarIds.map((id) => `#${id}`).join("\n")),
+            detailRow("OpenSolar stage", `${v.openSolarStage || "—"} · imported ${formatDate(toDate(v.openSolarSyncedAt))}`),
+        );
+    }
     if (v.editedAt) list.append(editedRow(v));
     appendStage("visits", v, list, details);
 
@@ -1342,7 +1393,13 @@ function panelCountOf(install) {
     return Number.isInteger(install.panelCount) ? install.panelCount : serialList(install.panelSerials).length;
 }
 
-function canEditInstall(install) {
+// Admins and the encoder can edit any install; admins can delete any, the
+// encoder only the ones it added (see /firestore.rules).
+function canEditInstall() {
+    return role === "admin" || role === "encoder";
+}
+
+function canDeleteInstall(install) {
     return role === "admin"
         || (role === "encoder" && (install.createdBy || "").toLowerCase() === currentEmail);
 }
@@ -1387,7 +1444,7 @@ function renderInstall(i) {
 
     // Edit / Delete, above the ticket like the stage stepper, for installs
     // this account may change.
-    if (canEditInstall(i)) {
+    if (canEditInstall()) {
         const actions = el("div", "admin-actions admin-install-entry-actions");
         const error = el("span", "admin-action-error");
         const edit = el("button", "admin-action admin-action-primary");
@@ -1414,7 +1471,8 @@ function renderInstall(i) {
                 edit.disabled = false;
             }
         });
-        actions.append(error, edit, remove);
+        actions.append(error, edit);
+        if (canDeleteInstall(i)) actions.append(remove);
         details.append(actions);
     }
     details.append(ticket("installs", i, list));
@@ -1443,6 +1501,174 @@ function showInstallForm(install) {
     mainArea.scrollTop = 0;
     if (!desktop.matches && install) detailPane.scrollIntoView({ block: "start" });
     markSelected();
+}
+
+// Serial number quick entry ------------------------------------------------
+
+// The batch prefix (everything but the last 4 characters) shared by most
+// recorded serials of a type, or the usual one before there are any.
+const SERIAL_PREFIX_DEFAULT = { inverter: "Y0019A57121D", panel: "Z2026300G161002" };
+const SERIAL_LENGTH = { inverter: 16, panel: 19 };
+
+function usualSerialPrefix(type) {
+    const field = type === "inverter" ? "inverterSerials" : "panelSerials";
+    const counts = new Map();
+    for (const install of data.installs) {
+        for (const sn of serialList(install[field])) {
+            if (sn.length !== SERIAL_LENGTH[type]) continue;
+            const prefix = sn.slice(0, -4);
+            counts.set(prefix, (counts.get(prefix) || 0) + 1);
+        }
+    }
+    let best = SERIAL_PREFIX_DEFAULT[type];
+    let most = 0;
+    for (const [prefix, count] of counts) if (count > most) { best = prefix; most = count; }
+    return best;
+}
+
+// Turns a serial box (`box` from installForm's field()) into rows: each row
+// is either the shared batch prefix + its last 4 characters, or a full serial
+// (one from another batch). The rows write their serials into the box, which
+// stays the form's source of truth; "Paste full serials" shows the box for
+// pasting, and what's pasted becomes rows again.
+function serialPicker(box, type, { add, addMany = 0, startWith = 0 }) {
+    const textarea = box.input;
+    // The field's <label> would send clicks anywhere in it to its first
+    // input, so it becomes a plain container (keeping its contents).
+    const wrap = el("div", box.wrap.className);
+    wrap.append(...box.wrap.childNodes);
+    box.wrap.replaceWith(wrap);
+    box.wrap = wrap;
+    let prefix = usualSerialPrefix(type);
+    const lastLength = SERIAL_LENGTH[type] - prefix.length;
+    let rows = [];
+
+    const toRows = (text) => (text || "").toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean).map((sn) => (
+        sn.length === prefix.length + 4 && sn.startsWith(prefix) ? { last: sn.slice(prefix.length) } : { full: sn }
+    ));
+    const serialOf = (row) => (row.full !== undefined ? row.full : row.last ? prefix + row.last : "");
+
+    const editor = el("div", "admin-sn");
+    const head = el("div", "admin-sn-head");
+    const prefixInput = el("input", "admin-sn-prefix");
+    prefixInput.value = prefix;
+    prefixInput.maxLength = SERIAL_LENGTH[type] - 4;
+    prefixInput.spellcheck = false;
+    prefixInput.setAttribute("aria-label", "Batch prefix (all but the last 4 characters)");
+    head.append(el("span", "admin-sn-head-label", "Batch prefix"), prefixInput);
+    const list = el("ol", "admin-sn-rows");
+    const buttons = el("div", "admin-sn-actions");
+    editor.append(head, list, buttons);
+    box.wrap.insertBefore(editor, textarea);
+    textarea.classList.add("admin-sn-paste");
+    textarea.hidden = true;
+
+    let syncing = false;
+    const sync = () => {
+        syncing = true;
+        textarea.value = rows.map(serialOf).filter(Boolean).join("\n");
+        textarea.dispatchEvent(new Event("input", { bubbles: true }));
+        syncing = false;
+    };
+
+    const render = (focus) => {
+        list.replaceChildren(...rows.map((row, i) => {
+            const item = el("li", "admin-sn-row");
+            item.append(el("span", "admin-sn-num", String(i + 1)));
+            let input;
+            if (row.full !== undefined) {
+                input = el("input", "admin-sn-full");
+                input.value = row.full;
+                input.maxLength = 40;
+                input.setAttribute("aria-label", `Serial ${i + 1}`);
+                input.addEventListener("input", () => {
+                    row.full = input.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+                    input.value = row.full;
+                    sync();
+                });
+                item.append(input);
+            } else {
+                item.append(el("span", "admin-sn-fixed", prefix));
+                input = el("input", "admin-sn-last");
+                input.value = row.last || "";
+                input.maxLength = 4;
+                input.placeholder = "····";
+                input.setAttribute("aria-label", `Last 4 characters of serial ${i + 1}`);
+                input.addEventListener("input", () => {
+                    row.last = input.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+                    input.value = row.last;
+                    input.classList.toggle("short", row.last.length > 0 && row.last.length < 4);
+                    sync();
+                });
+                item.append(input);
+            }
+            // Enter: next row (a new one at the end), so serials can be typed in a run.
+            input.spellcheck = false;
+            input.autocomplete = "off";
+            input.addEventListener("keydown", (e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                if (i === rows.length - 1) addRows(1);
+                else list.children[i + 1].querySelector("input").focus();
+            });
+            const remove = el("button", "admin-sn-remove");
+            remove.type = "button";
+            remove.setAttribute("aria-label", `Remove serial ${i + 1}`);
+            remove.append(el("span", "material-symbols-rounded", "close"));
+            remove.addEventListener("click", () => {
+                rows.splice(i, 1);
+                render();
+                sync();
+            });
+            item.append(remove);
+            return item;
+        }));
+        if (focus !== undefined && list.children[focus]) list.children[focus].querySelector("input").focus();
+    };
+
+    const addRows = (count) => {
+        const first = rows.length;
+        for (let n = 0; n < count; n++) rows.push({ last: "" });
+        render(first);
+    };
+
+    const addButton = (label, count) => {
+        const button = el("button", "admin-action");
+        button.type = "button";
+        button.append(el("span", "material-symbols-rounded", "add"), label);
+        button.addEventListener("click", () => addRows(count));
+        buttons.append(button);
+    };
+    addButton(add, 1);
+    if (addMany) addButton(`Add ${addMany}`, addMany);
+    const paste = el("button", "admin-link-button admin-sn-toggle");
+    paste.type = "button";
+    paste.textContent = "Paste full serials";
+    paste.addEventListener("click", () => {
+        textarea.hidden = !textarea.hidden;
+        paste.textContent = textarea.hidden ? "Paste full serials" : "Hide full serials";
+        if (!textarea.hidden) textarea.focus();
+    });
+    buttons.append(paste);
+
+    // Typing or pasting in the box rebuilds the rows.
+    textarea.addEventListener("input", () => {
+        if (syncing) return;
+        rows = toRows(textarea.value);
+        render();
+    });
+
+    // A new batch prefix applies to every short row.
+    prefixInput.addEventListener("input", () => {
+        prefixInput.value = prefixInput.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+        prefix = prefixInput.value;
+        render();
+        sync();
+    });
+
+    rows = toRows(textarea.value);
+    if (!rows.length && startWith) rows = Array.from({ length: startWith }, () => ({ last: "" }));
+    render();
 }
 
 function installForm(install) {
@@ -1481,10 +1707,14 @@ function installForm(install) {
     const batteries = field("Battery serial numbers (if any)", "textarea", {
         name: "batterySerials", value: serialList(v.batterySerials).join("\n"), wide: true, rows: 2,
     });
-    const panelCount = field("Number of solar panels", "input", {
-        name: "panelCount", type: "number", value: install ? panelCountOf(install) : "", required: true,
-        attrs: { min: 0, max: 2000, step: 1, inputmode: "numeric" },
-    });
+    // Number of panels isn't typed in: it's the number of panel serials.
+    // Older installs (from the sheet) may also have panels with no recorded
+    // serial; those are kept on top, so editing them never drops panels.
+    const unserialised = install ? Math.max(0, panelCountOf(install) - serialList(install.panelSerials).length) : 0;
+    const countWrap = el("div", "admin-field");
+    const countValue = el("span", "admin-capacity-value");
+    countWrap.append(el("span", "admin-label", "Number of solar panels (from serials)"), countValue);
+    grid.append(countWrap);
     // Capacity isn't typed in: it's the panel count × 0.65 kWp, shown here
     // and saved with the install. An install that already has a capacity
     // (e.g. from the sheet) keeps it unless its panel count changes.
@@ -1506,7 +1736,7 @@ function installForm(install) {
             out.classList.toggle("bad", parsed.invalid.length > 0);
             box.input.classList.toggle("invalid", parsed.invalid.length > 0);
             out.replaceChildren(plural(parsed.valid.length, noun));
-            if (parsed.placeholders) out.append(` · ${parsed.placeholders} all-zero ${parsed.placeholders === 1 ? "placeholder" : "placeholders"} skipped (use the panel count for panels without a serial)`);
+            if (parsed.placeholders) out.append(` · ${parsed.placeholders} all-zero ${parsed.placeholders === 1 ? "placeholder" : "placeholders"} skipped (not real serials)`);
             if (parsed.invalid.length) out.append(` · not recognised: ${parsed.invalid.join(", ")}`);
             if (parsed.dupes.length) out.append(` · repeats ignored: ${parsed.dupes.join(", ")}`);
             return parsed;
@@ -1519,17 +1749,23 @@ function installForm(install) {
     const readPanels = summary(panels, PANEL_SN, ["panel serial", "panel serials"]);
     const readBatteries = summary(batteries, null, ["battery serial", "battery serials"]);
 
-    // Panel count follows the panel serials until it's typed in by hand
-    // (it can be higher: panels without a recorded serial).
-    let countTouched = Boolean(install);
-    panelCount.input.addEventListener("input", () => { countTouched = true; });
-    panels.input.addEventListener("input", () => {
-        if (!countTouched) panelCount.input.value = readPanels().valid.length || "";
-    });
+    // Quick entry: a row per unit with the batch prefix filled in, so only the
+    // last 4 characters are typed. Writes into the serial boxes above (now
+    // hidden behind "Paste full serials"), so the checks below still apply.
+    serialPicker(inverters, "inverter", { add: "Add MX2250", startWith: install ? 0 : 1 });
+    serialPicker(panels, "panel", { add: "Add panel", addMany: 4 });
 
-    // "5.2 kWp · 8 panels × 650 W", updated as the panel count changes.
+    // Panels = panel serials (+ an older install's panels without serials).
+    const currentPanelCount = () => readPanels().valid.length + unserialised;
+
+    // "8 panels · from 8 serials", and "5.2 kWp · 8 panels × 650 W", updated
+    // as panel serials are added or removed.
     const updateCapacity = () => {
-        const count = Number(panelCount.input.value) || 0;
+        const count = currentPanelCount();
+        countValue.replaceChildren(el("strong", "", plural(count, ["panel", "panels"])));
+        countValue.append(unserialised
+            ? ` · ${count - unserialised} from serials + ${unserialised} recorded without serials`
+            : ` · from ${plural(count, ["serial", "serials"])}`);
         const kwp = capacityOf(count);
         capacityValue.replaceChildren(el("strong", "", kwp === null ? "—" : `${kwp} kWp`));
         const kept = install && Number.isFinite(install.capacityKwp) && count === panelCountOf(install)
@@ -1539,7 +1775,6 @@ function installForm(install) {
             : ` · ${plural(count, ["panel", "panels"])} × 650 W`);
     };
     panels.input.addEventListener("input", updateCapacity);
-    panelCount.input.addEventListener("input", updateCapacity);
     updateCapacity();
 
     const actions = el("div", "admin-install-form-actions");
@@ -1578,16 +1813,15 @@ function installForm(install) {
             address: address.input.value.trim(),
             inverterSerials: inv.valid,
             panelSerials: pan.valid,
-            panelCount: panelCount.input.value === "" ? pan.valid.length : Number(panelCount.input.value),
+            panelCount: currentPanelCount(),
             batterySerials: readBatteries().valid,
         };
         if (!values.clientName) return fail("Enter the client's name.", name.input);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(values.installDate)) return fail("Enter the installation date.", date.input);
         if (inv.invalid.length) return fail("Some MX2250 serial numbers aren't recognised (shown in red). They start with Y and have 16 characters.", inverters.input);
         if (pan.invalid.length) return fail("Some solar panel serial numbers aren't recognised (shown in red). They start with Z and have 19 characters.", panels.input);
-        if (!inv.valid.length && !values.panelCount) return fail("Add at least one MX2250 serial number or a number of panels.", inverters.input);
-        if (!Number.isInteger(values.panelCount) || values.panelCount < 0 || values.panelCount > 2000) return fail("Enter the number of solar panels as a whole number.", panelCount.input);
-        if (values.panelCount < pan.valid.length) return fail(`The number of panels can't be less than the ${pan.valid.length} panel serials entered.`, panelCount.input);
+        if (!inv.valid.length && !values.panelCount) return fail("Add at least one MX2250 or solar panel serial number.", inverters.input);
+        if (values.panelCount > 2000) return fail("That's more panels than one installation can hold (2,000). Split it into several installations.");
         if (inv.valid.length > 100 || pan.valid.length > 400) return fail("That's more serials than one installation can hold (100 MX2250s, 400 panels). Split it into several installations.");
         values.capacityKwp = capacityOf(values.panelCount);
 
@@ -1686,6 +1920,12 @@ async function saveInstall(existing, values) {
     toDelete.forEach((sn) => batch.delete(serialDoc(sn)));
     toCreate.forEach(({ sn, type }) => batch.set(serialDoc(sn), { type, installId: ref.id }));
     batch.set(countDoc(ref.id), { inverters: values.inverterSerials.length, panels: values.panelCount });
+    // A new install goes into Ocular Visits at Quote sent (unless that client
+    // is already a visit request).
+    const install = { ...fields, id: existing ? existing.id : null };
+    if (!existing && !installHasVisit(install)) {
+        batch.set(installVisitDoc(ref.id), installVisit(install, ref.id, "quoted"));
+    }
     await batch.commit();
     return ref.id;
 }
@@ -1887,6 +2127,577 @@ async function importFromSheet() {
 
 document.querySelector(".admin-add-install").addEventListener("click", () => showInstallForm(null));
 importButton.addEventListener("click", importFromSheet);
+
+
+// ----- installs -> Ocular Visits (automatic)
+
+// Every install has an Ocular Visits entry, so it goes through the pipeline:
+//   - a new install (installForm) gets one at Quote sent, in the same batch;
+//   - installs that had none (from before this, or the sheet import) get one
+//     at Installed the next time staff open the page (syncInstallsToVisits).
+// The entry's ID is "install-<installId>", so it's only ever created once,
+// and it points back to its install (installId). An install whose client is
+// already a visit request (same phone, last 10 digits, or else same name)
+// gets no second entry. Checked by isValidCopiedVisit() in /firestore.rules.
+
+// One-time exception for the first sync: SHA-256 of the normalised client
+// name (lower-case letters/digits only) of installs that were still ongoing
+// then, which start at Quote sent instead of Installed. Hashed so no client
+// name sits in this public file.
+const LEGACY_QUOTED = new Set(["9f276b137abe9f05416462ad5c314a70961d4443b96772255f1d2149ed1b51ce"]);
+
+const digitsKey = (text) => (text || "").replace(/\D/g, "").slice(-10);
+const nameKey = (text) => (text || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+
+async function nameFingerprint(name) {
+    const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(nameKey(name)));
+    return [...new Uint8Array(bytes)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// True when this install already has an Ocular Visits entry (linked, or the
+// same client by phone or name).
+function installHasVisit(install) {
+    if (install.id && data.visits.some((v) => v.installId === install.id)) return true;
+    const phone = digitsKey(install.contact);
+    if (phone.length >= 7) return data.visits.some((v) => digitsKey(v.phone) === phone);
+    const name = nameKey(install.clientName);
+    return Boolean(name) && data.visits.some((v) => nameKey(v.name) === name);
+}
+
+const installVisitDoc = (installId) => firestore.doc(db, TABS.visits.collection, `install-${installId}`);
+
+// The visit request fields for an install, at `stage`.
+function installVisit(install, installId, stage) {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(install.installDate || "");
+    const dated = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12) : (toDate(install.createdAt) || new Date());
+    return {
+        name: (install.clientName || "Unnamed client").slice(0, 100),
+        phone: (install.contact || "").slice(0, 30),
+        email: (install.email || "").slice(0, 200),
+        address: (install.address || "").slice(0, 300),
+        propertyType: "Residential",
+        product: serialList(install.batterySerials).length ? "Micro Inverter + Battery" : "Micro Inverter",
+        monthlyBill: "",
+        preferredDate: "",
+        preferredTime: "Any time",
+        message: "",
+        attachments: [],
+        consent: false,
+        sourcePage: "",
+        status: "new",
+        createdAt: firestore.Timestamp.fromDate(dated),
+        stage,
+        stageUpdatedAt: firestore.serverTimestamp(),
+        stageUpdatedBy: auth.currentUser.email,
+        installId,
+        source: "install",
+    };
+}
+
+// Gives installs without an Ocular Visits entry one at Installed (Quote sent
+// for LEGACY_QUOTED), then reloads if any were added. Each is its own write,
+// so one that already exists (another admin got there first) is just skipped.
+let syncingInstalls = false;
+async function syncInstallsToVisits() {
+    if (!role || syncingInstalls) return;
+    const missing = data.installs.filter((install) => !installHasVisit(install));
+    if (!missing.length) return;
+    syncingInstalls = true;
+    let added = 0;
+    try {
+        for (const install of missing) {
+            const stage = LEGACY_QUOTED.has(await nameFingerprint(install.clientName)) ? "quoted" : TABS.visits.pipeline.won;
+            try {
+                await firestore.setDoc(installVisitDoc(install.id), installVisit(install, install.id, stage));
+                added++;
+            } catch (err) {
+                console.warn("Admin: adding an install to Ocular Visits failed", install.id, err);
+                // Rules not published yet: stop, and try again next time.
+                if (err.code === "permission-denied" && !added) break;
+            }
+        }
+    } finally {
+        syncingInstalls = false;
+    }
+    if (added) await loadSubmissions();
+}
+
+
+// ----- import from OpenSolar (admins only)
+
+// Reads an OpenSolar project export (CSV) into Ocular Visits. Safe to repeat
+// with every new export: each entry stores its OpenSolar project ids
+// (openSolarIds), so a project already on the dashboard updates its entry
+// instead of adding another, and new entries get the ID
+// "opensolar-<first project id>", so Firebase can't hold two copies.
+//   - Projects for the same client at the same address (alternative designs)
+//     are grouped into one entry, at the furthest stage among them.
+//   - OpenSolar's stage only ever moves ours forward (OPENSOLAR_STAGES).
+//   - Name, phone, email and address: each entry keeps what OpenSolar last
+//     said (openSolarLast). A value is updated when OpenSolar's changed since
+//     the last import (so a change made in OpenSolar comes through, but an
+//     edit made on the dashboard isn't undone by an old OpenSolar value), or
+//     when ours is empty. A blank in OpenSolar never clears ours, and the
+//     address used as a stand-in name never replaces a real name. Details
+//     come from the group's most advanced project (detailChanges()).
+//   - The first time, each client is compared with existing entries not yet
+//     linked to OpenSolar (clientScore(): phone, name allowing middle names /
+//     initials / titles, address). A strong match is proposed; on the review
+//     screen every match and new client has a "Same client as…" picker.
+// Checked by isValidOpenSolarVisit / isValidOpenSolarSync in /firestore.rules.
+
+// OpenSolar stage -> our Ocular Visits stage. "project_installed" -> Installed.
+// Clients only get an OpenSolar project once they've been visited, so
+// OpenSolar's New is at least Visited here.
+const OPENSOLAR_STAGES = {
+    new: "visited",
+    designing: "visited",
+    selling: "quoted",
+    installing: "installing",
+};
+
+const visitRank = (key) => TABS.visits.pipeline.stages.findIndex((s) => s.key === key);
+
+// "Mr. Jeffrey Co" -> "Jeffrey Co" (titles left off names).
+function cleanPersonName(first, family) {
+    let name = (first || "").replace(/^\s*(mr|ms|mrs|miss|engr|dr|atty|arch)\s*\.?\s+/i, "").replace(/\s+/g, " ").trim();
+    const last = (family || "").trim();
+    if (last && last.length > 1 && !name.toLowerCase().endsWith(last.toLowerCase())) name = `${name} ${last}`.trim();
+    return name;
+}
+
+// "(63)09175194725" / "(63)9178652363" -> "09175194725" / "09178652363";
+// "(63)" alone -> "".
+function cleanOpenSolarPhone(text) {
+    let digits = (text || "").replace(/\D/g, "");
+    if (digits.startsWith("63")) digits = digits.slice(2);
+    if (digits.length === 10 && digits.startsWith("9")) digits = `0${digits}`;
+    return digits.length >= 7 ? digits : "";
+}
+
+// OpenSolar fills in "<id>@os.code" when there's no real email.
+const cleanOpenSolarEmail = (text) => (/@os\.code$/i.test(text || "") ? "" : (text || "").trim());
+
+// The export as projects, then grouped per client and address.
+function openSolarGroups(text) {
+    const rows = parseCSV(text);
+    const header = (rows[0] || []).map((h) => h.trim().toLowerCase());
+    const col = (name) => header.indexOf(name);
+    const c = {
+        id: col("id"), address: col("address"), business: col("business_name"), first: col("contact_first_name"),
+        family: col("contact_family_name"), email: col("contact_email"), phone: col("contact_phone"),
+        stage: col("stage"), residential: col("is_residential"), sold: col("project_sold"), installed: col("project_installed"),
+    };
+    if (c.id === -1 || c.stage === -1) throw userError("This doesn't look like an OpenSolar project export (no id / stage columns).");
+
+    const projects = rows.slice(1).map((r) => {
+        const cell = (i) => (i >= 0 && r[i] ? r[i].trim() : "");
+        const installed = /^(1|true|yes)$/i.test(cell(c.installed));
+        const raw = cell(c.stage);
+        return {
+            id: cell(c.id),
+            name: cell(c.business) || cleanPersonName(cell(c.first), cell(c.family)),
+            address: cell(c.address),
+            phone: cleanOpenSolarPhone(cell(c.phone)),
+            email: cleanOpenSolarEmail(cell(c.email)),
+            residential: !/^false$/i.test(cell(c.residential)),
+            openSolarStage: installed ? "Installed" : raw,
+            stage: installed ? TABS.visits.pipeline.won : (OPENSOLAR_STAGES[raw.toLowerCase()] || "new"),
+        };
+    }).filter((p) => /^\d+$/.test(p.id));
+
+    // Group: same address and same client name; a project with no name joins
+    // the address's only named client, if there's exactly one.
+    const byAddress = new Map();
+    for (const p of projects) {
+        const key = nameKey(p.address) || `#${p.id}`;
+        if (!byAddress.has(key)) byAddress.set(key, []);
+        byAddress.get(key).push(p);
+    }
+    const groups = [];
+    for (const list of byAddress.values()) {
+        const names = [...new Set(list.map((p) => nameKey(p.name)).filter(Boolean))];
+        const byName = new Map();
+        for (const p of list) {
+            const key = nameKey(p.name) || (names.length === 1 ? names[0] : "");
+            if (!byName.has(key)) byName.set(key, []);
+            byName.get(key).push(p);
+        }
+        groups.push(...byName.values());
+    }
+    return groups.map((list) => {
+        list.sort((a, b) => Number(a.id) - Number(b.id));
+        // Details come from the most advanced project (the earliest, on a
+        // tie), falling back to the group's other projects for blanks.
+        const furthest = list.reduce((best, p) => (visitRank(p.stage) > visitRank(best.stage) ? p : best), list[0]);
+        const from = (field) => furthest[field] || (list.find((p) => p[field]) || {})[field] || "";
+        const last = {
+            name: from("name").slice(0, 100),
+            phone: from("phone").slice(0, 30),
+            email: from("email").slice(0, 200),
+            address: from("address").slice(0, 300),
+        };
+        return {
+            ids: list.map((p) => p.id),
+            // No client name in OpenSolar: the address, else the project id
+            // (only for a new entry's name; never replaces a real one).
+            name: (last.name || last.address || `OpenSolar project ${list[0].id}`).slice(0, 100),
+            address: last.address,
+            phone: last.phone,
+            email: last.email,
+            last,
+            residential: list.every((p) => p.residential),
+            stage: furthest.stage,
+            openSolarStage: furthest.openSolarStage.slice(0, 30),
+        };
+    });
+}
+
+// What the import would do: for each group, the entry it updates (by a
+// linked project id), a proposed match (same name or phone, no OpenSolar
+// link yet), or a new entry.
+// Name and contact details to update on an entry from OpenSolar: filled in
+// where ours is empty; replaced where OpenSolar's value changed since the
+// last import (openSolarLast). On a first link (a match) only blanks are
+// filled. Blank OpenSolar values are skipped.
+const OPENSOLAR_FIELDS = ["name", "phone", "email", "address"];
+const OPENSOLAR_FIELD_LABELS = { name: "Name", phone: "Phone", email: "Email", address: "Address" };
+
+function detailChanges(visit, group, firstLink) {
+    const last = visit.openSolarLast && typeof visit.openSolarLast === "object" ? visit.openSolarLast : null;
+    const changes = [];
+    for (const field of OPENSOLAR_FIELDS) {
+        const theirs = group.last[field];
+        const ours = visit[field] || "";
+        if (!theirs || theirs === ours) continue;
+        if (!ours) changes.push({ field, from: "", to: theirs });
+        else if (!firstLink && last && typeof last[field] === "string" && theirs !== last[field]) changes.push({ field, from: ours, to: theirs });
+    }
+    return changes;
+}
+
+const sameLast = (a, b) => Boolean(a) && OPENSOLAR_FIELDS.every((f) => (a[f] || "") === (b[f] || ""));
+
+// Looser client matching, for linking an OpenSolar client to an existing
+// entry (e.g. a website lead) the first time.
+const NAME_TITLES = new Set(["mr", "ms", "mrs", "miss", "engr", "dr", "atty", "arch", "jr", "sr"]);
+const ADDRESS_FILLER = new Set(["st", "street", "ave", "avenue", "rd", "road", "blvd", "dr", "drive", "ext", "extension",
+    "city", "brgy", "barangay", "village", "subd", "subdivision", "lot", "blk", "block", "phase", "the", "of", "metro", "manila"]);
+
+const nameTokens = (name) => (name || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/)
+    .filter((t) => t.length > 1 && !NAME_TITLES.has(t));
+const addressTokens = (address) => (address || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/)
+    .filter((t) => t && !ADDRESS_FILLER.has(t));
+
+function tokenOverlap(a, b) {
+    const A = new Set(a);
+    const B = new Set(b);
+    let shared = 0;
+    for (const t of A) if (B.has(t)) shared++;
+    return { shared, smaller: Math.min(A.size, B.size), larger: Math.max(A.size, B.size) };
+}
+
+// How alike an OpenSolar client and an entry are, with the reasons:
+// same phone +3; same name (every word of the shorter name in the longer,
+// at least 2 words, or identical) +3; similar name (2+ shared words, or
+// shared surname-length word) +1.5; same address +2; similar address +1.
+// 3 or more is proposed as a match.
+function clientScore(group, visit) {
+    let score = 0;
+    const reasons = [];
+    const phone = digitsKey(group.phone);
+    if (phone.length >= 7 && digitsKey(visit.phone) === phone) {
+        score += 3;
+        reasons.push("same phone");
+    }
+    const names = tokenOverlap(nameTokens(group.last.name), nameTokens(visit.name));
+    if (names.smaller && names.shared === names.smaller && (names.smaller >= 2 || names.larger === 1)) {
+        score += 3;
+        reasons.push("same name");
+    } else if (names.shared >= 2 || (names.shared === 1 && names.smaller >= 2)) {
+        score += 1.5;
+        reasons.push("similar name");
+    }
+    const addresses = tokenOverlap(addressTokens(group.address), addressTokens(visit.address));
+    if (addresses.smaller >= 2 && addresses.shared / addresses.smaller >= 0.6) {
+        score += 2;
+        reasons.push("same address");
+    } else if (addresses.shared >= 2) {
+        score += 1;
+        reasons.push("similar address");
+    }
+    return { score, reasons };
+}
+
+// Entries an OpenSolar client could be, best first (score > 0): visit
+// requests not yet linked to OpenSolar.
+function clientCandidates(group) {
+    return data.visits
+        .filter((v) => !serialList(v.openSolarIds).length)
+        .map((visit) => ({ visit, ...clientScore(group, visit) }))
+        .filter((c) => c.score > 0)
+        .sort((a, b) => b.score - a.score);
+}
+
+function openSolarPlan(groups) {
+    const linked = new Map();
+    for (const v of data.visits) for (const id of serialList(v.openSolarIds)) linked.set(id, v);
+    return groups.map((group) => {
+        const visit = group.ids.map((id) => linked.get(id)).find(Boolean);
+        if (visit) {
+            const newIds = group.ids.filter((id) => !serialList(visit.openSolarIds).includes(id));
+            const forward = visitRank(group.stage) > visitRank(stageOf("visits", visit));
+            const changes = detailChanges(visit, group, false);
+            const recordsDetails = !sameLast(visit.openSolarLast, group.last);
+            const changed = newIds.length || forward || changes.length || recordsDetails || visit.openSolarStage !== group.openSolarStage;
+            return { group, visit, kind: changed ? "update" : "same", newIds, forward, changes, recordsDetails };
+        }
+        const candidates = clientCandidates(group);
+        const best = candidates[0];
+        return best && best.score >= 3
+            ? { group, visit: best.visit, kind: "match", changes: detailChanges(best.visit, group, true), candidates }
+            : { group, kind: "new", candidates };
+    });
+}
+
+function showOpenSolarReview(plan, fileName) {
+    formOpen = true;
+    selected = null;
+    setBackButton();
+    const count = (kind) => plan.filter((p) => p.kind === kind).length;
+    detailPane.querySelector(".admin-detail-kind").textContent = "Import from OpenSolar";
+    const main = el("div", "admin-entry-main");
+    main.append(
+        el("span", "admin-entry-title", "Review the OpenSolar import"),
+        el("span", "admin-entry-meta", `${fileName} · ${plural(plan.reduce((n, p) => n + p.group.ids.length, 0), ["project", "projects"])} in ${plural(plan.length, ["client", "clients"])}. Nothing is saved until you click Import.`),
+    );
+    detailPane.querySelector(".admin-detail-title").replaceChildren(main);
+
+    const form = el("form", "admin-install-form admin-os-review");
+    form.noValidate = true;
+    const summary = el("div", "admin-os-summary");
+    for (const [kind, label] of [["new", "new"], ["match", "likely existing"], ["update", "to update"], ["same", "unchanged"]]) {
+        const chip = el("span", `admin-os-chip admin-os-${kind}`);
+        chip.append(el("strong", "", String(count(kind))), ` ${label}`);
+        summary.append(chip);
+    }
+    form.append(summary);
+
+    const stageLabel = (key) => stageInfo("visits", key).label;
+    // "Phone: 0917 111 2222 → 0918 333 4444", "adds email".
+    const describeChanges = (changes) => changes.map((c) => (c.from
+        ? `${OPENSOLAR_FIELD_LABELS[c.field]}: ${c.from} → ${c.to}`
+        : `adds ${OPENSOLAR_FIELD_LABELS[c.field].toLowerCase()}`));
+
+    // "Same client as…": suggestions first (with why), then every other entry
+    // not yet linked to OpenSolar, or "Add as a new client".
+    const unlinked = data.visits
+        .filter((v) => !serialList(v.openSolarIds).length)
+        .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    const pickers = new Map();
+    const picker = (item) => {
+        const select = el("select", "admin-select admin-os-pick");
+        select.setAttribute("aria-label", `Same client as… (${item.group.name})`);
+        const none = el("option", "", "Add as a new client");
+        none.value = "";
+        select.append(none);
+        const label = (v, why) => [v.name || "(no name)", stageLabel(stageOf("visits", v)), v.phone || v.address, why].filter(Boolean).join(" · ");
+        const suggested = el("optgroup");
+        suggested.label = "Suggested";
+        for (const c of item.candidates.slice(0, 6)) {
+            const option = el("option", "", `Same as ${label(c.visit, c.reasons.join(", "))}`);
+            option.value = c.visit.id;
+            suggested.append(option);
+        }
+        if (suggested.children.length) select.append(suggested);
+        const others = el("optgroup");
+        others.label = "All other clients";
+        const shown = new Set(item.candidates.slice(0, 6).map((c) => c.visit.id));
+        for (const v of unlinked) {
+            if (shown.has(v.id)) continue;
+            const option = el("option", "", `Same as ${label(v)}`);
+            option.value = v.id;
+            others.append(option);
+        }
+        if (others.children.length) select.append(others);
+        select.value = item.kind === "match" ? item.visit.id : "";
+        pickers.set(item, select);
+        return select;
+    };
+
+    const section = (kind, title, describe) => {
+        const items = plan.filter((p) => p.kind === kind);
+        if (!items.length) return;
+        form.append(el("h3", "admin-os-heading", `${title} (${items.length})`));
+        const list = el("ul", "admin-os-list");
+        for (const item of items) {
+            const row = el("li", "admin-os-row");
+            const text = el("span", "admin-os-name", item.group.name);
+            text.append(el("span", "admin-os-meta", describe(item)));
+            if (kind === "match" || kind === "new") {
+                row.classList.add("admin-os-row-pick");
+                row.append(text, picker(item));
+            } else {
+                row.append(text);
+            }
+            list.append(row);
+        }
+        form.append(list);
+    };
+    const projects = (g) => `${plural(g.ids.length, ["project", "projects"])} #${g.ids.join(", #")}`;
+    section("match", "Likely existing clients", (p) => [p.group.address, projects(p.group), `OpenSolar: ${p.group.openSolarStage || "—"}`, ...describeChanges(p.changes), "change the choice if it's a different client"].filter(Boolean).join(" · "));
+    section("new", "New clients", (p) => [p.group.address, `${stageLabel(p.group.stage)} (OpenSolar: ${p.group.openSolarStage || "—"})`, projects(p.group),
+        p.candidates.length ? "possible matches in the list" : ""].filter(Boolean).join(" · "));
+    section("update", "Updates", (p) => [
+        p.forward ? `${stageLabel(stageOf("visits", p.visit))} → ${stageLabel(p.group.stage)}` : "",
+        p.newIds.length ? `+ ${plural(p.newIds.length, ["project", "projects"])}` : "",
+        ...describeChanges(p.changes),
+        !p.forward && !p.newIds.length && !p.changes.length
+            ? (p.visit.openSolarStage !== p.group.openSolarStage ? `OpenSolar now: ${p.group.openSolarStage}` : "saves OpenSolar's details to track future changes")
+            : "",
+    ].filter(Boolean).join(" · "));
+    if (count("same")) form.append(el("p", "admin-os-note", `${plural(count("same"), ["client", "clients"])} already up to date, left as they are.`));
+
+    const actions = el("div", "admin-install-form-actions");
+    const error = el("p", "admin-action-error admin-install-error");
+    error.setAttribute("role", "alert");
+    const cancel = el("button", "admin-action");
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", closeEntry);
+    const go = el("button", "admin-action admin-action-primary");
+    go.type = "submit";
+    const work = plan.filter((p) => p.kind !== "same").length;
+    go.disabled = !work;
+    go.append(el("span", "material-symbols-rounded", "cloud_download"), work ? "Import" : "Nothing to import");
+    actions.append(error, cancel, go);
+    form.append(actions);
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        error.textContent = "";
+        go.disabled = true;
+        cancel.disabled = true;
+        go.replaceChildren(el("span", "material-symbols-rounded", "hourglass_top"), "Importing…");
+        // Each match / new client goes by its "Same client as…" choice.
+        const final = plan.map((p) => {
+            if (!pickers.has(p)) return p;
+            const visit = data.visits.find((v) => v.id === pickers.get(p).value);
+            return visit
+                ? { group: p.group, kind: "match", visit, changes: detailChanges(visit, p.group, true) }
+                : { group: p.group, kind: "new" };
+        });
+        try {
+            const result = await runOpenSolarImport(final);
+            formOpen = false;
+            await loadSubmissions();
+            closeEntry();
+            setOpenSolarStatus(`OpenSolar import: ${result.created} new, ${result.updated} updated${result.skipped ? `, ${result.skipped} already there` : ""}.`);
+        } catch (err) {
+            console.error("Admin: OpenSolar import failed", err);
+            error.textContent = err.code === "permission-denied"
+                ? "Permission denied. Publish the latest /firestore.rules in the Firebase console, then try again."
+                : "The import stopped. Check your connection and try again (what was saved stays, and re-importing won't duplicate it).";
+            go.disabled = false;
+            cancel.disabled = false;
+            go.replaceChildren(el("span", "material-symbols-rounded", "cloud_download"), "Import");
+        }
+    });
+    detailPane.querySelector(".admin-detail-body").replaceChildren(form);
+    overview.hidden = true;
+    detailPane.hidden = false;
+    mainArea.scrollTop = 0;
+    if (!desktop.matches) detailPane.scrollIntoView({ block: "start" });
+    markSelected();
+}
+
+async function runOpenSolarImport(plan) {
+    const email = auth.currentUser.email;
+    let created = 0;
+    let updated = 0;
+    let skipped = 0;
+    for (const item of plan) {
+        const { group } = item;
+        if (item.kind === "new") {
+            try {
+                await firestore.setDoc(firestore.doc(db, TABS.visits.collection, `opensolar-${group.ids[0]}`), {
+                    name: group.name,
+                    phone: group.phone,
+                    email: group.email,
+                    address: group.address,
+                    propertyType: group.residential ? "Residential" : "Commercial",
+                    product: "Not sure yet",
+                    monthlyBill: "",
+                    preferredDate: "",
+                    preferredTime: "Any time",
+                    message: "",
+                    attachments: [],
+                    consent: false,
+                    sourcePage: "",
+                    status: "new",
+                    createdAt: firestore.serverTimestamp(),
+                    stage: group.stage,
+                    stageUpdatedAt: firestore.serverTimestamp(),
+                    stageUpdatedBy: email,
+                    source: "opensolar",
+                    openSolarIds: group.ids.slice(0, 50),
+                    openSolarStage: group.openSolarStage,
+                    openSolarSyncedAt: firestore.serverTimestamp(),
+                    openSolarLast: group.last,
+                });
+                created++;
+            } catch (err) {
+                // Already there (another import got to it first): not an error.
+                if (err.code === "permission-denied" && created + updated === 0 && skipped === 0) throw err;
+                skipped++;
+            }
+        } else if (item.kind === "update" || item.kind === "match") {
+            const visit = item.visit;
+            const update = {
+                openSolarIds: [...new Set([...serialList(visit.openSolarIds), ...group.ids])].slice(0, 50),
+                openSolarStage: group.openSolarStage,
+                openSolarSyncedAt: firestore.serverTimestamp(),
+                openSolarLast: group.last,
+            };
+            if (visitRank(group.stage) > visitRank(stageOf("visits", visit))) {
+                update.stage = group.stage;
+                update.stageUpdatedAt = firestore.serverTimestamp();
+                update.stageUpdatedBy = email;
+            }
+            for (const change of item.changes || []) update[change.field] = change.to;
+            await firestore.updateDoc(firestore.doc(db, TABS.visits.collection, visit.id), update);
+            // Keep the local copy in step, in case another group in this file
+            // matches the same entry.
+            visit.openSolarIds = update.openSolarIds;
+            visit.openSolarLast = update.openSolarLast;
+            if (update.stage) visit.stage = update.stage;
+            for (const field of OPENSOLAR_FIELDS) if (update[field]) visit[field] = update[field];
+            updated++;
+        }
+    }
+    return { created, updated, skipped };
+}
+
+function setOpenSolarStatus(text) {
+    openSolarStatus.textContent = text;
+    openSolarStatus.hidden = !text;
+}
+
+openSolarButton.addEventListener("click", () => openSolarFile.click());
+openSolarFile.addEventListener("change", async () => {
+    const file = openSolarFile.files[0];
+    openSolarFile.value = "";
+    if (!file || role !== "admin") return;
+    setOpenSolarStatus("");
+    try {
+        const plan = openSolarPlan(openSolarGroups(await file.text()));
+        if (!plan.length) throw userError("No OpenSolar projects found in that file.");
+        showOpenSolarReview(plan, file.name);
+    } catch (err) {
+        console.error("Admin: reading OpenSolar export failed", err);
+        setOpenSolarStatus(err.userMessage || "Couldn't read that file. Export the projects from OpenSolar as CSV and try again.");
+    }
+});
 
 
 // ------------------------------------------------------- edit and delete
@@ -2428,6 +3239,7 @@ function selectTab(name) {
     });
     productFilter.hidden = name !== "waitlist";
     installActions.hidden = name !== "installs";
+    visitActions.hidden = name !== "visits" || role !== "admin";
     updateStatusFilter();
     renderList();
 }

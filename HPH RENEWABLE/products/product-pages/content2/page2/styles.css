@@ -1154,7 +1154,7 @@ body.menu-open{
     .mobile-carousel{
         position: relative;
         margin: 0 -24px;
-        aspect-ratio: 1 / 1;
+        aspect-ratio: 5 / 6;
         overflow: hidden;
         background-color: var(--m-surface);
 
@@ -1355,5 +1355,676 @@ body.menu-open{
 
     a{
         color: var(--m-text, #1A1A1A);
+    }
+}
+
+
+/* ===== DESKTOP DARK THEME ===== */
+/* Follows the system setting, on desktop and mobile. Same #FFFFFF -> #0C0C0C
+   surface mapping as the rest of the site. Only the battery pages (B4000 Elite,
+   B5000 Elite) have this; the head-unit and MX2250 pages stay light. The photo
+   slide keeps its light stage, because the charcoal product would disappear
+   on a dark background (the 3D slide has its own dark grey, at the end). The base nav colours are set several
+   levels deep, so those use !important (as Home's do). */
+@media (prefers-color-scheme: dark){
+    body{
+        background-color: #0C0C0C;
+    }
+
+    .desktop{
+        background-color: #0C0C0C !important;
+
+        .top-blur{
+            background-color: #0C0C0C !important;
+        }
+
+        .nav-bar{
+            .logo .img{
+                filter: invert(1) !important;
+            }
+
+            .nav-title, .nav-link{
+                color: #EBEBEB !important;
+            }
+
+            .schedule-btn{
+                background-color: #EBEBEB !important;
+                color: #0C0C0C !important;
+            }
+
+            .nav-overlay{
+                background-color: rgba(0, 0, 0, 0.4) !important;
+            }
+
+            .mega-panel{
+                background-color: rgba(12, 12, 12, 0.97) !important;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+
+                .mega-heading{
+                    color: #9E9E9E !important;
+                }
+
+                .mega-link{
+                    color: #EBEBEB !important;
+                }
+
+                .mega-link:hover{
+                    color: #ADADAD !important;
+                }
+            }
+        }
+    }
+}
+
+/* Desktop page content (dark): each light colour mapped to its dark
+   counterpart, using the same selectors so these win by coming later. */
+@media (prefers-color-scheme: dark){
+    .desktop{
+        .content-container{
+            .flex-box{
+                .box1{
+                    .carousel{
+                        border: 1px solid rgba(255, 255, 255, 0.14);
+                    }
+                }
+
+                .box2{
+                    .text-container-content{
+                        .title{
+                            color: #FFFFFF;
+                        }
+
+                        .sub-title{
+                            color: #4DA3FF;
+                        }
+
+                        .price{
+                            color: #EBEBEB;
+                        }
+
+                        .details{
+                            color: #9E9E9E;
+                        }
+
+                        .grid-box{
+                            .box{
+                                border: 1px solid #2A2A2A;
+
+                                .title{
+                                    color: #FFFFFF;
+                                }
+
+                                .flex, .flex2{
+                                    .box3{
+                                        .sub-title{
+                                            color: #9E9E9E;
+                                        }
+
+                                        .title{
+                                            color: #EBEBEB;
+                                        }
+                                    }
+                                }
+
+                                .flex{
+                                    .box{
+                                        background-color: #2A2A2A;
+                                    }
+                                }
+                            }
+
+                            .box:hover{
+                                border: 1px solid #9E9E9E;
+                                background-color: rgba(255, 255, 255, 0.05);
+                            }
+                        }
+                    }
+
+                    .btn-container{
+                        .btn{
+                            background-color: #EBEBEB;
+                            color: #0C0C0C;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    .unit-note{
+        background-color: #1A1A1A;
+        color: #EBEBEB;
+
+        .material-symbols-rounded{
+            color: #9E9E9E;
+        }
+
+        a{
+            color: #EBEBEB;
+        }
+    }
+}
+
+/* Mobile (dark): the content uses the --m-* tokens; the nav, menu and the
+   solid button have their own colours. */
+@media (prefers-color-scheme: dark){
+    .mobile{
+        --m-bg: #0C0C0C;
+        --m-text: #EBEBEB;
+        --m-muted: #9E9E9E;
+        --m-subtle: #9E9E9E;
+        --m-border: #2A2A2A;
+        --m-surface: #1A1A1A;
+        background-color: #0C0C0C;
+
+        .mobile-nav{
+            background-color: #0C0C0C;
+
+            .mobile-logo .img{
+                filter: none;
+            }
+
+            .menu .menu-line{
+                background-color: #EBEBEB;
+            }
+        }
+
+        body.menu-open & .mobile-nav{
+            background-color: #0C0C0C;
+
+            .mobile-logo .img{
+                filter: none;
+            }
+
+            .menu .menu-line{
+                background-color: #EBEBEB;
+            }
+        }
+
+        .dropdown{
+            background-color: #0C0C0C;
+
+            .menu-title, .menu-links .menu-link{
+                color: #EBEBEB;
+            }
+
+            .menu-title .chevron, .menu-links .menu-heading{
+                color: #9E9E9E;
+            }
+
+            .menu-cta{
+                background-color: #EBEBEB;
+                color: #0C0C0C;
+            }
+        }
+
+        .mobile-btn-solid{
+            background-color: #EBEBEB;
+            color: #0C0C0C;
+        }
+
+        /* Keeps the light product stage (see the note above). */
+        .mobile-carousel{
+            background-color: #F5F5F7;
+        }
+    }
+}
+
+/* 3D slide (dark): a darker grey stage than the photo slides, still light
+   enough for the charcoal model to stand out. */
+@media (prefers-color-scheme: dark){
+    .carousel-slide-3d, .mobile-carousel-slide-3d{
+        background-color: #1C1C1E !important;
+
+        .model-hint{
+            background-color: rgba(28, 28, 30, 0.6);
+            color: #EBEBEB;
+        }
+    }
+
+    /* The page dots sit over both the light photo and the dark 3D stage, so
+       they use mid-grey and a near-white active dot with a thin dark ring. */
+    .desktop .content-container .flex-box .box1 .carousel .carousel-dots .carousel-dot,
+    .mobile .mobile-carousel .mobile-carousel-dots .mobile-carousel-dot{
+        background-color: rgba(128, 128, 128, 0.6);
+
+        &.active{
+            background-color: #EBEBEB;
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+        }
+    }
+}
+
+/* Carousel arrows: transparent until hovered, then the white circle and
+   shadow. Phones have no hover, so they show it while being tapped. */
+.desktop{
+    .content-container{
+        .flex-box{
+            .box1{
+                .carousel{
+                    .carousel-arrow{
+                        background-color: transparent;
+                        box-shadow: none;
+                        transition: background-color 0.2s ease, box-shadow 0.2s ease;
+
+                        &:hover{
+                            background-color: rgba(255, 255, 255, 0.95);
+                            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+.mobile{
+    .mobile-carousel{
+        .mobile-carousel-arrow{
+            background-color: transparent;
+            box-shadow: none;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease;
+
+            &:active{
+                background-color: rgba(255, 255, 255, 0.95);
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+            }
+        }
+    }
+}
+
+/* Dark mode: a transparent arrow's black icon would vanish on the dark 3D
+   slide, so it's mid-grey until hovered or tapped (which brings back the white
+   circle and the black icon). */
+@media (prefers-color-scheme: dark){
+    .desktop .content-container .flex-box .box1 .carousel .carousel-arrow:not(:hover) .material-symbols-rounded,
+    .mobile .mobile-carousel .mobile-carousel-arrow:not(:active) .material-symbols-rounded{
+        color: #8E8E93;
+    }
+}
+
+/* Capacity labels beside each stacked unit (model-viewer hotspots, added by
+   the page script): a short line from the unit's edge, then its name and
+   capacity. model-viewer centres each on its point and sets data-visible while
+   that side faces the camera; the label is shifted to start at the point. */
+.unit-spot{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    /* Start 12px right of the point, so the line clears the unit. */
+    transform: translateX(calc(50% + 12px));
+    color: #1A1A1A;
+    font-family: inter;
+    font-size: 11px;
+    white-space: nowrap;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.9);
+    pointer-events: none;
+    animation: unit-spot-in 0.35s ease both;
+    transition: opacity 0.2s ease;
+
+    /* The line and the dot where it meets the unit are blue, like the product
+       pages' blue "Micro Hybrid Storage Unit" / "AC Coupled Unit" line, so
+       they show against both the dark unit and the light stage. */
+    position: relative;
+
+    &::before{
+        content: "";
+        width: 64px;
+        height: 1.5px;
+        border-radius: 1px;
+        background-color: #007AFF;
+    }
+
+    &::after{
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: -3px;
+        width: 6px;
+        height: 6px;
+        margin-top: -3px;
+        border-radius: 50%;
+        background-color: #007AFF;
+    }
+
+    .unit-spot-text{
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+    }
+
+    .unit-spot-name{
+        font-weight: 600;
+    }
+
+    .unit-spot-kwh{
+        color: #757575;
+        font-weight: 500;
+    }
+
+    &:not([data-visible]){
+        opacity: 0;
+    }
+}
+
+/* Phones: a shorter line and the capacity under the name, so the labels fit
+   beside the stack. */
+@media (max-width: 750px){
+    .unit-spot{
+        gap: 6px;
+        transform: translateX(calc(50% + 6px));
+        font-size: 10px;
+
+        &::before{
+            width: 40px;
+        }
+
+        .unit-spot-text{
+            flex-direction: column;
+            gap: 0;
+            line-height: 1.25;
+        }
+    }
+}
+
+/* Phones: a single stack slides left so the labels on its right clear the
+   screen edge and the next arrow. With several stacks there's no room for the
+   labels, so they're hidden (the steppers give the totals), and "Elite" is
+   dropped from the head unit's label. */
+@media (max-width: 750px){
+    .mobile-carousel-slide-3d model-viewer{
+        transition: transform 0.4s ease;
+    }
+
+    /* Labels are clipped at the viewer's edge, so instead of moving the model,
+       the front labels get a shorter line and the port labels (Right view,
+       zoomed in) a longer one, so their text clears the panel. */
+    .unit-spot.spot-front::before{
+        width: 24px;
+    }
+
+    .unit-spot.spot-right::before{
+        width: 56px;
+    }
+
+    .mobile-carousel-slide-3d.multi-stack .unit-spot,
+    .unit-spot .unit-spot-extra{
+        display: none;
+    }
+}
+
+@media (max-width: 750px) and (prefers-reduced-motion: reduce){
+    .mobile-carousel-slide-3d model-viewer{
+        transition: none;
+    }
+}
+
+/* Each side's labels show only while that side faces the camera: the unit and
+   batteries from the front, the ports from the right (view-* classes set by
+   the page script). With batteries stacked, the ports also need the Right
+   view selected (.ports-ok). */
+.carousel-slide-3d:not(.view-front) .spot-front,
+.mobile-carousel-slide-3d:not(.view-front) .spot-front,
+.carousel-slide-3d:not(.view-right) .spot-right,
+.mobile-carousel-slide-3d:not(.view-right) .spot-right,
+.carousel-slide-3d:not(.ports-ok) .spot-right,
+.mobile-carousel-slide-3d:not(.ports-ok) .spot-right,
+.carousel-slide-3d:not(.view-top) .spot-top,
+.mobile-carousel-slide-3d:not(.view-top) .spot-top,
+.carousel-slide-3d:not(.view-bottom) .spot-bottom,
+.mobile-carousel-slide-3d:not(.view-bottom) .spot-bottom{
+    opacity: 0 !important;
+}
+
+/* The battery connector sits well in from the underside's edge, so its line
+   is long enough to reach past the unit onto the light background. */
+.unit-spot.spot-bottom::before,
+.unit-spot.spot-top::before{
+    width: 120px;
+}
+
+@media (max-width: 750px){
+    .unit-spot.spot-bottom::before,
+    .unit-spot.spot-top::before{
+        width: 90px;
+    }
+
+    /* Six views and the ruler: slightly tighter buttons so they fit a phone. */
+    .model-views .model-view-btn{
+        min-width: 0;
+        padding: 0 9px;
+        font-size: 12px;
+    }
+}
+
+@keyframes unit-spot-in{
+    from{ opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .unit-spot{
+        animation: none;
+    }
+}
+
+
+/* Front / Back / Left / Right views on the 3D slide: an iOS-style segmented
+   control at the bottom, with a white thumb that slides to the chosen view
+   (hidden after the model is dragged). The "Drag to rotate" hint sits above it. */
+/* The views control and the dimensions button sit together at the bottom. */
+.model-tools{
+    position: absolute;
+    bottom: 34px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mobile-carousel-slide-3d .model-tools{
+    bottom: 26px;
+}
+
+.model-views{
+    position: relative;
+    display: flex;
+    padding: 2px;
+    border-radius: 9px;
+    background-color: rgba(118, 118, 128, 0.12);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", inter, sans-serif;
+    -webkit-font-smoothing: antialiased;
+
+    .model-view-thumb{
+        position: absolute;
+        top: 2px;
+        bottom: 2px;
+        left: 0;
+        border-radius: 7px;
+        background-color: #FFFFFF;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 3px 1px rgba(0, 0, 0, 0.04);
+        opacity: 0;
+        transition: transform 0.25s cubic-bezier(0.3, 0.7, 0.4, 1), width 0.25s ease, opacity 0.2s ease;
+    }
+
+    &.has-view .model-view-thumb{
+        opacity: 1;
+    }
+
+    .model-view-btn{
+        position: relative;
+        min-width: 58px;
+        height: 28px;
+        padding: 0 12px;
+        border: none;
+        border-radius: 7px;
+        background: transparent;
+        color: #1D1D1F;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        letter-spacing: -0.01em;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+
+        &[aria-pressed="true"]{
+            font-weight: 600;
+        }
+
+        &:focus-visible{
+            outline: 2px solid #0071E3;
+            outline-offset: -2px;
+        }
+    }
+}
+
+.carousel-slide-3d .model-hint, .mobile-carousel-slide-3d .model-hint{
+    transition: opacity 0.3s ease;
+}
+
+.carousel-slide-3d.used .model-hint, .mobile-carousel-slide-3d.used .model-hint{
+    opacity: 0;
+}
+
+.carousel-slide-3d:has(.model-views) .model-hint{
+    bottom: 76px;
+}
+
+
+.mobile-carousel-slide-3d:has(.model-views) .model-hint{
+    bottom: 64px;
+}
+
+@media (prefers-reduced-motion: reduce){
+    .model-views .model-view-thumb{
+        transition: none;
+    }
+}
+
+/* Dimensions button: round, like the views control; yellow while on, to match
+   the measurement lines. */
+.model-measure{
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(118, 118, 128, 0.12);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    color: #1D1D1F;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.2s ease, color 0.2s ease;
+
+    span{
+        font-size: 18px;
+    }
+
+    &:hover{
+        background-color: rgba(118, 118, 128, 0.2);
+    }
+
+    &[aria-pressed="true"]{
+        background-color: #FFCC00;
+        color: #000000;
+    }
+
+    &:focus-visible{
+        outline: 2px solid #0071E3;
+        outline-offset: 2px;
+    }
+}
+
+/* Dimension lines and labels, drawn over the 3D view by the page script. The
+   unit and port labels step aside while they're on. */
+.model-dims{
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+
+    &.on{
+        opacity: 1;
+    }
+
+    svg{
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        overflow: visible;
+
+        line{
+            stroke: #FFCC00;
+            stroke-width: 2;
+            stroke-linecap: round;
+        }
+    }
+
+    /* Measurements: black text on a small yellow tag beside each line, placed
+       by the page script on the side away from the model; the lines are yellow
+       too, like Apple's Measure app. */
+    .dim-label{
+        position: absolute;
+        padding: 2px 7px;
+        border-radius: 6px;
+        background-color: #FFCC00;
+        color: #000000;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", inter, sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        white-space: nowrap;
+    }
+}
+
+.dims-on .unit-spot{
+    opacity: 0 !important;
+}
+
+.dim-end{
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+/* Dark mode for the 3D slide's controls and labels (this page has dark mode). */
+@media (prefers-color-scheme: dark){
+    .model-views{
+        background-color: rgba(118, 118, 128, 0.24);
+
+        .model-view-thumb{
+            background-color: #636366;
+            box-shadow: none;
+        }
+
+        .model-view-btn{
+            color: #EBEBEB;
+        }
+    }
+
+    .model-measure{
+        background-color: rgba(118, 118, 128, 0.24);
+        color: #EBEBEB;
+
+        &:hover{
+            background-color: rgba(118, 118, 128, 0.36);
+        }
+    }
+
+    .unit-spot{
+        color: #EBEBEB;
+        text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+
+        .unit-spot-kwh{
+            color: #9E9E9E;
+        }
     }
 }

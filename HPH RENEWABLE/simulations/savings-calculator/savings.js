@@ -11,12 +11,21 @@
     const KIT_KWH_YEAR = 3100;
     const KIT_PRICE = 120000;
     const KIT_PANELS = 4, KIT_KWP = 2.6;
-    const MAX_KITS = 12;
-    const BATTERIES = {
-        0: { price: 0, items: [] },
-        5: { price: 150000, items: ["MAU5000 Elite (5 kWh battery)"] },
-        10: { price: 250000, items: ["MAU5000 Elite (5 kWh battery)", "B5000 Elite extension (+5 kWh)"] },
-    };
+    const KIT_WATTS = 2250;           // MX2250 rated output
+    const MAX_KITS = 30;              // room for the largest battery setups
+    // Battery storage (keep prices in sync with the product pages, the FAQ
+    // and the waitlist's data-price values): 1-5 MAU5000 Elite head units,
+    // each with up to 4 B5000 Elite stackable batteries under it (25.1 kWh
+    // per full stack).
+    const HEAD_KWH = 5.024, HEAD_PRICE = 150000, MAX_HEADS = 5;
+    const EXT_KWH = (25.1 - HEAD_KWH) / 4, EXT_PRICE = 100000, EXT_PER_HEAD = 4;
+    function batterySetup(on, heads, exts) {
+        if (!on) return { kwh: 0, price: 0, items: [] };
+        const items = [`${heads} × MAU5000 Elite head unit (5 kWh each)`];
+        if (exts) items.push(`${exts} × B5000 Elite stackable battery (+5 kWh each)`);
+        return { kwh: heads * HEAD_KWH + exts * EXT_KWH, price: heads * HEAD_PRICE + exts * EXT_PRICE, items };
+    }
+    const kwhText = (v) => String(Math.round(v * 10) / 10);
     const BATTERY_EFFICIENCY = 0.9;
     const DEGRADATION = 0.005;        // panels lose 0.5% a year
     const YEARS = 25;
@@ -30,7 +39,7 @@
     const rateInput = $("#calc-rate");
     if (!billRange) return;
 
-    const state = { bill: 6000, rate: 16, dayShare: 0.45, battery: 0, kits: null }; // kits null = recommended
+    const state = { bill: 6000, rate: 16, dayShare: 0.45, batteryOn: false, heads: 1, exts: 0, battery: 0, kits: null }; // kits null = recommended; battery = kWh
 
     // ------------------------------------------------------------- model
 
@@ -63,7 +72,7 @@
         const recommended = recommendedKits(state);
         const kits = state.kits === null ? recommended : state.kits;
         const m = monthly(kits, state);
-        const cost = kits * KIT_PRICE + BATTERIES[state.battery].price;
+        const cost = kits * KIT_PRICE + batterySetup(state.batteryOn, state.heads, state.exts).price;
         const yearly = m.savings * 12;
         const years = [];
         let total = -cost;
@@ -75,6 +84,29 @@
         const payback = yearly > 0 ? cost / yearly : Infinity;
         return { kits, recommended, m, cost, yearly, years, payback, lifetime: years[YEARS - 1].total + cost };
     }
+
+    // "Recommend a setup": try no battery and every battery combination
+    // (1-5 head units, 0-4 B5000 Elite each), size the solar for each with
+    // recommendedKits(), and keep the one with the most savings over 25 years
+    // after its cost. Ties go to the cheaper setup.
+    const LIFETIME_FACTOR = Array.from({ length: YEARS }, (_, y) => Math.pow(1 - DEGRADATION, y)).reduce((a, b) => a + b, 0);
+    function bestSetup(s) {
+        const options = [{ on: false, heads: 1, exts: 0 }];
+        for (let h = 1; h <= MAX_HEADS; h++) for (let e = 0; e <= h * EXT_PER_HEAD; e++) options.push({ on: true, heads: h, exts: e });
+        let best = null;
+        options.forEach((o) => {
+            const setup = batterySetup(o.on, o.heads, o.exts);
+            const trial = { ...s, battery: setup.kwh };
+            const kits = recommendedKits(trial);
+            const cost = kits * KIT_PRICE + setup.price;
+            const net = monthly(kits, trial).savings * 12 * LIFETIME_FACTOR - cost;
+            if (!best || net > best.net + 1 || (Math.abs(net - best.net) <= 1 && cost < best.cost)) best = { ...o, kits, cost, net };
+        });
+        return best;
+    }
+    // Snapshot of the inputs a recommendation was made for; the note shows only while they still match.
+    let recommendedFor = null;
+    const inputsKey = () => JSON.stringify([state.bill, state.rate, state.dayShare, state.batteryOn, state.heads, state.exts, state.kits]);
 
     // ------------------------------------------------------------- chart
 
@@ -208,24 +240,44 @@
         setOut("offset", Math.round((r.m.savings / state.bill) * 100));
         setOut("cost", peso(r.cost));
 
-        setOut("kits", r.kits);
-        setOut("kits-detail", `${r.kits * KIT_PANELS} panels · ${(r.kits * KIT_KWP).toFixed(1)} kWp`);
+        setOut("kits-watts", (r.kits * KIT_WATTS).toLocaleString("en-PH"));
+        setOut("kits-detail", `${r.kits} × MX2250 · ${r.kits * KIT_PANELS} panels · ${(r.kits * KIT_KWP).toFixed(1)} kWp`);
         const isRec = r.kits === r.recommended;
         setOut("kits-note", isRec ? "Recommended for your bill." : `We'd recommend ${r.recommended} for your bill.`);
         document.querySelectorAll("[data-out-hide-when-recommended]").forEach((el) => { el.hidden = isRec; });
         document.querySelector('[data-kits-step="-1"]').disabled = r.kits <= 1;
         document.querySelector('[data-kits-step="1"]').disabled = r.kits >= MAX_KITS;
 
-        setOut("battery-help", state.battery === 0
-            ? "Solar only: your home uses solar power as it's made."
-            : `Stores extra daytime solar for the evening (up to ${state.battery} kWh a day).`);
+        const setup = batterySetup(state.batteryOn, state.heads, state.exts);
+        const maxExts = state.heads * EXT_PER_HEAD;
+        $("[data-battery-size]").hidden = !state.batteryOn;
+        setOut("battery-heads", state.heads);
+        setOut("battery-exts", state.exts);
+        setOut("battery-exts-detail", `B5000 Elite stackable batteries · up to ${maxExts}`);
+        setOut("battery-kwh", kwhText(setup.kwh));
+        document.querySelector('[data-battery-step="heads:-1"]').disabled = state.heads <= 1;
+        document.querySelector('[data-battery-step="heads:1"]').disabled = state.heads >= MAX_HEADS;
+        document.querySelector('[data-battery-step="exts:-1"]').disabled = state.exts <= 0;
+        document.querySelector('[data-battery-step="exts:1"]').disabled = state.exts >= maxExts;
+        setOut("battery-help", state.batteryOn
+            ? `Stores extra daytime solar for the evening (up to ${kwhText(setup.kwh)} kWh a day). Each MAU5000 Elite takes up to 4 B5000 Elite batteries under it. Stacking batteries is the cheapest way to add storage; extra head units add their own inverter, so more appliances can run at once.`
+            : "Solar only: your home uses solar power as it's made.");
+
+        const note = $('[data-out="recommend-note"]');
+        note.hidden = recommendedFor !== inputsKey();
+        if (!note.hidden) {
+            const what = state.batteryOn
+                ? `${r.kits} × MX2250 with ${kwhText(batterySetup(true, state.heads, state.exts).kwh)} kWh of battery`
+                : `${r.kits} × MX2250, no battery`;
+            note.textContent = `Recommended: ${what}. This setup saves the most over 25 years, after its cost, for your bill and usage.`;
+        }
 
         const list = $('[data-out-list="system"]');
-        const items = [`${r.kits} × MX2250 micro inverter kit (${r.kits * KIT_PANELS} panels)`, ...BATTERIES[state.battery].items];
+        const items = [`${r.kits} × MX2250 micro inverter kit (${r.kits * KIT_PANELS} panels)`, ...setup.items];
         list.replaceChildren(...items.map((text) => { const li = document.createElement("li"); li.textContent = text; return li; }));
 
         document.querySelectorAll("[data-day-share]").forEach((b) => b.setAttribute("aria-checked", String(Number(b.dataset.dayShare) === state.dayShare)));
-        document.querySelectorAll("[data-battery]").forEach((b) => b.setAttribute("aria-checked", String(Number(b.dataset.battery) === state.battery)));
+        document.querySelectorAll("[data-battery-mode]").forEach((b) => b.setAttribute("aria-checked", String((b.dataset.batteryMode === "battery") === state.batteryOn)));
 
         drawChart(r);
     }
@@ -263,11 +315,33 @@
         state.kits = null;
         render();
     }));
-    document.querySelectorAll("[data-battery]").forEach((b) => b.addEventListener("click", () => {
-        state.battery = Number(b.dataset.battery);
+    function setBattery(on, heads, exts) {
+        state.batteryOn = on;
+        state.heads = clamp(heads, 1, MAX_HEADS);
+        // Fewer head units can hold fewer batteries.
+        state.exts = clamp(exts, 0, state.heads * EXT_PER_HEAD);
+        state.battery = batterySetup(on, state.heads, state.exts).kwh;
         state.kits = null;
         render();
+    }
+    document.querySelectorAll("[data-battery-mode]").forEach((b) => b.addEventListener("click", () => {
+        setBattery(b.dataset.batteryMode === "battery", state.heads, state.exts);
     }));
+    document.querySelectorAll("[data-battery-step]").forEach((b) => b.addEventListener("click", () => {
+        const [which, step] = b.dataset.batteryStep.split(":");
+        if (which === "heads") setBattery(true, state.heads + Number(step), state.exts);
+        else setBattery(true, state.heads, state.exts + Number(step));
+    }));
+    $("[data-recommend]").addEventListener("click", () => {
+        const best = bestSetup(state);
+        state.batteryOn = best.on;
+        state.heads = best.heads;
+        state.exts = best.exts;
+        state.battery = batterySetup(best.on, best.heads, best.exts).kwh;
+        state.kits = null; // bestSetup() used the recommended kits for this battery
+        recommendedFor = inputsKey();
+        render();
+    });
     document.querySelectorAll("[data-kits-step]").forEach((b) => b.addEventListener("click", () => {
         const current = calculate().kits;
         state.kits = clamp(current + Number(b.dataset.kitsStep), 1, MAX_KITS);

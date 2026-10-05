@@ -1038,6 +1038,14 @@ a:link{
         white-space: nowrap;
     }
 
+    /* "3 visits + 20 past installs" under the Installed box's label. */
+    .admin-pipeline-note{
+        max-width: 100%;
+        font-size: 11px;
+        line-height: 1.35;
+        color: var(--admin-subtle);
+    }
+
     /* Share of all entries at this stage. */
     .admin-pipeline-bar{
         position: relative;
@@ -1189,6 +1197,56 @@ a:link{
     .admin-stage-dot{
         border-color: var(--admin-mark);
         background-color: var(--admin-mark);
+    }
+}
+
+/* Phones: seven labels don't fit side by side, so the stepper runs down the
+   page instead, one stage per row, the line and its blue fill on the left. */
+@media only screen and (max-width:750px){
+    .admin-stages{
+        --row: 30px;
+        flex-direction: column;
+
+        &::before, &::after{
+            top: calc(var(--row) / 2);
+            left: calc(var(--dot) / 2 - 1px);
+            width: 2px;
+            height: auto;
+        }
+
+        &::before{
+            right: auto;
+            bottom: calc(var(--row) / 2);
+        }
+
+        &::after{
+            height: calc((100% - var(--row)) * var(--progress, 0));
+        }
+
+        li, li:first-child, li:last-child{
+            flex: none;
+            height: var(--row);
+        }
+
+        li .admin-stage,
+        li:first-child .admin-stage,
+        li:last-child .admin-stage{
+            height: 100%;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 12px;
+            text-align: left;
+        }
+
+        .admin-stage-dot{
+            flex-shrink: 0;
+            margin-top: 0;
+        }
+
+        .admin-stage{
+            font-size: 13px;
+        }
     }
 }
 
@@ -1496,8 +1554,7 @@ a:link{
     min-width: 0;
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    letter-spacing: 0.01em;
     color: var(--admin-subtle);
     white-space: nowrap;
 
@@ -2251,10 +2308,242 @@ body[data-role="encoder"]{
     }
 }
 
+/* ===== IMPORT FROM OPENSOLAR (review screen) ===== */
+
+.admin-os-summary{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.admin-os-chip{
+    padding: 6px 12px;
+    border-radius: 999px;
+    background-color: var(--admin-surface);
+    font-size: 13px;
+    color: var(--admin-muted);
+
+    strong{
+        color: var(--admin-text);
+        font-weight: 600;
+    }
+
+    &.admin-os-new strong{ color: var(--admin-active-text); }
+    &.admin-os-update strong, &.admin-os-match strong{ color: var(--admin-mark); }
+}
+
+.admin-os-heading{
+    margin: 24px 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.admin-os-list{
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-top: 1px solid var(--admin-border);
+}
+
+.admin-os-row{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-os-name{
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.admin-os-meta{
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--admin-subtle);
+    overflow-wrap: anywhere;
+}
+
+/* Match / new rows: the client, then its "Same client as…" picker. */
+.admin-os-row-pick{
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 300px);
+    gap: 8px 16px;
+
+    .admin-os-pick{
+        min-height: 36px;
+        font-size: 13px;
+    }
+}
+
+@media only screen and (max-width:750px){
+    .admin-os-row-pick{
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.admin-os-link{
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 45%;
+    font-size: 12px;
+    color: var(--admin-muted);
+    cursor: pointer;
+
+    input{
+        accent-color: var(--admin-mark);
+    }
+}
+
+.admin-os-note{
+    margin: 16px 0 0;
+    font-size: 13px;
+    color: var(--admin-subtle);
+}
+
+body[data-role="encoder"] .admin-visit-actions{
+    display: none !important;
+}
+
+/* ===== SERIAL QUICK ENTRY (install form) ===== */
+
+/* Batch prefix, then one row per unit: prefix + last-4 box (or a full
+   serial), and Add buttons. */
+.admin-sn{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-sn-head{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--admin-subtle);
+
+    .admin-sn-prefix{
+        width: 22ch;
+        min-height: 32px;
+        padding: 0 8px;
+        border: 1px dashed var(--admin-border);
+        border-radius: 4px;
+        background: none;
+        color: var(--admin-text);
+        font-family: ui-monospace, Menlo, monospace;
+        font-size: 13px;
+        outline: none;
+
+        &:focus{ border-style: solid; border-color: var(--admin-accent); }
+    }
+}
+
+.admin-sn-rows{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 6px 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    &:empty{ display: none; }
+}
+
+.admin-sn-row{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 14px;
+
+    .admin-sn-num{
+        flex-shrink: 0;
+        width: 2ch;
+        font-family: inter;
+        font-size: 11px;
+        color: var(--admin-subtle);
+        text-align: right;
+    }
+
+    .admin-sn-fixed{
+        color: var(--admin-subtle);
+        letter-spacing: 0.02em;
+    }
+
+    input{
+        min-height: 34px;
+        padding: 0 8px;
+        box-sizing: border-box;
+        border: 1px solid var(--admin-border);
+        border-radius: 4px;
+        background-color: var(--admin-field);
+        color: var(--admin-text);
+        font: inherit;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        outline: none;
+
+        &:focus{ border-color: var(--admin-accent); box-shadow: 0 0 0 3px rgba(125, 129, 135, 0.18); }
+        &.short{ border-color: var(--admin-error); }
+    }
+
+    .admin-sn-last{ width: 7ch; text-transform: uppercase; }
+    .admin-sn-full{ flex: 1; min-width: 0; text-transform: uppercase; }
+}
+
+.admin-sn-remove{
+    flex-shrink: 0;
+    display: flex;
+    padding: 4px;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    color: var(--admin-subtle);
+    cursor: pointer;
+
+    .material-symbols-rounded{ font-size: 16px; }
+    &:hover{ color: var(--admin-error); background-color: var(--admin-surface); }
+}
+
+.admin-sn-actions{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+
+    .admin-action{
+        height: 32px;
+        font-size: 12px;
+    }
+}
+
+/* "Paste full serials": a text link. */
+.admin-link-button{
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--admin-mark);
+    font-family: inter;
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover{ text-decoration: underline; }
+}
+
 /* ===== EDIT DETAILS (visit requests, waitlist) ===== */
 
-/* Dropdowns in the edit form, styled like its text boxes. */
-.admin-install-grid .admin-select{
+/* Dropdowns in the edit form, styled like text boxes. */
+.admin-select{
     width: 100%;
     min-height: 44px;
     padding: 0 36px 0 12px;

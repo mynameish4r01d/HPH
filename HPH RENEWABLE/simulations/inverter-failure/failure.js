@@ -43,19 +43,16 @@
         if (state.stringFailed || state.panels.includes("broken")) {
             return { perPanel: avail.map(() => 0), total: 0, bypassed: avail.map(() => false), open: !state.stringFailed };
         }
-        let best = { total: -1, level: 0 };
-        [...new Set(avail)].sort((a, b) => a - b).forEach((level) => {
-            const total = avail.filter((w) => w >= level).length * level;
-            if (total > best.total + 0.01) best = { total, level };
-        });
-        const bypassed = avail.map((w) => w < best.level);
-        return { perPanel: avail.map((w, i) => (bypassed[i] ? 0 : best.level)), total: best.total, bypassed, open: false };
+        // Series panels share one current: the weakest panel drags every panel down to its level.
+        const level = Math.min(...avail);
+        return { perPanel: avail.map(() => level), total: level * PANELS, bypassed: avail.map(() => false), heldBack: avail.map((w) => w > level + 0.5), open: false };
     }
 
     // --------------------------------------------------------------- scenes
 
-    const W = 48, H = 100, TOP = 30, STEP = 56, LEFT = 20;
-    const BUS_Y = 186, INV_TOP = 230, INV_H = 34, AC_Y = 292;
+    // Panels fill as much of the 480-wide scene as 8 in a row allows.
+    const W = 54, H = 120, TOP = 14, STEP = 58, LEFT = 8;
+    const BUS_Y = 170, INV_TOP = 206, INV_H = 30, AC_Y = 256;
     const cx = (i) => LEFT + i * STEP + W / 2;
 
     const scenes = {};
@@ -91,9 +88,11 @@
             num.textContent = i + 1;
             const tag = svg("g", { class: "sim-tag fail-panel-tag", transform: `translate(${x + W / 2} ${TOP + H / 2 + 4})` }, g);
             svg("text", {}, tag);
+            const wattTag = svg("g", { class: "sim-tag fail-watt-tag", transform: `translate(${x + W / 2} ${TOP + H - 10})` }, g);
+            svg("text", {}, wattTag);
             g.addEventListener("click", () => cyclePanel(i));
             g.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); cyclePanel(i); } });
-            panels.push({ g, dust, dead, tag });
+            panels.push({ g, dust, dead, tag, wattTag });
         }
 
         // Inverters + wiring
@@ -113,7 +112,9 @@
 
         if (system === "micro") {
             [0, 1].forEach((k) => {
-                const boxX = 92 + k * 224, inputs = [105, 123, 141, 159].map((v) => v + k * 224);
+                // Each MX2250 sits centred under its 4 panels.
+                const mid = LEFT + k * 4 * STEP + (3 * STEP + W) / 2;
+                const boxX = mid - 40, inputs = [-27, -9, 9, 27].map((v) => mid + v);
                 const levels = [BUS_Y + 12, BUS_Y, BUS_Y, BUS_Y + 12];
                 for (let j = 0; j < 4; j++) {
                     const i = k * 4 + j;
@@ -122,14 +123,15 @@
                 addFlow(`M${boxX + 40} ${INV_TOP + INV_H}V${AC_Y}`, `inv${k}`);
                 addInverter(boxX, 80, "MX2250", () => { state.microFailed[k] = !state.microFailed[k]; render(); });
             });
-            addFlow(`M132 ${AC_Y}H450`, "ac");
+            addFlow(`M${LEFT + (3 * STEP + W) / 2} ${AC_Y}H450`, "ac");
         } else {
-            for (let i = 0; i < PANELS; i++) addFlow(`M${cx(i)} ${TOP + H + 22}V${BUS_Y}`, `panel${i}`);
-            addFlow(`M${cx(0)} ${BUS_Y}H240`, "bus");
-            addFlow(`M${cx(7)} ${BUS_Y}H240`, "bus");
-            addFlow(`M240 ${BUS_Y}V${INV_TOP}`, "string");
+            // One series string: each panel is jumpered to the next under the
+            // panels, and a single lead runs from the last panel to the inverter.
+            const x = (i) => LEFT + i * STEP;
+            for (let i = 0; i < PANELS - 1; i++) addFlow(`M${x(i) + W - 8} ${TOP + H}V${TOP + H + 8}H${x(i + 1) + 8}V${TOP + H}`, `jump${i}`);
+            addFlow(`M${x(PANELS - 1) + W - 8} ${TOP + H}V${BUS_Y}H240V${INV_TOP}`, "string");
             addFlow(`M240 ${INV_TOP + INV_H}V${AC_Y}H450`, "ac");
-            addInverter(180, 120, "STRING", () => { state.stringFailed = !state.stringFailed; render(); });
+            addInverter(180, 120, "String", () => { state.stringFailed = !state.stringFailed; render(); });
         }
         const home = svg("g", { class: "sim-tag", transform: `translate(400 ${AC_Y + 22})` }, root);
         svg("text", {}, home).textContent = "To your home";
@@ -154,6 +156,17 @@
     }
     const sizeAllTags = () => document.querySelectorAll(".fail-scene .sim-tag").forEach(sizeTag);
 
+    // One <tspan> per word, centred on the tag's anchor, so labels like
+    // "Held back" fit the narrow panels without running into the next one.
+    function setWords(tag, label) {
+        const words = label ? label.split(" ") : [];
+        tag.querySelector("text").replaceChildren(...words.map((word, n) => {
+            const span = svg("tspan", { x: 0, dy: n ? "1.15em" : `${-0.575 * (words.length - 1)}em` });
+            span.textContent = word;
+            return span;
+        }));
+    }
+
     // -------------------------------------------------------------- render
 
     let results = { micro: microResult(), string: stringResult() };
@@ -166,7 +179,7 @@
         state.panels.forEach((s, i) => {
             if (state.microFailed[i < 4 ? 0 : 1]) return;
             if (s === "broken") lines.push({ level: "bad", text: `Panel ${i + 1}: no output. Check its cable or connector.` });
-            if (s === "dirty") lines.push({ level: "warn", text: `Panel ${i + 1}: 30% below the others. Probably needs cleaning.` });
+            if (s === "dirty") lines.push({ level: "warn", text: `Panel ${i + 1}: ${watts(r.perPanel[i])} W, ${watts(PANEL_WATTS - r.perPanel[i])} W below the others. Probably needs cleaning.` });
         });
         if (!lines.length) lines.push({ level: "good", text: "All 8 panels reporting normally." });
         else lines.push({ level: "info", text: `Everything else is producing: ${watts(r.total)} W.` });
@@ -188,7 +201,7 @@
         }
         if (r.total < full - 1) {
             return [
-                { level: "warn", text: `Output ${Math.round((1 - r.total / full) * 100)}% lower than expected.` },
+                { level: "warn", text: `Output ${watts(r.total)} W, ${watts(full - r.total)} W lower than expected (${Math.round((1 - r.total / full) * 100)}%).` },
                 { level: "info", text: "Cause unknown: it could be any of the 8 panels." },
             ];
         }
@@ -225,9 +238,12 @@
                 const off = r.perPanel[i] === 0 && s !== "broken";
                 if (!tag && off) tag = "Off";
                 if (system === "string" && r.bypassed && r.bypassed[i] && s === "dirty") tag = "Bypassed";
-                p.tag.querySelector("text").textContent = tag;
+                if (!tag && r.heldBack && r.heldBack[i]) tag = "Held back";
+                setWords(p.tag, tag);
                 p.tag.classList.toggle("sim-tag-warn", Boolean(tag) && tag !== "Dirty");
                 p.g.classList.toggle("fail-panel-off", off);
+                p.wattTag.querySelector("text").textContent = `${watts(r.perPanel[i])} W`;
+                p.wattTag.classList.toggle("sim-tag-warn", r.perPanel[i] < PANEL_WATTS - 0.5);
                 p.g.setAttribute("aria-label", `Panel ${i + 1}: ${s === "ok" ? "working" : s === "dirty" ? "dirty" : "broken cable"}, producing ${watts(r.perPanel[i])} W. Press to change.`);
             });
             scene.inverters.forEach((inv, k) => {
@@ -287,6 +303,20 @@
 
     // ----------------------------------------------------------- animation
 
+    // String chain: dots slow down step by step on the jumpers leading into
+    // the weakest panel, then stay at its reduced speed for the rest of the
+    // string. An open circuit or failed inverter stops them all.
+    const APPROACH = 3; // jumpers over which the slowdown builds up
+    function jumperWatts(r, j) {
+        const full = PANEL_WATTS * PANELS, weak = r.total;
+        if (weak <= 1) return 0;
+        const factors = state.panels.map((s) => FACTOR[s]);
+        const k = factors.indexOf(Math.min(...factors));
+        const d = k - (j + 1); // panels between this jumper's end and the weakest panel
+        if (d < 0) return weak;
+        return weak + (full - weak) * Math.min(1, (d + 1) / (APPROACH + 1));
+    }
+
     function moveFlows(dt) {
         ["micro", "string"].forEach((system) => {
             const r = results[system];
@@ -294,11 +324,14 @@
                 let w;
                 if (f.key.startsWith("panel")) w = r.perPanel[Number(f.key.slice(5))];
                 else if (f.key.startsWith("inv")) w = r.inverterOut[Number(f.key.slice(3))];
+                else if (f.key.startsWith("jump")) w = jumperWatts(r, Number(f.key.slice(4)));
                 else if (f.key === "bus") w = r.total / 2;
                 else w = r.total;
                 f.path.classList.toggle("sim-flow-on", w > 1);
                 if (!reduceMotion && dt) {
-                    f.offset -= Math.min(4, w / PANEL_WATTS) * 40 * dt;
+                    // The string's speed is scaled to its full output so a weaker string visibly slows.
+                    const speed = system === "string" ? (4 * w) / (PANEL_WATTS * PANELS) : Math.min(4, w / PANEL_WATTS);
+                    f.offset -= speed * 40 * dt;
                     f.path.style.strokeDashoffset = f.offset.toFixed(1);
                 }
             });

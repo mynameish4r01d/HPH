@@ -5,10 +5,10 @@
 // or to a string inverter (panels in series). Visitors tap panels to add
 // shade and compare the two. Figures are illustrative (see the page footnote).
 //
-// String model (simplified): panels in series share one current. The
-// inverter either runs every panel at the weakest panel's level, or lets the
-// bypass diodes skip the weaker panels and runs the rest at a higher level,
-// whichever gives more power.
+// String model (simplified): panels in series share one current, so the
+// weakest panel sets the level for the whole string. One shaded panel pulls
+// every other panel down with it, while on the micro inverter each panel's
+// shade stays isolated to that panel.
 
 (function () {
     const PANEL_WATTS = 650;
@@ -42,15 +42,9 @@
     }
 
     function string(avail) {
-        let best = { total: -1, level: 0 };
-        // Try each panel's level as the string's current; weaker panels are bypassed.
-        [...new Set(avail)].sort((a, b) => a - b).forEach((level) => {
-            const active = avail.filter((w) => w >= level).length;
-            const total = active * level;
-            if (total > best.total + 0.01) best = { total, level };
-        });
-        const bypassed = avail.map((w) => w < best.level);
-        return { total: best.total, perPanel: avail.map((w, i) => (bypassed[i] ? 0 : best.level)), bypassed };
+        // Every panel in the series string runs at the weakest panel's level.
+        const level = Math.min(...avail);
+        return { total: level * avail.length, perPanel: avail.map(() => level), bypassed: [false, false, false, false] };
     }
 
     // --------------------------------------------------------------- scene
@@ -114,13 +108,13 @@
             const LEVELS = [BUS_Y + 8, BUS_Y - 8, BUS_Y - 8, BUS_Y + 8];
             panels.forEach((p, i) => addFlow(`M${p.cx} ${TOP + H + 58}V${LEVELS[i]}H${INPUTS[i]}V${INV_TOP}`, `panel${i}`));
         } else {
-            // One series string: panel drops, a shared bus, one input.
-            panels.forEach((p, i) => addFlow(`M${p.cx} ${TOP + H + 58}V${BUS_Y}`, `panel${i}`));
-            // Shared bus drawn as two halves so the dots on both sides flow
-            // toward the inverter's input in the middle.
-            addFlow(`M${panels[0].cx} ${BUS_Y}H500`, "bus-left");
-            addFlow(`M${panels[3].cx} ${BUS_Y}H500`, "bus-right");
-            addFlow(`M500 ${BUS_Y}V${INV_TOP}`, "string");
+            // One series string: each panel is jumpered to the next under the
+            // panels, and a single lead runs from the last panel to the inverter.
+            const JUMP_Y = TOP + H + 16;
+            for (let i = 0; i < PANELS - 1; i++) {
+                addFlow(`M${panels[i].x + W - 16} ${TOP + H}V${JUMP_Y}H${panels[i + 1].x + 16}V${TOP + H}`, `jump${i}`);
+            }
+            addFlow(`M${panels[PANELS - 1].x + W - 16} ${TOP + H}V${BUS_Y}H500V${INV_TOP}`, "string");
         }
     }
 
@@ -138,6 +132,16 @@
         bg.setAttribute("rx", ((box.height + padY * 2) / 2).toFixed(1));
     }
     const sizeAllTags = () => scene.querySelectorAll(".sim-tag").forEach(sizeTag);
+
+    // One <tspan> per line, stacked under the tag's anchor point.
+    function setLines(tag, lines) {
+        const text = tag.querySelector("text");
+        text.replaceChildren(...lines.map((line, n) => {
+            const span = svg("tspan", { x: 0, dy: n ? "1.25em" : 0 });
+            span.textContent = line;
+            return span;
+        }));
+    }
 
     // ------------------------------------------------------------ drawing
 
@@ -157,21 +161,28 @@
             p.shade.setAttribute("points", `${p.x - 20},${TOP - 30} ${p.x + W + 20},${TOP - 30} ${p.x + W + 20},${depth - 26} ${p.x - 20},${depth + 26}`);
             p.shade.setAttribute("opacity", s === 0 ? 0 : 0.78);
 
-            p.shadeTag.querySelector("text").textContent = s === 0 ? "" : `${SHADE_NAMES[s]} · ${s}%`;
-            p.shadeTag.style.display = s === 0 ? "none" : "";
-
             const out = mine.perPanel[i];
-            const heldBack = state.system === "string" && !mine.bypassed[i] && out < avail[i] - 0.5;
-            let label = `${watts(out)} W`;
-            if (mine.bypassed[i]) label = "Bypassed · 0 W";
-            else if (heldBack) label = `${watts(out)} W · held back`;
+            const heldBack = state.system === "string" && out < avail[i] - 0.5;
+            const culprit = avail.indexOf(Math.min(...avail)) + 1;
+
+            // Status on the panel face, in two short lines so neighbours' labels don't overlap.
+            // A held-back panel has no shade of its own, so it uses the same slot.
+            let status = [];
+            if (s !== 0) status = [SHADE_NAMES[s], `${s}%`];
+            else if (heldBack) status = ["Held back", `by panel ${culprit}`];
+            setLines(p.shadeTag, status);
+            p.shadeTag.style.display = status.length ? "" : "none";
+            p.shadeTag.classList.toggle("sim-tag-warn", heldBack && s === 0);
+
+            const label = mine.bypassed[i] ? "Bypassed · 0 W" : `${watts(out)} W`;
             p.outTag.querySelector("text").textContent = label;
             p.outTag.classList.toggle("sim-tag-warn", mine.bypassed[i] || heldBack);
 
-            p.g.setAttribute("aria-label", `Panel ${i + 1}: ${SHADE_NAMES[s].toLowerCase()}, making ${label}. Press to change shade.`);
+            const note = heldBack ? `, held back by panel ${culprit}` : "";
+            p.g.setAttribute("aria-label", `Panel ${i + 1}: ${SHADE_NAMES[s].toLowerCase()}, making ${label}${note}. Press to change shade.`);
         });
 
-        scene.querySelector(".sim-inverter-name").textContent = state.system === "micro" ? "MX2250" : "STRING";
+        scene.querySelector(".sim-inverter-name").textContent = state.system === "micro" ? "MX2250" : "String";
         scene.querySelector(".sim-inverter-tag text").textContent = state.system === "micro"
             ? "Micro inverter · 4 independent inputs"
             : "String inverter · panels in series";
@@ -269,11 +280,28 @@
     const outFlow = scene.querySelector(".sim-flow-out");
     let outOffset = 0;
 
+    // String chain: dots slow down step by step on the jumpers leading into
+    // the weakest panel, then stay at its reduced speed for the rest of the
+    // string. (Illustrative: in a real series string the current is the same
+    // everywhere, which is the point the readouts make.)
+    const APPROACH = 3; // jumpers over which the slowdown builds up
+    function jumperWatts(j) {
+        const full = PANEL_WATTS * PANELS, weak = result.total;
+        if (weak <= 1) return 0;
+        const avail = available();
+        const k = avail.indexOf(Math.min(...avail));
+        const d = k - (j + 1); // panels between this jumper's end and the weakest panel
+        if (d < 0) return weak;
+        return weak + (full - weak) * Math.min(1, (d + 1) / (APPROACH + 1));
+    }
+
     // Dot speed follows each line's power; lines with no power go dark.
     function moveFlows(dt) {
         const on = (w) => w > 1;
         flows.forEach((f) => {
-            const w = f.key.startsWith("panel") ? result.perPanel[Number(f.key.slice(5))] : result.total;
+            const w = f.key.startsWith("panel") ? result.perPanel[Number(f.key.slice(5))]
+                : f.key.startsWith("jump") ? jumperWatts(Number(f.key.slice(4)))
+                : result.total;
             f.path.classList.toggle("sim-flow-on", on(w));
             if (!reduceMotion && dt) {
                 f.offset -= (w / PANEL_WATTS) * 50 * dt;

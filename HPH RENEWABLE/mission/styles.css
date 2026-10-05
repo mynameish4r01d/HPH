@@ -348,8 +348,7 @@ a:link{
         font-family: inter;
         font-weight: 600;
         font-size: 13px;
-        letter-spacing: 2px;
-        text-transform: uppercase;
+        letter-spacing: 0.01em;
         opacity: 0.5;
         margin-bottom: 24px;
     }

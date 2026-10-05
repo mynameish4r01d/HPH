@@ -19,11 +19,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Light only: product photos and renders aren\'t made for a dark page. -->
-    <meta name="color-scheme" content="light">
+    <meta name="color-scheme" content="light dark">
 
   <link rel="icon" type="image/x-icon" href="../../../../global-elements/favicon.png">
 
-    <title>HPH RENEWABLE</title>
+    <title>HPH Renewable</title>
 
     <!--JAVA SCRIPT-->
     <script defer src="../../../../app.js"></script>
@@ -94,7 +94,6 @@
                                 <div class="mega-heading">Simulations</div>
                                 <a href="../../../../simulations/how-solar-panels-work/index.html" class="mega-link">How Solar Panels Work</a>
                                 <a href="../../../../simulations/panel-angle-and-direction/index.html" class="mega-link">Panel Angle and Direction</a>
-                                <a href="../../../../simulations/savings-calculator/index.html" class="mega-link">Savings Calculator</a>
                                 <a href="../../../../simulations/inverter-failure/index.html" class="mega-link">Micro vs String Inverter: Failure</a>
                                 <a href="../../../../simulations/brownout-backup/index.html" class="mega-link">Brownout Backup Simulator</a>
                             </div>
@@ -177,8 +176,26 @@
                             </div>
                             <!-- 3D model: optimised from elements/b4000elite.gltf (see CLAUDE.md) -->
                             <div class="carousel-slide carousel-slide-3d">
-                                <model-viewer class="model" src="elements/b4000elite.glb" alt="3D model of the B4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"></model-viewer>
+                                <model-viewer class="model" src="elements/b4000elite.glb" alt="3D model of the B4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div></model-viewer>
                                 <div class="model-hint">Drag to rotate</div>
+                                <div class="model-dims" aria-hidden="true">
+                                    <svg class="model-dims-lines"></svg>
+                                    <span class="dim-label" data-dim="w"></span>
+                                    <span class="dim-label" data-dim="h"></span>
+                                    <span class="dim-label" data-dim="d"></span>
+                                </div>
+                                <div class="model-tools">
+                                    <div class="model-views" role="group" aria-label="View the battery from">
+                                        <span class="model-view-thumb" aria-hidden="true"></span>
+                                        <button type="button" class="model-view-btn" data-theta="0" aria-pressed="false">Front</button>
+                                        <button type="button" class="model-view-btn" data-theta="180" aria-pressed="false">Back</button>
+                                        <button type="button" class="model-view-btn" data-theta="-90" aria-pressed="false">Left</button>
+                                        <button type="button" class="model-view-btn" data-theta="90" aria-pressed="false">Right</button>
+                                        <button type="button" class="model-view-btn" data-theta="0" data-phi="5" data-view="top" aria-pressed="false">Top</button>
+                                        <button type="button" class="model-view-btn" data-theta="0" data-phi="175" data-view="bottom" aria-pressed="false">Bottom</button>
+                                    </div>
+                                    <button type="button" class="model-measure" aria-pressed="false" aria-label="Show dimensions" title="Dimensions"><span class="material-symbols-rounded">straighten</span></button>
+                                </div>
                             </div>
                         </div>
 
@@ -215,7 +232,7 @@
 
                                         <div class="box3">
                                             <div class="sub-title">Battery type</div>
-                                            <div class="title">LiFe PO4</div>
+                                            <div class="title">LiFePO₄</div>
                                         </div>
                                     </div>
 
@@ -266,7 +283,7 @@
                                     <div class="flex">
                                         <div class="box3">
                                             <div class="sub-title">Warranty</div>
-                                            <div class="title">12 Years</div>
+                                            <div class="title">10 Years</div>
                                         </div>
 
                                         <div class="box3">
@@ -314,7 +331,6 @@
                         <div class="menu-heading">Simulations</div>
                         <a href="../../../../simulations/how-solar-panels-work/index.html" class="menu-link">How Solar Panels Work</a>
                         <a href="../../../../simulations/panel-angle-and-direction/index.html" class="menu-link">Panel Angle and Direction</a>
-                        <a href="../../../../simulations/savings-calculator/index.html" class="menu-link">Savings Calculator</a>
                         <a href="../../../../simulations/inverter-failure/index.html" class="menu-link">Micro vs String Inverter: Failure</a>
                         <a href="../../../../simulations/brownout-backup/index.html" class="menu-link">Brownout Backup Simulator</a>
 
@@ -386,8 +402,26 @@
                     <img src="elements/photo/element1.png" alt="B4000 Elite" class="mobile-product-img">
                 </div>
                 <div class="mobile-carousel-slide mobile-carousel-slide-3d">
-                    <model-viewer src="elements/b4000elite.glb" alt="3D model of the B4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"></model-viewer>
+                    <model-viewer src="elements/b4000elite.glb" alt="3D model of the B4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div></model-viewer>
                     <div class="model-hint">Drag to rotate</div>
+                    <div class="model-dims" aria-hidden="true">
+                        <svg class="model-dims-lines"></svg>
+                        <span class="dim-label" data-dim="w"></span>
+                        <span class="dim-label" data-dim="h"></span>
+                        <span class="dim-label" data-dim="d"></span>
+                    </div>
+                    <div class="model-tools">
+                        <div class="model-views" role="group" aria-label="View the battery from">
+                            <span class="model-view-thumb" aria-hidden="true"></span>
+                            <button type="button" class="model-view-btn" data-theta="0" aria-pressed="false">Front</button>
+                            <button type="button" class="model-view-btn" data-theta="180" aria-pressed="false">Back</button>
+                            <button type="button" class="model-view-btn" data-theta="-90" aria-pressed="false">Left</button>
+                            <button type="button" class="model-view-btn" data-theta="90" aria-pressed="false">Right</button>
+                            <button type="button" class="model-view-btn" data-theta="0" data-phi="5" data-view="top" aria-pressed="false">Top</button>
+                            <button type="button" class="model-view-btn" data-theta="0" data-phi="175" data-view="bottom" aria-pressed="false">Bottom</button>
+                        </div>
+                        <button type="button" class="model-measure" aria-pressed="false" aria-label="Show dimensions" title="Dimensions"><span class="material-symbols-rounded">straighten</span></button>
+                    </div>
                 </div>
                 </div>
 
@@ -412,7 +446,7 @@
                 <h2 class="mobile-spec-group-title">Power</h2>
                 <div class="mobile-spec-grid">
                     <div class="mobile-spec"><div class="mobile-spec-label">Capacity</div><div class="mobile-spec-value">4000Wh</div></div>
-                    <div class="mobile-spec"><div class="mobile-spec-label">Battery type</div><div class="mobile-spec-value">LiFe PO4</div></div>
+                    <div class="mobile-spec"><div class="mobile-spec-label">Battery type</div><div class="mobile-spec-value">LiFePO₄</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Nominal Voltage</div><div class="mobile-spec-value">51.2V</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Life Cycle</div><div class="mobile-spec-value">10,000 Cycles</div></div>
                 </div>
@@ -431,7 +465,7 @@
             <section class="mobile-spec-group">
                 <h2 class="mobile-spec-group-title">Warranty & Lifespan</h2>
                 <div class="mobile-spec-grid">
-                    <div class="mobile-spec"><div class="mobile-spec-label">Warranty</div><div class="mobile-spec-value">12 Years</div></div>
+                    <div class="mobile-spec"><div class="mobile-spec-label">Warranty</div><div class="mobile-spec-value">10 Years</div></div>
                     <div class="mobile-spec"><div class="mobile-spec-label">Lifespan</div><div class="mobile-spec-value">10,000 Charging Cycles</div></div>
                 </div>
             </section>
@@ -632,6 +666,175 @@
                 nextBtn.addEventListener("click", () => step(1));
             });
         }
+
+        // 3D slide: Front / Back / Left / Right / Top / Bottom views, a dimensions
+        // toggle (ruler button) and labels on the stacking connectors on top and
+        // underneath, each shown while looking at that side. Sizes are from the TSUN data sheet
+        // (493 × 280 × 220 mm); the model's extents and the connector's
+        // position were measured from b4000elite.glb.
+        const BATT = { wMm: 493, hMm: 280, dMm: 220, half: 0.2465, front: 0.1124, back: -0.1075, bottom: -0.437, top: -0.128, out: 0.05,
+            conn: { x: 0.19, y: -0.4325, z: 0 }, topConn: { x: 0.19, y: -0.133, z: -0.003 }, radius: 1.3 };
+        const reduceMotion3d = window.matchMedia("(prefers-reduced-motion: reduce)");
+        document.querySelectorAll(".carousel-slide-3d, .mobile-carousel-slide-3d").forEach((slide) => {
+            const viewer = slide.querySelector("model-viewer");
+            const viewsBar = slide.querySelector(".model-views");
+            if (!viewer || !viewsBar) return;
+            viewer.setAttribute("min-camera-orbit", "auto auto 0.5m");
+            viewer.setAttribute("max-camera-orbit", "auto auto 200%"); // so measuring can pull back
+            const thumb = viewsBar.querySelector(".model-view-thumb");
+            const viewBtns = [...viewsBar.querySelectorAll(".model-view-btn")];
+            const dismissHint = () => slide.classList.add("used");
+
+            // The connector labels (model-viewer hotspots): the one on top links to the
+            // unit above, the one underneath to the unit below.
+            function addConnector() {
+                if (viewer.querySelector(".unit-spot")) return;
+                for (const [c, side, name, ny] of [[BATT.topConn, "top", "Top connector", 1], [BATT.conn, "bottom", "Bottom connector", -1]]) {
+                    const el = document.createElement("div");
+                    el.className = `unit-spot spot-${side}`;
+                    el.slot = `hotspot-connector-${side}`;
+                    el.dataset.position = `${c.x}m ${c.y}m ${c.z}m`;
+                    el.dataset.normal = `0m ${ny}m 0m`;
+                    el.dataset.visible = "";
+                    const label = document.createElement("span");
+                    label.className = "unit-spot-name";
+                    label.textContent = name;
+                    const text = document.createElement("span");
+                    text.className = "unit-spot-text";
+                    text.append(label);
+                    el.append(text);
+                    viewer.appendChild(el);
+                }
+            }
+            viewer.addEventListener("load", () => { addConnector(); updateViewSide(); });
+
+            // Which side faces the camera; each connector label shows only from its side.
+            function updateViewSide() {
+                const { theta, phi } = viewer.getCameraOrbit();
+                const deg = ((theta * 180 / Math.PI) % 360 + 360) % 360;
+                const tilt = phi * 180 / Math.PI;
+                const side = tilt > 120 ? "bottom" : tilt < 35 ? "top" : deg < 55 || deg >= 305 ? "front" : deg < 145 ? "right" : deg < 215 ? "back" : "left";
+                for (const k of ["front", "right", "back", "left", "top", "bottom"]) slide.classList.toggle(`view-${k}`, k === side);
+            }
+
+            function markView(btn) {
+                viewBtns.forEach((b) => b.setAttribute("aria-pressed", String(b === btn)));
+                viewsBar.classList.toggle("has-view", !!btn);
+                if (btn) {
+                    thumb.style.width = btn.offsetWidth + "px";
+                    thumb.style.transform = `translateX(${btn.offsetLeft}px)`;
+                }
+            }
+            viewsBar.addEventListener("click", (e) => {
+                const btn = e.target.closest(".model-view-btn");
+                if (!btn) return;
+                markView(btn);
+                dismissHint();
+                if (!reduceMotion3d.matches) {
+                    viewer.interpolationDecay = 140;
+                    setTimeout(() => { viewer.interpolationDecay = 50; }, 1500);
+                }
+                // Top and Bottom zoom in on that connector, left of centre so its label
+                // has room.
+                const c = btn.dataset.view === "top" ? BATT.topConn : btn.dataset.view === "bottom" ? BATT.conn : null;
+                viewer.cameraTarget = c ? `${c.x + 0.12}m ${c.y}m ${c.z}m` : "auto auto auto";
+                viewer.cameraOrbit = c ? `0deg ${btn.dataset.phi}deg ${BATT.radius}m` : `${btn.dataset.theta}deg 80deg 105%`;
+            });
+            viewer.addEventListener("camera-change", (e) => {
+                if (e.detail.source === "user-interaction") { markView(null); dismissHint(); }
+                updateViewSide();
+            });
+
+            // Dimensions: width, height and depth lines with labels, drawn over the 3D
+            // view from invisible hotspots pinned to the model. The width and depth run
+            // along the bottom edges nearest the camera and the height just outside the
+            // right-hand outline, so no line is ever behind or across the model.
+            const dimsBox = slide.querySelector(".model-dims"), dimsSvg = dimsBox.querySelector("svg");
+            const measureBtn = slide.querySelector(".model-measure");
+            const cm = (mm) => `${+(mm / 10).toFixed(1)} cm`;
+            let dimsOn = false, corner = "";
+            function dimEnds(sx, sz, hx, hz) {
+                const { half, front, back, bottom, top, out: o } = BATT;
+                const nx = sx > 0 ? half : -half, nz = sz > 0 ? front : back;
+                const ex = hx > 0 ? half + o : -half - o, ez = hz > 0 ? front + o : back - o;
+                return { a: [-half, bottom, nz + sz * o], b: [half, bottom, nz + sz * o],
+                    c: [nx + sx * o, bottom, nz], e: [nx + sx * o, bottom, sz > 0 ? back : front],
+                    h0: [ex, bottom, ez], h1: [ex, top, ez], m: [0, (bottom + top) / 2, (front + back) / 2] };
+            }
+            function placeDims() {
+                const { theta } = viewer.getCameraOrbit();
+                const sx = Math.sin(theta) >= 0 ? 1 : -1, sz = Math.cos(theta) >= 0 ? 1 : -1;
+                const hx = Math.cos(theta) >= 0 ? 1 : -1, hz = -Math.sin(theta) >= 0 ? 1 : -1;
+                const key = `${sx}${sz}${hx}${hz}`;
+                if (key === corner) return false;
+                corner = key;
+                for (const [k, [x, y, z]] of Object.entries(dimEnds(sx, sz, hx, hz))) {
+                    const name = `hotspot-dim-${k}`, position = `${x}m ${y}m ${z}m`;
+                    const el = viewer.querySelector(`[slot="${name}"]`);
+                    if (el) { el.dataset.position = position; viewer.updateHotspot({ name, position }); continue; }
+                    const end = document.createElement("div");
+                    end.className = "dim-end";
+                    end.slot = name;
+                    end.dataset.position = position;
+                    end.dataset.normal = "0m 1m 0m";
+                    viewer.appendChild(end);
+                }
+                return true;
+            }
+            function drawDims() {
+                if (!dimsOn) return;
+                if (placeDims()) { requestAnimationFrame(() => requestAnimationFrame(drawDims)); return; }
+                const at = (k) => viewer.queryHotspot(`hotspot-dim-${k}`)?.canvasPosition;
+                const pts = { a: at("a"), b: at("b"), c: at("c"), e: at("e"), h0: at("h0"), h1: at("h1"), m: at("m") };
+                if (Object.values(pts).some((p) => !p)) return;
+                const lines = { w: [pts.a, pts.b], h: [pts.h0, pts.h1], d: [pts.c, pts.e] };
+                let svg = "";
+                for (const [k, [p, q]] of Object.entries(lines)) {
+                    // The line, with a short tick across each end to mark the corner.
+                    const len = Math.hypot(q.x - p.x, q.y - p.y) || 1, T = 6;
+                    const nx = -(q.y - p.y) / len * T, ny = (q.x - p.x) / len * T;
+                    svg += `<line x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}"/>`;
+                    for (const e of [p, q]) svg += `<line x1="${e.x - nx}" y1="${e.y - ny}" x2="${e.x + nx}" y2="${e.y + ny}"/>`;
+                    // The label beside the line's middle, on the side away from the model.
+                    const label = dimsBox.querySelector(`[data-dim="${k}"]`);
+                    const mx = (p.x + q.x) / 2, my = (p.y + q.y) / 2;
+                    let ux = -(q.y - p.y) / len, uy = (q.x - p.x) / len;
+                    if (ux * (mx - pts.m.x) + uy * (my - pts.m.y) < 0) { ux = -ux; uy = -uy; }
+                    if (k === "h") {
+                        label.style.left = `${mx + ux * 16}px`;
+                        label.style.top = `${my + uy * 16}px`;
+                        label.style.transform = "translate(-50%, -50%) rotate(-90deg)";
+                    } else {
+                        label.style.left = `${mx + ux * 12}px`;
+                        label.style.top = `${my + uy * 12}px`;
+                        label.style.transform = `translate(${-50 + ux * 50}%, ${-50 + uy * 50}%)`;
+                    }
+                }
+                dimsSvg.innerHTML = svg;
+            }
+            viewer.addEventListener("camera-change", drawDims);
+            measureBtn.addEventListener("click", () => {
+                dimsOn = !dimsOn;
+                measureBtn.setAttribute("aria-pressed", String(dimsOn));
+                measureBtn.setAttribute("aria-label", dimsOn ? "Hide dimensions" : "Show dimensions");
+                slide.classList.toggle("dims-on", dimsOn);
+                dismissHint();
+                // Pull back while measuring so the lines and labels fit (and back again).
+                const { theta, phi } = viewer.getCameraOrbit();
+                markView(null);
+                viewer.cameraTarget = "auto auto auto";
+                viewer.cameraOrbit = `${theta}rad ${Math.min(phi, Math.PI * 0.6)}rad ${dimsOn ? 150 : 105}%`;
+                viewer.querySelectorAll(".dim-end").forEach((el) => el.remove());
+                corner = "";
+                dimsBox.classList.remove("on");
+                if (!dimsOn) return;
+                dimsBox.querySelector('[data-dim="w"]').textContent = `${cm(BATT.wMm)} wide`;
+                dimsBox.querySelector('[data-dim="h"]').textContent = `${cm(BATT.hMm)} tall`;
+                dimsBox.querySelector('[data-dim="d"]').textContent = `${cm(BATT.dMm)} deep`;
+                placeDims();
+                requestAnimationFrame(() => requestAnimationFrame(() => { drawDims(); dimsBox.classList.add("on"); }));
+            });
+        });
 
         initCarousel(".carousel", ".carousel-slide", ".carousel-track", ".carousel-dots", ".carousel-arrow-prev", ".carousel-arrow-next", "carousel-dot");
         initCarousel(".mobile-carousel", ".mobile-carousel-slide", ".mobile-carousel-track", ".mobile-carousel-dots", ".mobile-carousel-arrow-prev", ".mobile-carousel-arrow-next", "mobile-carousel-dot");

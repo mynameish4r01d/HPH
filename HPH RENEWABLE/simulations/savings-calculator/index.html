@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Hidden while it is being fine-tuned: not linked from the site, not indexed. -->
+    <meta name="robots" content="noindex, nofollow">
 
     <link rel="stylesheet" href="styles.css">
 
@@ -21,7 +23,7 @@
 
   <link rel="icon" type="image/x-icon" href="../../global-elements/favicon.png">
 
-    <title>Savings Calculator | HPH RENEWABLE</title>
+    <title>Savings Calculator | HPH Renewable</title>
 
     <!--JAVA SCRIPT-->
     <script defer src="../../app.js"></script>
@@ -92,7 +94,6 @@
                                 <div class="mega-heading">Simulations</div>
                                 <a href="../../simulations/how-solar-panels-work/index.html" class="mega-link">How Solar Panels Work</a>
                                 <a href="../../simulations/panel-angle-and-direction/index.html" class="mega-link">Panel Angle and Direction</a>
-                                <a href="../../simulations/savings-calculator/index.html" class="mega-link">Savings Calculator</a>
                                 <a href="../../simulations/inverter-failure/index.html" class="mega-link">Micro vs String Inverter: Failure</a>
                                 <a href="../../simulations/brownout-backup/index.html" class="mega-link">Brownout Backup Simulator</a>
                             </div>
@@ -191,7 +192,6 @@
                         <div class="menu-heading">Simulations</div>
                         <a href="../../simulations/how-solar-panels-work/index.html" class="menu-link">How Solar Panels Work</a>
                         <a href="../../simulations/panel-angle-and-direction/index.html" class="menu-link">Panel Angle and Direction</a>
-                        <a href="../../simulations/savings-calculator/index.html" class="menu-link">Savings Calculator</a>
                         <a href="../../simulations/inverter-failure/index.html" class="menu-link">Micro vs String Inverter: Failure</a>
                         <a href="../../simulations/brownout-backup/index.html" class="menu-link">Brownout Backup Simulator</a>
 
@@ -287,11 +287,34 @@
                 </div>
 
                 <div class="calc-field">
+                    <button type="button" class="calc-recommend" data-recommend><span class="material-symbols-rounded">auto_awesome</span>Recommend a setup</button>
+                    <p class="calc-help" data-out="recommend-note" hidden></p>
+                </div>
+
+                <div class="calc-field">
                     <span class="calc-label" id="calc-battery-label">Battery for evening use</span>
                     <div class="sim-segmented calc-segmented" role="radiogroup" aria-labelledby="calc-battery-label">
-                        <button type="button" role="radio" aria-checked="true" data-battery="0">None</button>
-                        <button type="button" role="radio" aria-checked="false" data-battery="5">5 kWh</button>
-                        <button type="button" role="radio" aria-checked="false" data-battery="10">10 kWh</button>
+                        <button type="button" role="radio" aria-checked="true" data-battery-mode="none">None</button>
+                        <button type="button" role="radio" aria-checked="false" data-battery-mode="battery">With battery</button>
+                    </div>
+                    <div class="calc-battery-size" data-battery-size hidden>
+                        <div class="calc-kits">
+                            <button type="button" class="calc-step" data-battery-step="heads:-1" aria-label="Fewer head units"><span class="material-symbols-rounded">remove</span></button>
+                            <div class="calc-kits-value">
+                                <strong data-out="battery-heads">1</strong>
+                                <span>MAU5000 Elite head units · up to 5</span>
+                            </div>
+                            <button type="button" class="calc-step" data-battery-step="heads:1" aria-label="More head units"><span class="material-symbols-rounded">add</span></button>
+                        </div>
+                        <div class="calc-kits">
+                            <button type="button" class="calc-step" data-battery-step="exts:-1" aria-label="Fewer stackable batteries"><span class="material-symbols-rounded">remove</span></button>
+                            <div class="calc-kits-value">
+                                <strong data-out="battery-exts">0</strong>
+                                <span data-out="battery-exts-detail">B5000 Elite stackable batteries · up to 4</span>
+                            </div>
+                            <button type="button" class="calc-step" data-battery-step="exts:1" aria-label="More stackable batteries"><span class="material-symbols-rounded">add</span></button>
+                        </div>
+                        <p class="calc-battery-total">Total storage <strong><span data-out="battery-kwh">5</span> kWh</strong></p>
                     </div>
                     <p class="calc-help" data-out="battery-help">Solar only: your home uses solar power as it's made.</p>
                 </div>
@@ -301,8 +324,8 @@
                     <div class="calc-kits">
                         <button type="button" class="calc-step" data-kits-step="-1" aria-label="Fewer kits"><span class="material-symbols-rounded">remove</span></button>
                         <div class="calc-kits-value">
-                            <strong data-out="kits">3</strong> × MX2250 kit
-                            <span data-out="kits-detail">12 panels · 7.8 kWp</span>
+                            <strong><span data-out="kits-watts">6,750</span> W</strong>
+                            <span data-out="kits-detail">3 × MX2250 · 12 panels · 7.8 kWp</span>
                         </div>
                         <button type="button" class="calc-step" data-kits-step="1" aria-label="More kits"><span class="material-symbols-rounded">add</span></button>
                     </div>
@@ -389,7 +412,7 @@
             <h2 class="sim-h2">Get an accurate quote</h2>
             <p>Bring your last 3 electricity bills and we'll design a system around your roof and how you use power.</p>
             <a href="../../schedule-a-visit/index.html" class="sim-cta-button">Schedule a Visit</a>
-            <p class="sim-footnote">These figures are estimates for illustration, not a quotation. They assume each MX2250 kit (4 panels, 2.6 kWp) produces about 3,100 kWh a year, today's electricity price stays the same, panels lose 0.5% of output a year, batteries return 90% of what they store, and no net-metering credit. Your bill also includes fixed charges and taxes, so real usage and savings will differ. Prices are starting prices; the final price is set by your quote after a site visit.</p>
+            <p class="sim-footnote">These figures are estimates for illustration, not a quotation. They assume each MX2250 kit (4 panels, 2.6 kWp) produces about 3,100 kWh a year, today's electricity price stays the same, panels lose 0.5% of output a year, batteries return 90% of what they store (MAU5000 Elite 5.024 kWh, B5000 Elite about 5 kWh; up to 5 head units, each with up to 4 B5000 Elite under it for 25.1 kWh per stack), and no net-metering credit. Your bill also includes fixed charges and taxes, so real usage and savings will differ. Prices are starting prices; the final price is set by your quote after a site visit.</p>
         </section>
     </main>
 
