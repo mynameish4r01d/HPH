@@ -171,12 +171,9 @@
 
                     <div class="carousel">
                         <div class="carousel-track">
-                            <div class="carousel-slide">
-                                <img src="elements/photo/element1.png" alt="MSU4000 Elite" class="img">
-                            </div>
                             <!-- 3D model: optimised from elements/msu4000elite.gltf (see CLAUDE.md) -->
                             <div class="carousel-slide carousel-slide-3d">
-                                <model-viewer class="model" src="elements/msu4000elite.glb" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div></model-viewer>
+                                <model-viewer class="model" src="elements/msu4000elite.glb" poster="elements/photo/element1.png" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div><button slot="ar-button" class="model-ar-btn" type="button"><span class="material-symbols-rounded">view_in_ar</span>AR</button></model-viewer>
                                 <div class="model-hint">Drag to rotate</div>
                                 <div class="model-dims" aria-hidden="true">
                                     <svg class="model-dims-lines"></svg>
@@ -194,6 +191,23 @@
                                         <button type="button" class="model-view-btn" data-theta="0" data-phi="175" data-view="bottom" aria-pressed="false">Bottom</button>
                                     </div>
                                     <button type="button" class="model-measure" aria-pressed="false" aria-label="Show dimensions" title="Dimensions"><span class="material-symbols-rounded">straighten</span></button>
+                                    <button type="button" class="model-feature-btn" aria-pressed="false" aria-label="Show features" title="Features"><span class="material-symbols-rounded">auto_awesome</span></button>
+                                </div>
+                                <canvas class="model-rain" aria-hidden="true"></canvas>
+                                <div class="model-fx" aria-hidden="true"></div>
+                                <div class="model-feature-card" role="region" aria-label="Features" aria-live="polite" hidden>
+                                    <div class="model-feature-head">
+                                        <span class="model-feature-count"></span>
+                                        <button type="button" class="model-feature-close" aria-label="Close features"><span class="material-symbols-rounded">close</span></button>
+                                    </div>
+                                    <div class="model-feature-stat"></div>
+                                    <h3 class="model-feature-title"></h3>
+                                    <p class="model-feature-text"></p>
+                                    <div class="model-feature-nav">
+                                        <button type="button" class="model-feature-prev" aria-label="Previous feature"><span class="material-symbols-rounded">chevron_left</span></button>
+                                        <span class="model-feature-dots" aria-hidden="true"></span>
+                                        <button type="button" class="model-feature-next" aria-label="Next feature"><span class="material-symbols-rounded">chevron_right</span></button>
+                                    </div>
                                 </div>
                                 <div class="model-stack-group" role="group" aria-label="Build your system">
                                     <div class="model-stack" data-kind="batteries">
@@ -210,6 +224,9 @@
                                     </div>
                                     <p class="model-stack-price" aria-live="polite">From <strong class="model-stack-price-num">₱120,000</strong> (estimate) · Final price in your quote</p>
                                 </div>
+                            </div>
+                            <div class="carousel-slide">
+                                <img src="elements/photo/element1.png" alt="MSU4000 Elite" class="img">
                             </div>
                             <div class="carousel-slide carousel-placeholder-2">
                                 <video class="video" muted loop playsinline>
@@ -460,11 +477,8 @@
         <main class="mobile-main mobile-product-page">
             <div class="mobile-carousel">
                 <div class="mobile-carousel-track">
-                <div class="mobile-carousel-slide">
-                    <img src="elements/photo/element1.png" alt="MSU4000 Elite" class="mobile-product-img">
-                </div>
                 <div class="mobile-carousel-slide mobile-carousel-slide-3d">
-                    <model-viewer src="elements/msu4000elite.glb" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div></model-viewer>
+                    <model-viewer src="elements/msu4000elite.glb" poster="elements/photo/element1.png" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div><button slot="ar-button" class="model-ar-btn" type="button"><span class="material-symbols-rounded">view_in_ar</span>AR</button></model-viewer>
                     <div class="model-hint">Drag to rotate</div>
                     <div class="model-dims" aria-hidden="true">
                         <svg class="model-dims-lines"></svg>
@@ -482,6 +496,23 @@
                             <button type="button" class="model-view-btn" data-theta="0" data-phi="175" data-view="bottom" aria-pressed="false">Bottom</button>
                         </div>
                         <button type="button" class="model-measure" aria-pressed="false" aria-label="Show dimensions" title="Dimensions"><span class="material-symbols-rounded">straighten</span></button>
+                        <button type="button" class="model-feature-btn" aria-pressed="false" aria-label="Show features" title="Features"><span class="material-symbols-rounded">auto_awesome</span></button>
+                    </div>
+                    <canvas class="model-rain" aria-hidden="true"></canvas>
+                    <div class="model-fx" aria-hidden="true"></div>
+                    <div class="model-feature-card" role="region" aria-label="Features" aria-live="polite" hidden>
+                        <div class="model-feature-head">
+                            <span class="model-feature-count"></span>
+                            <button type="button" class="model-feature-close" aria-label="Close features"><span class="material-symbols-rounded">close</span></button>
+                        </div>
+                        <div class="model-feature-stat"></div>
+                        <h3 class="model-feature-title"></h3>
+                        <p class="model-feature-text"></p>
+                        <div class="model-feature-nav">
+                            <button type="button" class="model-feature-prev" aria-label="Previous feature"><span class="material-symbols-rounded">chevron_left</span></button>
+                            <span class="model-feature-dots" aria-hidden="true"></span>
+                            <button type="button" class="model-feature-next" aria-label="Next feature"><span class="material-symbols-rounded">chevron_right</span></button>
+                        </div>
                     </div>
                     <div class="model-stack-group" role="group" aria-label="Build your system">
                         <div class="model-stack" data-kind="batteries">
@@ -498,6 +529,9 @@
                         </div>
                         <p class="model-stack-price" aria-live="polite">From <strong class="model-stack-price-num">₱120,000</strong> (estimate) · Final price in your quote</p>
                     </div>
+                </div>
+                <div class="mobile-carousel-slide">
+                    <img src="elements/photo/element1.png" alt="MSU4000 Elite" class="mobile-product-img">
                 </div>
                 <div class="mobile-carousel-slide">
                     <video class="mobile-product-img" muted loop playsinline>
@@ -961,6 +995,165 @@
                 viewer.cameraOrbit = `${theta}rad ${Math.min(phi, Math.PI * 0.6)}rad ${dimsOn ? 170 : (batteries ? 150 : 105)}%`;
                 showDims();
             });
+            // Features mode: a short guided tour. Each step turns the camera to the part
+            // it's about and explains one feature in the card. The wording comes from the
+            // TSUN data sheet and the site's specs/FAQ, so keep them in sync.
+            const FEATURES = [
+                { config: 0, fx: "charge", stat: { from: 0, to: 4, unit: "kWh" }, spin: true, title: "4 kWh of storage", text: "4,000 Wh of LiFePO\u2084 battery in the head unit \u2014 a safe, long-lasting chemistry.", theta: 35, phi: 74 },
+                { config: 4, animate: true, stat: { from: 4, to: 20, unit: "kWh" }, title: "Stack up to 20 kWh", text: "Add up to 4 B4000 Elite batteries underneath for 20 kWh.", theta: 20, phi: 82 },
+                { config: 0, fx: "solar", title: "Solar plugs straight in", text: "Connect solar panels directly to its 4 MC4 inputs on the left side \u2014 the inverter is built in.", theta: -60, phi: 76 },
+                { config: 0, fx: "ring", stat: { from: 0, to: 10000, unit: "cycles" }, title: "10,000 charging cycles", text: "Designed for 10,000 charge cycles (at 25 \u00b0C) \u2014 about 27 years at one full cycle a day.", theta: -30, phi: 78 },
+                { config: 0, fx: "badge", title: "IP65 dust and water resistance", text: "Dust-tight and protected against water jets, and it works from \u221220 to 55 \u00b0C.", theta: 55, phi: 62, rain: true },
+                { config: 0, fx: "backup", stat: { from: 0, to: 10, unit: "ms", prefix: "\u2264 " }, title: "Backup in 10 ms or less", text: "When the grid goes down, its off-grid port switches to battery in 10 ms or less, with up to 2,500 W of backup power.", theta: 90, phi: 78 },
+                { config: 0, fx: "heat", title: "Silent, fan-free cooling", text: "Natural convection through its cooling fins \u2014 no fans to wear out or hum.", theta: 115, phi: 72 },
+                { config: 0, fx: "phone", title: "Monitor it from your phone", text: "Dual-band Wi-Fi (2.4 and 5 GHz) and Bluetooth connect it to the TSUN app, so you can check charge, solar and backup at a glance.", theta: -15, phi: 76 },
+                { config: 0, fx: "seal", stat: { from: 0, to: 10, unit: "years" }, title: "10-year warranty", text: "Backed by a 10-year warranty, with local support from HPH Renewable.", theta: 35, phi: 72 },
+            ];
+            const featBtn = slide.querySelector(".model-feature-btn"), card = slide.querySelector(".model-feature-card");
+            const dotsBox = card.querySelector(".model-feature-dots");
+            FEATURES.forEach(() => dotsBox.append(document.createElement("i")));
+            let featOn = false, featStep = 0;
+            // Rain for the IP65 step: streaks drawn on a canvas over the slide (none with
+            // reduced motion).
+            const rainCanvas = slide.querySelector(".model-rain");
+            let rainFrame = 0;
+            function setRain(on) {
+                cancelAnimationFrame(rainFrame);
+                rainCanvas.classList.toggle("on", on);
+                if (!on || reduceMotion.matches) return;
+                const ctx = rainCanvas.getContext("2d"), dpr = window.devicePixelRatio || 1;
+                const w = rainCanvas.clientWidth, h = rainCanvas.clientHeight;
+                rainCanvas.width = w * dpr;
+                rainCanvas.height = h * dpr;
+                ctx.scale(dpr, dpr);
+                const drops = Array.from({ length: Math.round(w * h / 2600) }, () => ({
+                    x: Math.random() * w, y: Math.random() * h, len: 10 + Math.random() * 14, v: 7 + Math.random() * 6,
+                }));
+                const tick = () => {
+                    ctx.clearRect(0, 0, w, h);
+                    ctx.strokeStyle = "rgba(70, 110, 170, 0.38)";
+                    ctx.lineWidth = 1.2;
+                    ctx.beginPath();
+                    for (const d of drops) {
+                        ctx.moveTo(d.x, d.y);
+                        ctx.lineTo(d.x - d.len * 0.18, d.y + d.len);
+                        d.y += d.v;
+                        d.x -= d.v * 0.18;
+                        if (d.y > h) { d.y = -d.len; d.x = Math.random() * (w + 40); }
+                    }
+                    ctx.stroke();
+                    rainFrame = requestAnimationFrame(tick);
+                };
+                tick();
+            }
+            // The tour sets the batteries for each step: "build" (nothing to 4, one
+            // smooth animation in the 4-battery file) where the step animates and the
+            // stack grows, otherwise straight there. showSpots() resolves `settle`.
+            let tourRun = 0, settle = null, beforeTour = null;
+            const settled = () => new Promise((r) => { settle = r; setTimeout(r, 7000); });
+            async function stackTo(n, animate) {
+                const mine = ++tourRun;
+                if (animate && batteries === 0 && n === 4) { batteries = 4; show(1, "build"); return; }
+                if (animate && n > batteries) {
+                    while (mine === tourRun && batteries < n) { batteries++; const w = settled(); show(1); await w; }
+                }
+                if (mine === tourRun && batteries !== n) { batteries = n; show(0); }
+            }
+            // Per-step animations, Apple-style: soft, smooth, and quick to settle. They're
+            // drawn in .model-fx over the 3D view; with reduced motion they show their
+            // final state. The card's figure counts up to its value.
+            const FX = {
+                charge: '<div class="fx-charge"></div>',
+                ring: '<div class="fx-ring-wrap"><svg class="fx-ring" viewBox="0 0 120 120"><circle class="fx-ring-track" cx="60" cy="60" r="50"/><circle class="fx-ring-fill" cx="60" cy="60" r="50"/></svg><div class="fx-bolt"><span class="material-symbols-rounded">bolt</span></div></div>',
+                badge: '<div class="fx-badge"><span class="material-symbols-rounded">water_drop</span>IP65</div>',
+                backup: '<div class="fx-dim"></div><div class="fx-pulse"><i></i><i></i><i></i></div>',
+                solar: '<div class="fx-sun"><svg class="fx-sun-rays" viewBox="0 0 100 100"><g>' + Array.from({ length: 12 }, (_, k) => `<line x1="50" y1="8" x2="50" y2="20" transform="rotate(${k * 30} 50 50)"/>`).join("") + '</g></svg><i class="fx-sun-core"></i></div>'
+                    + '<svg class="fx-flow" viewBox="0 0 100 100" preserveAspectRatio="none"><path id="FLOWID" class="fx-flow-path" d="M17 21 C 30 22, 44 34, 50 52"/>'
+                    + [0, 0.6, 1.2].map((d) => `<circle class="fx-flow-dot" r="1.6"><animateMotion dur="1.8s" begin="${d}s" repeatCount="indefinite" keyPoints="0;1" keyTimes="0;1" calcMode="spline" keySplines="0.4 0 0.2 1"><mpath href="#FLOWID"/></animateMotion></circle>`).join("")
+                    + '</svg><div class="fx-arrive"><i></i><i></i></div>',
+                heat: '<div class="fx-heat"><i></i><i></i><i></i><i></i></div>',
+                phone: '<div class="fx-phone"><div class="fx-phone-screen"><svg viewBox="0 0 60 60"><circle class="fx-phone-track" cx="30" cy="30" r="24"/><circle class="fx-phone-fill" cx="30" cy="30" r="24"/></svg><b>86%</b><small>Charging</small></div></div>',
+                seal: '<svg class="fx-seal" viewBox="0 0 120 120"><circle class="fx-seal-ring" cx="60" cy="60" r="48"/><path class="fx-seal-check" d="M40 62 L54 76 L82 46"/></svg>',
+            };
+            const fxBox = slide.querySelector(".model-fx"), statBox = card.querySelector(".model-feature-stat");
+            let countFrame = 0;
+            function countUp(st) {
+                cancelAnimationFrame(countFrame);
+                statBox.hidden = !st;
+                if (!st) return;
+                const fmt = (v) => `${st.prefix || ""}${Math.round(v).toLocaleString("en-PH")}<span>${st.unit}</span>`;
+                if (reduceMotion.matches) { statBox.innerHTML = fmt(st.to); return; }
+                const t0 = performance.now(), D = 1100;
+                const step = (now) => {
+                    const k = Math.min(1, (now - t0) / D), e = 1 - Math.pow(1 - k, 3);
+                    statBox.innerHTML = fmt(st.from + (st.to - st.from) * e);
+                    if (k < 1) countFrame = requestAnimationFrame(step);
+                };
+                step(t0);
+            }
+            const flowId = `fx-flow-${Math.random().toString(36).slice(2, 8)}`;
+            function playFx(f) {
+                fxBox.innerHTML = (FX[f.fx] || "").replaceAll("FLOWID", flowId);
+                fxBox.className = "model-fx" + (f.fx ? ` fx-${f.fx}-on` : "");
+                countUp(f.stat);
+                // Step 1 turns the model slowly, like a turntable.
+                if (f.spin && !reduceMotion.matches) {
+                    viewer.setAttribute("auto-rotate", "");
+                    viewer.setAttribute("auto-rotate-delay", "0");
+                    viewer.setAttribute("rotation-per-second", "18deg");
+                } else viewer.removeAttribute("auto-rotate");
+                // The card's text eases in.
+                card.classList.remove("swap");
+                void card.offsetWidth;
+                card.classList.add("swap");
+                // The 3D view shrinks to the space below the card, so the model is
+                // always in full view (model-viewer fits it to its own box).
+                slide.style.setProperty("--feature-top", `${card.offsetTop + card.offsetHeight + 8}px`);
+            }
+            function showFeature(i) {
+                featStep = (i + FEATURES.length) % FEATURES.length;
+                const f = FEATURES[featStep];
+                setRain(!!f.rain);
+                playFx(f);
+                if (f.config !== undefined) stackTo(f.config, !!f.animate);
+                card.querySelector(".model-feature-count").textContent = `${featStep + 1} of ${FEATURES.length}`;
+                card.querySelector(".model-feature-title").textContent = f.title;
+                card.querySelector(".model-feature-text").textContent = f.text;
+                [...dotsBox.children].forEach((d, k) => d.classList.toggle("on", k === featStep));
+                if (!reduceMotion.matches) {
+                    viewer.interpolationDecay = 160;
+                    setTimeout(() => { viewer.interpolationDecay = 50; }, 1500);
+                }
+                viewer.cameraTarget = "auto auto auto";
+                viewer.cameraOrbit = `${f.theta}deg ${f.phi}deg ${batteries ? 150 : 110}%`;
+            }
+            function setFeatures(on) {
+                featOn = on;
+                featBtn.setAttribute("aria-pressed", String(on));
+                featBtn.setAttribute("aria-label", on ? "Hide features" : "Show features");
+                slide.classList.toggle("features-on", on);
+                card.hidden = !on;
+                dismissHint();
+                markView(null);
+                if (on) {
+                    if (dimsOn) measureBtn.click(); // one overlay at a time
+                    beforeTour = batteries;
+                    showFeature(0);
+                } else {
+                    setRain(false);
+                    playFx({});
+                    if (beforeTour !== null) stackTo(beforeTour, false); // back to the visitor's own setup
+                }
+                if (!on && !dimsOn) { // (the ruler sets its own view when it takes over)
+                    viewer.cameraTarget = "auto auto auto";
+                    viewer.cameraOrbit = `35deg 72deg ${batteries ? 150 : 105}%`;
+                }
+            }
+            featBtn.addEventListener("click", () => setFeatures(!featOn));
+            card.querySelector(".model-feature-close").addEventListener("click", () => setFeatures(false));
+            card.querySelector(".model-feature-prev").addEventListener("click", () => showFeature(featStep - 1));
+            card.querySelector(".model-feature-next").addEventListener("click", () => showFeature(featStep + 1));
+            measureBtn.addEventListener("click", () => { if (dimsOn && featOn) setFeatures(false); });
             function showSpots() {
                 clearSpots();
                 showDims();
@@ -1017,6 +1210,7 @@
                 });
                 refreshSpots();
                 updateViewSide();
+                if (settle) { const done = settle; settle = null; done(); }
             }
             // Make model-viewer re-check which labels face the camera now (it otherwise
             // waits for the camera to move), hiding the ones on the far side.
@@ -1060,8 +1254,8 @@
                     fetch(url, { priority: "low" }).catch(() => prefetched.delete(url));
                 });
             });
-            function show(step) {
-                pendingAnim = step ? (step > 0 ? "add" : "remove") : null;
+            function show(step, anim) {
+                pendingAnim = anim || (step ? (step > 0 ? "add" : "remove") : null);
                 clearSpots();
                 // Phones slide the stacked model left to make room for the labels.
                 viewer.parentElement.classList.toggle("has-stack", batteries > 0);

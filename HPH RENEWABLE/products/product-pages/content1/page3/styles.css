@@ -1919,3 +1919,754 @@ body.menu-open{
     height: 0;
     pointer-events: none;
 }
+
+/* Features button: round, like the ruler; dark while the tour is on. */
+.model-feature-btn{
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(118, 118, 128, 0.12);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    color: #1D1D1F;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.2s ease, color 0.2s ease;
+
+    span{
+        font-size: 18px;
+    }
+
+    &:hover{
+        background-color: rgba(118, 118, 128, 0.2);
+    }
+
+    &[aria-pressed="true"]{
+        background-color: #1D1D1F;
+        color: #FFFFFF;
+    }
+
+    &:focus-visible{
+        outline: 2px solid #0071E3;
+        outline-offset: 2px;
+    }
+}
+
+/* The features tour card: frosted, at the top of the 3D slide. */
+.model-feature-card{
+    position: absolute;
+    left: 50%;
+    top: 14px;
+    width: min(380px, calc(100% - 32px));
+    box-sizing: border-box;
+    transform: translateX(-50%);
+    padding: 12px 14px 10px;
+    border: 0.5px solid rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    background-color: rgba(255, 255, 255, 0.82);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    color: #1D1D1F;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", inter, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    animation: feature-card-in 0.25s ease both;
+
+    &[hidden]{
+        display: none;
+    }
+
+    .model-feature-head{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .model-feature-count{
+        font-size: 11px;
+        font-weight: 500;
+        color: #6E6E73;
+    }
+
+    .model-feature-close{
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        margin: -4px -6px 0 0;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: #6E6E73;
+        cursor: pointer;
+
+        span{
+            font-size: 18px;
+        }
+    }
+
+    .model-feature-title{
+        margin: 2px 0 4px;
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+    }
+
+    .model-feature-text{
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.4;
+        color: #3A3A3C;
+    }
+
+    .model-feature-nav{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 8px;
+
+        button{
+            display: grid;
+            place-items: center;
+            width: 30px;
+            height: 30px;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background-color: rgba(118, 118, 128, 0.12);
+            color: #1D1D1F;
+            cursor: pointer;
+
+            span{
+                font-size: 20px;
+            }
+
+            &:active{
+                background-color: rgba(118, 118, 128, 0.24);
+            }
+        }
+    }
+
+    .model-feature-dots{
+        display: flex;
+        gap: 5px;
+
+        i{
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background-color: rgba(60, 60, 67, 0.25);
+            transition: background-color 0.2s ease;
+
+            &.on{
+                background-color: #1D1D1F;
+            }
+        }
+    }
+}
+
+/* The controls and the tour card stay above the rain. */
+.model-tools,
+.model-feature-card,
+.model-stack-group{
+    z-index: 2;
+}
+
+/* Rain over the slide during the tour's IP65 step (drawn by the page script). */
+.model-rain{
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+
+    &.on{
+        opacity: 1;
+    }
+}
+
+@keyframes feature-card-in{
+    from{ opacity: 0; transform: translate(-50%, -6px); }
+}
+
+/* While the tour is open its card takes the steppers' place at the top, and
+   the labels, measurements and hint step aside. */
+.features-on .unit-spot,
+.features-on .model-dims,
+.features-on .model-hint,
+.features-on .model-stack-group{
+    opacity: 0 !important;
+    pointer-events: none;
+}
+
+@media (max-width: 750px){
+    /* Five views, the ruler and Features: slightly tighter buttons to fit a phone. */
+    .model-views .model-view-btn{
+        min-width: 0;
+        padding: 0 9px;
+        font-size: 12px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .model-feature-card{
+        animation: none;
+    }
+}
+
+/* ===== Features tour animations (Apple-style) =====
+   Drawn in .model-fx over the 3D view (under the controls); the card's figure
+   counts up. Reduced motion shows each one's final state. */
+.model-feature-card{
+    .model-feature-stat{
+        margin: 4px 0 0;
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+        font-variant-numeric: tabular-nums;
+        background: linear-gradient(90deg, #0071E3, #34C759);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+
+        &[hidden]{
+            display: none;
+        }
+
+        span{
+            margin-left: 4px;
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: 0;
+        }
+    }
+
+    &.swap .model-feature-stat,
+    &.swap .model-feature-title,
+    &.swap .model-feature-text{
+        animation: feature-text-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    }
+
+    &.swap .model-feature-title{ animation-delay: 0.04s; }
+    &.swap .model-feature-text{ animation-delay: 0.08s; }
+}
+
+@keyframes feature-text-in{
+    from{ opacity: 0; filter: blur(6px); transform: translateY(4px); }
+}
+
+.model-fx{
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* 1 · Charge: a green glow sweeps up through the unit once (as the figure counts
+   to 5 kWh), then a soft glow stays. */
+.fx-charge{
+    position: absolute;
+    left: 22%;
+    right: 22%;
+    top: 22%;
+    bottom: 18%;
+    border-radius: 28px;
+    background: linear-gradient(to top, rgba(52, 199, 89, 0.28) 0%, rgba(52, 199, 89, 0.28) 40%, rgba(52, 199, 89, 0.45) 50%, rgba(52, 199, 89, 0) 60%) 0 0 / 100% 220% no-repeat;
+    filter: blur(14px);
+    mix-blend-mode: screen;
+    animation: fx-charge-fill 1.1s cubic-bezier(0.3, 0.7, 0.2, 1) both, fx-charge-hold 2.4s ease-in-out 1.1s infinite;
+}
+
+@keyframes fx-charge-fill{
+    from{ background-position: 0 -120%; opacity: 1; }
+    to{ background-position: 0 0%; opacity: 1; }
+}
+
+@keyframes fx-charge-hold{
+    0%, 100%{ background-position: 0 0%; opacity: 0.7; }
+    50%{ background-position: 0 0%; opacity: 1; }
+}
+
+.fx-bolt{
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    color: #34C759;
+    animation: fx-bolt-pop 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) 1.45s both, fx-bolt-glow 2.4s ease-in-out 2s infinite;
+
+    span{
+        font-size: 50px;
+        font-variation-settings: "FILL" 1;
+        filter: drop-shadow(0 0 8px rgba(52, 199, 89, 0.6));
+    }
+}
+
+@keyframes fx-bolt-pop{
+    0%{ opacity: 0; transform: scale(0.2) rotate(-15deg); }
+    100%{ opacity: 1; transform: scale(1) rotate(0); }
+}
+
+@keyframes fx-bolt-glow{
+    50%{ transform: scale(1.08); filter: brightness(1.15); }
+}
+
+/* 4 · Cycles: an activity-style ring filling in the middle of the view, then a
+   lightning bolt pops inside it. */
+.fx-ring-wrap{
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 112px;
+    height: 112px;
+    margin: -56px 0 0 -56px;
+}
+
+.fx-ring{
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+
+    circle{
+        fill: none;
+        stroke-width: 12;
+        stroke-linecap: round;
+    }
+
+    .fx-ring-track{
+        stroke: rgba(52, 199, 89, 0.18);
+    }
+
+    .fx-ring-fill{
+        stroke: #34C759;
+        stroke-dasharray: 314;
+        stroke-dashoffset: 314;
+        animation: fx-ring-fill 1.4s cubic-bezier(0.3, 0.7, 0.2, 1) 0.1s forwards;
+        filter: drop-shadow(0 0 6px rgba(52, 199, 89, 0.45));
+    }
+}
+
+@keyframes fx-ring-fill{
+    to{ stroke-dashoffset: 0; }
+}
+
+/* 5 · IP65: a badge that pops in over the rain. */
+.fx-badge{
+    position: absolute;
+    right: 18px;
+    bottom: 90px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 14px 8px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.85);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 6px 20px rgba(0, 113, 227, 0.18);
+    color: #0071E3;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", inter, sans-serif;
+    font-size: 17px;
+    font-weight: 700;
+    animation: fx-pop 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) 0.2s both;
+
+    span{
+        font-size: 20px;
+    }
+}
+
+@keyframes fx-pop{
+    from{ opacity: 0; transform: scale(0.6); }
+}
+
+/* 6 · Backup: the scene dips as the grid goes down, then green rings pulse out. */
+.fx-dim{
+    /* The effects layer sits below the card, so reach back up over the whole slide. */
+    position: absolute;
+    top: calc(-1 * var(--feature-top, 0px));
+    bottom: -80px;
+    left: 0;
+    right: 0;
+    background: #000000;
+    animation: fx-dim 1.2s ease both;
+}
+
+@keyframes fx-dim{
+    0%{ opacity: 0; }
+    25%{ opacity: 0.45; }
+    55%{ opacity: 0.45; }
+    100%{ opacity: 0; }
+}
+
+.fx-pulse{
+    /* From the centre of the unit. */
+    position: absolute;
+    left: 50%;
+    top: 50%;
+
+    i{
+        position: absolute;
+        left: -40px;
+        top: -40px;
+        width: 80px;
+        height: 80px;
+        border: 2px solid #34C759;
+        border-radius: 50%;
+        opacity: 0;
+        animation: fx-pulse 1.8s ease-out 0.7s infinite;
+    }
+
+    i:nth-child(2){ animation-delay: 1.3s; }
+    i:nth-child(3){ animation-delay: 1.9s; }
+}
+
+@keyframes fx-pulse{
+    0%{ opacity: 0.9; transform: scale(0.3); }
+    100%{ opacity: 0; transform: scale(2.4); }
+}
+
+/* 7 · Solar: a glowing sun with slowly turning rays, glowing particles flowing
+   along a soft curve into the unit, and a green ripple as each arrives. */
+.fx-sun{
+    position: absolute;
+    left: calc(17% - 34px);
+    top: calc(21% - 34px);
+    width: 68px;
+    height: 68px;
+    animation: fx-pop 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+
+    .fx-sun-rays{
+        position: absolute;
+        inset: 0;
+        animation: fx-spin 12s linear infinite;
+
+        line{
+            stroke: #FFB800;
+            stroke-width: 4;
+            stroke-linecap: round;
+        }
+    }
+
+    .fx-sun-core{
+        position: absolute;
+        inset: 20px;
+        border-radius: 50%;
+        background: radial-gradient(circle at 40% 35%, #FFE680, #FFB800 70%);
+        box-shadow: 0 0 18px 6px rgba(255, 184, 0, 0.45);
+        animation: fx-sun-glow 2.4s ease-in-out infinite;
+    }
+}
+
+@keyframes fx-spin{
+    to{ transform: rotate(360deg); }
+}
+
+@keyframes fx-sun-glow{
+    50%{ box-shadow: 0 0 26px 10px rgba(255, 184, 0, 0.55); }
+}
+
+.fx-flow{
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+
+    .fx-flow-path{
+        fill: none;
+        stroke: rgba(255, 184, 0, 0.35);
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-dasharray: 2 5;
+        vector-effect: non-scaling-stroke;
+        animation: fx-flow 1.2s linear infinite;
+    }
+
+    .fx-flow-dot{
+        fill: #FFC93D;
+        filter: drop-shadow(0 0 3px rgba(255, 184, 0, 0.9));
+    }
+}
+
+@keyframes fx-flow{
+    to{ stroke-dashoffset: -14; }
+}
+
+.fx-arrive{
+    position: absolute;
+    left: 50%;
+    top: 52%;
+
+    i{
+        position: absolute;
+        left: -30px;
+        top: -30px;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        border: 2px solid rgba(52, 199, 89, 0.8);
+        opacity: 0;
+        animation: fx-pulse 1.8s ease-out 1.6s infinite;
+    }
+
+    i:nth-child(2){ animation-delay: 2.2s; }
+}
+
+/* 8 · Cooling: soft heat waves drifting up and fading. */
+.fx-heat{
+    position: absolute;
+    left: 30%;
+    right: 30%;
+    top: 14%;
+    height: 50%;
+
+    i{
+        position: absolute;
+        bottom: 0;
+        width: 22%;
+        height: 60%;
+        border-radius: 50%;
+        border-top: 2px solid rgba(255, 149, 0, 0.45);
+        opacity: 0;
+        animation: fx-heat 2.6s ease-out infinite;
+    }
+
+    i:nth-child(1){ left: 4%; }
+    i:nth-child(2){ left: 28%; animation-delay: 0.6s; }
+    i:nth-child(3){ left: 52%; animation-delay: 1.2s; }
+    i:nth-child(4){ left: 76%; animation-delay: 1.8s; }
+}
+
+@keyframes fx-heat{
+    0%{ opacity: 0; transform: translateY(40%) scaleX(0.8); }
+    30%{ opacity: 1; }
+    100%{ opacity: 0; transform: translateY(-70%) scaleX(1.1); }
+}
+
+/* 9 · App: a phone slides in, its charge ring filling. */
+.fx-phone{
+    position: absolute;
+    right: 18px;
+    bottom: 80px;
+    width: 78px;
+    height: 150px;
+    padding: 5px;
+    box-sizing: border-box;
+    border-radius: 18px;
+    background: #1D1D1F;
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.25);
+    animation: fx-phone-in 0.7s cubic-bezier(0.2, 0.9, 0.2, 1) both;
+
+    .fx-phone-screen{
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #F5F5F7, #FFFFFF);
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", inter, sans-serif;
+
+        svg{
+            width: 46px;
+            height: 46px;
+            transform: rotate(-90deg);
+        }
+
+        circle{
+            fill: none;
+            stroke-width: 6;
+            stroke-linecap: round;
+        }
+
+        .fx-phone-track{ stroke: rgba(52, 199, 89, 0.18); }
+
+        .fx-phone-fill{
+            stroke: #34C759;
+            stroke-dasharray: 151;
+            stroke-dashoffset: 151;
+            animation: fx-phone-fill 1.4s cubic-bezier(0.3, 0.7, 0.2, 1) 0.5s forwards;
+        }
+
+        b{
+            margin-top: 4px;
+            font-size: 13px;
+            color: #1D1D1F;
+        }
+
+        small{
+            font-size: 8px;
+            color: #34C759;
+        }
+    }
+}
+
+@keyframes fx-phone-in{
+    from{ opacity: 0; transform: translateY(40px) rotate(6deg); }
+}
+
+@keyframes fx-phone-fill{
+    to{ stroke-dashoffset: 21; }
+}
+
+/* 10 · Warranty: a seal that draws itself, check mark last. */
+.fx-seal{
+    position: absolute;
+    right: 18px;
+    bottom: 84px;
+    width: 88px;
+    height: 88px;
+
+    .fx-seal-ring, .fx-seal-check{
+        fill: none;
+        stroke: #0071E3;
+        stroke-width: 6;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    .fx-seal-ring{
+        stroke-dasharray: 302;
+        stroke-dashoffset: 302;
+        animation: fx-draw 1s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards;
+    }
+
+    .fx-seal-check{
+        stroke: #34C759;
+        stroke-dasharray: 70;
+        stroke-dashoffset: 70;
+        animation: fx-draw 0.5s cubic-bezier(0.4, 0, 0.2, 1) 1s forwards;
+    }
+}
+
+@keyframes fx-draw{
+    to{ stroke-dashoffset: 0; }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .model-fx *,
+    .model-feature-card.swap *{
+        animation: none !important;
+    }
+
+    .fx-ring .fx-ring-fill,
+    .fx-seal .fx-seal-ring,
+    .fx-seal .fx-seal-check{
+        stroke-dashoffset: 0;
+    }
+
+    .fx-phone .fx-phone-screen .fx-phone-fill{
+        stroke-dashoffset: 21;
+    }
+
+    .fx-dim{
+        display: none;
+    }
+}
+
+/* While the tour is open, the 3D view (and its effects layer) fills only the
+   space between the card and the view controls, so the card never covers the
+   model. --feature-top is set by the page script from the card's height. */
+.features-on model-viewer,
+.features-on .model-fx{
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: var(--feature-top, 170px);
+    bottom: 72px;
+    width: auto;
+    height: auto;
+}
+
+.features-on .model-fx{
+    overflow: visible;
+}
+
+@media (max-width: 750px){
+    .features-on model-viewer,
+    .features-on .model-fx{
+        bottom: 62px;
+    }
+}
+
+/* ===== 3D slide controls on phones =====
+   The control row spans the slide (16px gutters); the views scroll sideways if
+   they don't fit, while the ruler and features buttons stay put. The AR button
+   (model-viewer's ar-button slot, shown only on phones that support AR) sits at
+   the bottom right of the 3D view. */
+.model-ar-btn{
+    position: absolute;
+    right: 16px;
+    bottom: 84px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 32px;
+    padding: 0 12px 0 10px;
+    border: none;
+    border-radius: 16px;
+    background-color: rgba(255, 255, 255, 0.9);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    color: #1D1D1F;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", inter, sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    span{
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 750px){
+    .model-tools{
+        left: 16px;
+        right: 16px;
+        transform: none;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .model-views{
+        flex: 0 1 auto;
+        min-width: 0;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -webkit-overflow-scrolling: touch;
+
+        &::-webkit-scrollbar{
+            display: none;
+        }
+
+        .model-view-btn{
+            flex: 0 0 auto;
+            min-width: 0;
+            height: 28px;
+            padding: 0 9px;
+            font-size: 12px;
+        }
+    }
+
+    .model-measure,
+    .model-feature-btn{
+        flex: 0 0 auto;
+        width: 30px;
+        height: 30px;
+    }
+
+    .model-ar-btn{
+        right: 12px;
+        bottom: 72px;
+    }
+}
