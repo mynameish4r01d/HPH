@@ -173,7 +173,7 @@
                         <div class="carousel-track">
                             <!-- 3D model: optimised from elements/msu4000elite.gltf (see CLAUDE.md) -->
                             <div class="carousel-slide carousel-slide-3d">
-                                <model-viewer class="model" src="elements/msu4000elite.glb" poster="elements/photo/element1.png" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div><button slot="ar-button" class="model-ar-btn" type="button"><span class="material-symbols-rounded">view_in_ar</span>AR</button></model-viewer>
+                                <model-viewer class="model" src="elements/msu4000elite.glb" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div><button slot="ar-button" class="model-ar-btn" type="button"><span class="material-symbols-rounded">view_in_ar</span>AR</button></model-viewer>
                                 <div class="model-hint">Drag to rotate</div>
                                 <div class="model-dims" aria-hidden="true">
                                     <svg class="model-dims-lines"></svg>
@@ -192,6 +192,7 @@
                                     </div>
                                     <button type="button" class="model-measure" aria-pressed="false" aria-label="Show dimensions" title="Dimensions"><span class="material-symbols-rounded">straighten</span></button>
                                     <button type="button" class="model-feature-btn" aria-pressed="false" aria-label="Show features" title="Features"><span class="material-symbols-rounded">auto_awesome</span></button>
+                                    <button type="button" class="model-reset-btn" aria-label="Reset view" title="Reset view"><span class="material-symbols-rounded">restart_alt</span></button>
                                 </div>
                                 <canvas class="model-rain" aria-hidden="true"></canvas>
                                 <div class="model-fx" aria-hidden="true"></div>
@@ -478,7 +479,7 @@
             <div class="mobile-carousel">
                 <div class="mobile-carousel-track">
                 <div class="mobile-carousel-slide mobile-carousel-slide-3d">
-                    <model-viewer src="elements/msu4000elite.glb" poster="elements/photo/element1.png" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div><button slot="ar-button" class="model-ar-btn" type="button"><span class="material-symbols-rounded">view_in_ar</span>AR</button></model-viewer>
+                    <model-viewer src="elements/msu4000elite.glb" alt="3D model of the MSU4000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div><button slot="ar-button" class="model-ar-btn" type="button"><span class="material-symbols-rounded">view_in_ar</span>AR</button></model-viewer>
                     <div class="model-hint">Drag to rotate</div>
                     <div class="model-dims" aria-hidden="true">
                         <svg class="model-dims-lines"></svg>
@@ -497,6 +498,7 @@
                         </div>
                         <button type="button" class="model-measure" aria-pressed="false" aria-label="Show dimensions" title="Dimensions"><span class="material-symbols-rounded">straighten</span></button>
                         <button type="button" class="model-feature-btn" aria-pressed="false" aria-label="Show features" title="Features"><span class="material-symbols-rounded">auto_awesome</span></button>
+                        <button type="button" class="model-reset-btn" aria-label="Reset view" title="Reset view"><span class="material-symbols-rounded">restart_alt</span></button>
                     </div>
                     <canvas class="model-rain" aria-hidden="true"></canvas>
                     <div class="model-fx" aria-hidden="true"></div>
@@ -1001,7 +1003,7 @@
             const FEATURES = [
                 { config: 0, fx: "charge", stat: { from: 0, to: 4, unit: "kWh" }, spin: true, title: "4 kWh of storage", text: "4,000 Wh of LiFePO\u2084 battery in the head unit \u2014 a safe, long-lasting chemistry.", theta: 35, phi: 74 },
                 { config: 4, animate: true, stat: { from: 4, to: 20, unit: "kWh" }, title: "Stack up to 20 kWh", text: "Add up to 4 B4000 Elite batteries underneath for 20 kWh.", theta: 20, phi: 82 },
-                { config: 0, fx: "solar", title: "Solar plugs straight in", text: "Connect solar panels directly to its 4 MC4 inputs on the left side \u2014 the inverter is built in.", theta: -60, phi: 76 },
+                { config: 0, showLeft: true, title: "4 MC4 solar inputs", text: "Connect solar panels straight to the 4 sets of MC4 connectors on its left side \u2014 the inverter is built in.", theta: -90, phi: 80 },
                 { config: 0, fx: "ring", stat: { from: 0, to: 10000, unit: "cycles" }, title: "10,000 charging cycles", text: "Designed for 10,000 charge cycles (at 25 \u00b0C) \u2014 about 27 years at one full cycle a day.", theta: -30, phi: 78 },
                 { config: 0, fx: "badge", title: "IP65 dust and water resistance", text: "Dust-tight and protected against water jets, and it works from \u221220 to 55 \u00b0C.", theta: 55, phi: 62, rain: true },
                 { config: 0, fx: "backup", stat: { from: 0, to: 10, unit: "ms", prefix: "\u2264 " }, title: "Backup in 10 ms or less", text: "When the grid goes down, its off-grid port switches to battery in 10 ms or less, with up to 2,500 W of backup power.", theta: 90, phi: 78 },
@@ -1057,7 +1059,13 @@
                 if (animate && n > batteries) {
                     while (mine === tourRun && batteries < n) { batteries++; const w = settled(); show(1); await w; }
                 }
-                if (mine === tourRun && batteries !== n) { batteries = n; show(0); }
+                if (mine === tourRun && batteries !== n) {
+                    batteries = n;
+                    const w = settled();
+                    show(0);
+                    await w;
+                    return "jumped";
+                }
             }
             // Per-step animations, Apple-style: soft, smooth, and quick to settle. They're
             // drawn in .model-fx over the 3D view; with reduced motion they show their
@@ -1115,7 +1123,10 @@
                 const f = FEATURES[featStep];
                 setRain(!!f.rain);
                 playFx(f);
-                if (f.config !== undefined) stackTo(f.config, !!f.animate);
+                // The MC4 step shows the "MC4 ports" label, as the Left view does.
+                slide.classList.toggle("feature-spots-left", !!f.showLeft);
+                const step = featStep;
+                if (f.config !== undefined) stackTo(f.config, !!f.animate).then((r) => { if (r === "jumped" && featOn && featStep === step) applyCam(); });
                 card.querySelector(".model-feature-count").textContent = `${featStep + 1} of ${FEATURES.length}`;
                 card.querySelector(".model-feature-title").textContent = f.title;
                 card.querySelector(".model-feature-text").textContent = f.text;
@@ -1124,8 +1135,11 @@
                     viewer.interpolationDecay = 160;
                     setTimeout(() => { viewer.interpolationDecay = 50; }, 1500);
                 }
-                viewer.cameraTarget = "auto auto auto";
-                viewer.cameraOrbit = `${f.theta}deg ${f.phi}deg ${batteries ? 150 : 110}%`;
+                const applyCam = () => {
+                    viewer.cameraTarget = "auto auto auto";
+                    viewer.cameraOrbit = `${f.theta}deg ${f.phi}deg ${batteries ? 150 : 110}%`;
+                };
+                applyCam();
             }
             function setFeatures(on) {
                 featOn = on;
@@ -1142,6 +1156,7 @@
                 } else {
                     setRain(false);
                     playFx({});
+                    slide.classList.remove("feature-spots-left");
                     if (beforeTour !== null) stackTo(beforeTour, false); // back to the visitor's own setup
                 }
                 if (!on && !dimsOn) { // (the ruler sets its own view when it takes over)
@@ -1150,6 +1165,19 @@
                 }
             }
             featBtn.addEventListener("click", () => setFeatures(!featOn));
+            // Reset view: back to the view the page opens with (camera-orbit 35deg 72deg,
+            // default framing). The stack, the ruler and the tour stay as they are.
+            slide.querySelector(".model-reset-btn").addEventListener("click", () => {
+                markView(null);
+                dismissHint();
+                if (!reduceMotion.matches) {
+                    viewer.interpolationDecay = 140;
+                    setTimeout(() => { viewer.interpolationDecay = 50; }, 1500);
+                }
+                viewer.cameraTarget = "auto auto auto";
+                viewer.fieldOfView = "auto";
+                viewer.cameraOrbit = `35deg 72deg ${dimsOn ? 170 : batteries ? 150 : 105}%`;
+            });
             card.querySelector(".model-feature-close").addEventListener("click", () => setFeatures(false));
             card.querySelector(".model-feature-prev").addEventListener("click", () => showFeature(featStep - 1));
             card.querySelector(".model-feature-next").addEventListener("click", () => showFeature(featStep + 1));

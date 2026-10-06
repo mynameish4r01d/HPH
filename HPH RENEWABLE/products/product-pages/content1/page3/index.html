@@ -173,7 +173,7 @@
                         <div class="carousel-track">
                             <!-- 3D model: optimised from elements/mau5000elite.gltf (see CLAUDE.md) -->
                             <div class="carousel-slide carousel-slide-3d">
-                                <model-viewer class="model" src="elements/mau5000elite.glb" poster="elements/photo/element1.png" alt="3D model of the MAU5000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div><button slot="ar-button" class="model-ar-btn" type="button"><span class="material-symbols-rounded">view_in_ar</span>AR</button></model-viewer>
+                                <model-viewer class="model" src="elements/mau5000elite.glb" alt="3D model of the MAU5000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div><button slot="ar-button" class="model-ar-btn" type="button"><span class="material-symbols-rounded">view_in_ar</span>AR</button></model-viewer>
                                 <div class="model-hint">Drag to rotate</div>
                                 <div class="model-dims" aria-hidden="true">
                                     <svg class="model-dims-lines"></svg>
@@ -192,6 +192,7 @@
                                     </div>
                                     <button type="button" class="model-measure" aria-pressed="false" aria-label="Show dimensions" title="Dimensions"><span class="material-symbols-rounded">straighten</span></button>
                                     <button type="button" class="model-feature-btn" aria-pressed="false" aria-label="Show features" title="Features"><span class="material-symbols-rounded">auto_awesome</span></button>
+                                    <button type="button" class="model-reset-btn" aria-label="Reset view" title="Reset view"><span class="material-symbols-rounded">restart_alt</span></button>
                                 </div>
                                 <canvas class="model-rain" aria-hidden="true"></canvas>
                                 <div class="model-fx" aria-hidden="true"></div>
@@ -486,7 +487,7 @@
             <div class="mobile-carousel">
                 <div class="mobile-carousel-track">
                 <div class="mobile-carousel-slide mobile-carousel-slide-3d">
-                    <model-viewer src="elements/mau5000elite.glb" poster="elements/photo/element1.png" alt="3D model of the MAU5000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div><button slot="ar-button" class="model-ar-btn" type="button"><span class="material-symbols-rounded">view_in_ar</span>AR</button></model-viewer>
+                    <model-viewer src="elements/mau5000elite.glb" alt="3D model of the MAU5000 Elite" camera-controls touch-action="pan-y" camera-orbit="35deg 72deg auto" shadow-intensity="1" exposure="1.1" interaction-prompt="none" ar ar-modes="webxr scene-viewer quick-look" loading="lazy"><div slot="progress-bar"></div><button slot="ar-button" class="model-ar-btn" type="button"><span class="material-symbols-rounded">view_in_ar</span>AR</button></model-viewer>
                     <div class="model-hint">Drag to rotate</div>
                     <div class="model-dims" aria-hidden="true">
                         <svg class="model-dims-lines"></svg>
@@ -505,6 +506,7 @@
                         </div>
                         <button type="button" class="model-measure" aria-pressed="false" aria-label="Show dimensions" title="Dimensions"><span class="material-symbols-rounded">straighten</span></button>
                         <button type="button" class="model-feature-btn" aria-pressed="false" aria-label="Show features" title="Features"><span class="material-symbols-rounded">auto_awesome</span></button>
+                        <button type="button" class="model-reset-btn" aria-label="Reset view" title="Reset view"><span class="material-symbols-rounded">restart_alt</span></button>
                     </div>
                     <canvas class="model-rain" aria-hidden="true"></canvas>
                     <div class="model-fx" aria-hidden="true"></div>
@@ -1100,7 +1102,10 @@
                 if (mine === tourRun && (heads !== c.heads || batteries !== c.batteries)) {
                     heads = c.heads;
                     batteries = c.batteries;
+                    const w = settled();
                     show("batteries", 0);
+                    await w;
+                    return "jumped";
                 }
             }
             // Per-step animations, Apple-style: soft, smooth, and quick to settle. They're
@@ -1159,7 +1164,8 @@
                 const f = FEATURES[featStep];
                 setRain(!!f.rain);
                 playFx(f);
-                if (f.config) stackTo(f.config, !!f.animate);
+                const step = featStep;
+                if (f.config) stackTo(f.config, !!f.animate).then((r) => { if (r === "jumped" && featOn && featStep === step) applyCam(); });
                 card.querySelector(".model-feature-count").textContent = `${featStep + 1} of ${FEATURES.length}`;
                 card.querySelector(".model-feature-title").textContent = f.title;
                 card.querySelector(".model-feature-text").textContent = f.text;
@@ -1168,10 +1174,13 @@
                     viewer.interpolationDecay = 160;
                     setTimeout(() => { viewer.interpolationDecay = 50; }, 1500);
                 }
-                viewer.cameraTarget = "auto auto auto";
-                // A step can set its own framing (100 kWh: just enough for all four stacks).
-                const pct = stepZoom(f) ?? (stacked() ? 150 : 110);
-                viewer.cameraOrbit = f.ports ? `90deg 78deg ${pct}%` : `${f.theta}deg ${f.phi}deg ${pct}%`;
+                const applyCam = () => {
+                    viewer.cameraTarget = "auto auto auto";
+                    // A step can set its own framing (100 kWh: just enough for all four stacks).
+                    const pct = stepZoom(f) ?? (stacked() ? 150 : 110);
+                    viewer.cameraOrbit = f.ports ? `90deg 78deg ${pct}%` : `${f.theta}deg ${f.phi}deg ${pct}%`;
+                };
+                applyCam();
             }
             function setFeatures(on) {
                 featOn = on;
@@ -1196,6 +1205,19 @@
                 }
             }
             featBtn.addEventListener("click", () => setFeatures(!featOn));
+            // Reset view: back to the view the page opens with (camera-orbit 35deg 72deg,
+            // default framing). The stack, the ruler and the tour stay as they are.
+            slide.querySelector(".model-reset-btn").addEventListener("click", () => {
+                markView(null);
+                dismissHint();
+                if (!reduceMotion.matches) {
+                    viewer.interpolationDecay = 140;
+                    setTimeout(() => { viewer.interpolationDecay = 50; }, 1500);
+                }
+                viewer.cameraTarget = "auto auto auto";
+                viewer.fieldOfView = "auto";
+                viewer.cameraOrbit = `35deg 72deg ${dimsOn ? 170 : stacked() ? 150 : 105}%`;
+            });
             card.querySelector(".model-feature-close").addEventListener("click", () => setFeatures(false));
             card.querySelector(".model-feature-prev").addEventListener("click", () => showFeature(featStep - 1));
             card.querySelector(".model-feature-next").addEventListener("click", () => showFeature(featStep + 1));

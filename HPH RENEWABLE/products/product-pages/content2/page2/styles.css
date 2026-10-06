@@ -2371,8 +2371,9 @@ body.menu-open{
 /* 5 · IP65: a badge that pops in over the rain. */
 .fx-badge{
     position: absolute;
-    right: 18px;
-    bottom: 90px;
+    left: 50%;
+    top: 50%;
+    translate: -50% -50%;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -2564,8 +2565,9 @@ body.menu-open{
 /* 9 · App: a phone slides in, its charge ring filling. */
 .fx-phone{
     position: absolute;
-    right: 18px;
-    bottom: 80px;
+    left: 50%;
+    top: 50%;
+    translate: -50% -50%;
     width: 78px;
     height: 150px;
     padding: 5px;
@@ -2630,8 +2632,9 @@ body.menu-open{
 /* 10 · Warranty: a seal that draws itself, check mark last. */
 .fx-seal{
     position: absolute;
-    right: 18px;
-    bottom: 84px;
+    left: 50%;
+    top: 50%;
+    translate: -50% -50%;
     width: 88px;
     height: 88px;
 
@@ -2774,9 +2777,10 @@ body.menu-open{
         height: 30px;
     }
 
+    /* Lined up with the control row's right edge, 10px above it. */
     .model-ar-btn{
-        right: 12px;
-        bottom: 72px;
+        right: 16px;
+        bottom: 66px;
     }
 }
 
@@ -2814,5 +2818,114 @@ body.menu-open{
 
         .model-feature-dots i{ background-color: rgba(235, 235, 245, 0.3); }
         .model-feature-dots i.on{ background-color: #EBEBEB; }
+    }
+}
+
+/* The AR button steps aside while the features tour is open. */
+.features-on .model-ar-btn{
+    display: none;
+}
+
+/* Battery pages: six views, so the ruler and features buttons sit in a small
+   stack at the top right of the 3D view, and on phones the views get the whole
+   bottom row as equal-width buttons. */
+.model-actions{
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+@media (max-width: 750px){
+    .model-tools{
+        justify-content: stretch;
+    }
+
+    .model-views{
+        flex: 1 1 auto;
+        overflow: visible;
+
+        .model-view-btn{
+            flex: 1 1 0;
+            min-width: 0;
+            height: 32px;
+            padding: 0;
+            font-size: 13px;
+        }
+    }
+
+    .model-actions{
+        top: 12px;
+        right: 12px;
+    }
+
+    .model-actions .model-measure,
+    .model-actions .model-feature-btn{
+        width: 34px;
+        height: 34px;
+    }
+}
+
+/* The corner buttons step aside under the tour card (its × closes the tour). */
+.features-on .model-actions{
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Reset view button: round, like the ruler and features buttons. */
+.model-reset-btn{
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(118, 118, 128, 0.12);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    color: #1D1D1F;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.2s ease, transform 0.15s ease;
+
+    span{
+        font-size: 18px;
+    }
+
+    &:hover{
+        background-color: rgba(118, 118, 128, 0.2);
+    }
+
+    &:active{
+        transform: rotate(-30deg);
+    }
+
+    &:focus-visible{
+        outline: 2px solid #0071E3;
+        outline-offset: 2px;
+    }
+}
+
+@media (max-width: 750px){
+    .model-tools .model-reset-btn{
+        flex: 0 0 auto;
+        width: 30px;
+        height: 30px;
+    }
+
+    .model-actions .model-reset-btn{
+        width: 34px;
+        height: 34px;
+    }
+}
+
+@media (prefers-color-scheme: dark){
+    .model-reset-btn{
+        background-color: rgba(118, 118, 128, 0.24);
+        color: #EBEBEB;
     }
 }
