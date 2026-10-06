@@ -2727,3 +2727,52 @@ body.menu-open{
         height: 34px;
     }
 }
+
+/* The ruler, features and reset buttons sit in a stack on the right of the 3D
+   view (as on the battery pages); on phones it starts below the steppers and
+   price line, and the views get the whole bottom row as equal-width buttons. */
+.model-actions{
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.features-on .model-actions{
+    opacity: 0;
+    pointer-events: none;
+}
+
+@media (max-width: 750px){
+    .model-tools{
+        justify-content: stretch;
+    }
+
+    .model-views{
+        flex: 1 1 auto;
+        overflow: visible;
+
+        .model-view-btn{
+            flex: 1 1 0;
+            min-width: 0;
+            height: 32px;
+            padding: 0;
+            font-size: 13px;
+        }
+    }
+
+    .model-actions{
+        top: 108px;
+        right: 12px;
+    }
+
+    .model-actions .model-measure,
+    .model-actions .model-feature-btn,
+    .model-actions .model-reset-btn{
+        width: 34px;
+        height: 34px;
+    }
+}
