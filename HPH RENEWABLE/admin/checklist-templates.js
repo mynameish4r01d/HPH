@@ -20,6 +20,9 @@
 //     `noteRequired: true` to make the note necessary before submitting.
 //   Any item can also have `photo: true`, which adds a "Photo (recommended)" hint
 //   to a normal item (photos are optional there).
+//   A photo item with `fromVisit: true` also gets "Import from Ocular Visit",
+//   which links every attachment of the job's visit request (e.g. the bills the
+//   client uploaded) to the item; the files stay with the visit request.
 //
 // Answers are saved in Firestore collection `jobChecklists` (see admin.js and
 // /firestore.rules); each saved checklist records the CHECKLIST_VERSION it was
@@ -50,7 +53,7 @@ export const CHECKLISTS = {
                     { id: "goal", text: "Client's goal", options: ["To save on the bill", "To go zero bill"] },
                     { id: "drone", type: "photo", text: "Drone shot of the house" },
                     {
-                        id: "meralco-bill", type: "photo",
+                        id: "meralco-bill", type: "photo", fromVisit: true,
                         text: "Latest Meralco bill uploaded",
                         hint: "The “Your Monthly Consumption” graph must be clearly visible",
                     },

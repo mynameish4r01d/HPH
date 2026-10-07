@@ -16,6 +16,7 @@ service cloud.firestore {
     match /visitRequests/{requestId} {
       allow create: if isValidVisitRequest(request.resource.data)
         || (isStaff() && isValidCopiedVisit(request.resource.data))
+        || (isStaff() && isValidStaffVisit(request.resource.data))
         || (isAdmin() && isValidOpenSolarVisit(requestId, request.resource.data));
       allow read: if isStaff() || isInstaller();
       allow update: if (isAdmin() && (isValidStatusChange() || isValidOpenSolarSync()))
@@ -54,21 +55,22 @@ service cloud.firestore {
     }
 
     // Inventory (HPH RENEWABLE/admin/, Inventory tab): stock on hand, kept by
-    // the installer account and admins. Every change to an item's count is
-    // written together with an inventoryLog record in one transaction, and the
-    // item points at that record (lastLogId), so the history always explains
-    // the count. Details and photos can change without a record; the count
-    // can't. Admins delete any item, the installer only items it added.
+    // admins, the installer and the encoder (canKeepInventory). Every change to
+    // an item's count is written together with an inventoryLog record in one
+    // transaction, and the item points at that record (lastLogId), so the
+    // history always explains the count. Details and photos can change without
+    // a record; the count can't. Admins delete any item, the installer and the
+    // encoder only items they added.
     match /inventory/{itemId} {
-      allow read: if canFillChecklists();
-      allow create: if canFillChecklists()
+      allow read: if canKeepInventory();
+      allow create: if canKeepInventory()
         && isValidInventoryItem(request.resource.data)
         && request.resource.data.createdAt == request.time
         && request.resource.data.createdBy == request.auth.token.email
         && request.resource.data.updatedAt == request.time
         && request.resource.data.updatedBy == request.auth.token.email
         && isInventoryLogFor(itemId, request.resource.data);
-      allow update: if canFillChecklists()
+      allow update: if canKeepInventory()
         && isValidInventoryItem(request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.createdBy == resource.data.createdBy
@@ -81,14 +83,14 @@ service cloud.firestore {
                 && getAfter(/databases/$(database)/documents/inventoryLog/$(request.resource.data.lastLogId)).data.qtyBefore
                      == resource.data.qty));
       allow delete: if isAdmin()
-        || (isInstaller() && resource.data.createdBy == request.auth.token.email);
+        || ((isInstaller() || isEncoder()) && resource.data.createdBy == request.auth.token.email);
     }
 
     // One record per change to an item's count (see /inventory above). Never
     // changed; admins may delete old records.
     match /inventoryLog/{logId} {
-      allow read: if canFillChecklists();
-      allow create: if canFillChecklists() && isValidInventoryLog(logId, request.resource.data);
+      allow read: if canKeepInventory();
+      allow create: if canKeepInventory() && isValidInventoryLog(logId, request.resource.data);
       allow update: if false;
       allow delete: if isAdmin();
     }
@@ -96,7 +98,8 @@ service cloud.firestore {
     // Confidentiality Agreement (NDA) responses from
     // HPH RENEWABLE/legal-policies/confidentiality-agreement/ (nda-form.js).
     // Anyone may submit a response; only admins can read or delete them, and
-    // nobody can change one after it's recorded.
+    // nobody can change one after it's recorded. (Responses from the old NDA
+    // Google Form were imported once; they carry source "google-form".)
     match /ndaResponses/{responseId} {
       allow create: if isValidNdaResponse(request.resource.data);
       allow read, delete: if isAdmin();
@@ -110,7 +113,8 @@ service cloud.firestore {
     // that except delete.
     // Stages: keep in step with TABS.waitlist.pipeline in HPH RENEWABLE/admin/admin.js.
     match /waitlist/{signupId} {
-      allow create: if isValidWaitlist(request.resource.data);
+      allow create: if isValidWaitlist(request.resource.data)
+        || (isStaff() && isValidStaffWaitlist(request.resource.data));
       allow read: if isStaff();
       allow update: if (isAdmin() && isValidStatusChange())
         || (isStaff()
@@ -134,7 +138,10 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.token.email
         && request.resource.data.updatedAt == null
         && request.resource.data.updatedBy == null
-        && (request.resource.data.source == 'admin' || isAdmin());
+        // New installs come from the admin page's form; the one-time import
+        // from the Google Sheet (source "sheet") has been removed, though its
+        // installs can still be edited.
+        && request.resource.data.source == 'admin';
       allow update: if isStaff()
         && isValidInstall(request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt
@@ -224,6 +231,11 @@ service cloud.firestore {
 
     function canFillChecklists() {
       return isAdmin() || isInstaller();
+    }
+
+    // Who keeps the inventory: admins, the installer and the encoder.
+    function canKeepInventory() {
+      return isAdmin() || isInstaller() || isEncoder();
     }
 
     function isValidInstall(data) {
@@ -546,6 +558,61 @@ service cloud.firestore {
         && data.createdAt == request.time;
     }
 
+    // A visit request added by hand on the admin page (admins and the encoder,
+    // e.g. from a phone call): the public form's fields and limits, but consent
+    // may be false (they didn't tick the website's box), up to 10 attachments,
+    // and it records who added it (source "admin", createdBy).
+    function isValidStaffVisit(data) {
+      let fields = ['name', 'phone', 'email', 'address', 'propertyType', 'product',
+                    'monthlyBill', 'preferredDate', 'preferredTime', 'message',
+                    'attachments', 'consent', 'sourcePage', 'status', 'createdAt',
+                    'source', 'createdBy'];
+      return data.keys().hasOnly(fields.concat(['referralCode']))
+        && data.keys().hasAll(fields)
+        && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
+        && isText(data.name, 1, 100)
+        && isText(data.phone, 7, 30)
+        && isText(data.email, 0, 200)
+        && isText(data.address, 3, 300)
+        && data.propertyType in ['Residential', 'Commercial', 'Industrial']
+        && isText(data.product, 1, 50)
+        && isText(data.monthlyBill, 0, 50)
+        && isText(data.preferredDate, 0, 10)
+        && isText(data.preferredTime, 1, 50)
+        && isText(data.message, 0, 2000)
+        && data.attachments is list
+        && data.attachments.size() <= 10
+        && data.consent is bool
+        && isText(data.sourcePage, 0, 300)
+        && data.status == 'new'
+        && data.createdAt == request.time
+        && data.source == 'admin'
+        && data.createdBy == request.auth.token.email;
+    }
+
+    // A waitlist sign-up added by hand on the admin page: same order and limits
+    // as the public form (isWaitlistOrder), consent may be false, and it records
+    // who added it.
+    function isValidStaffWaitlist(data) {
+      let fields = ['system', 'quantities', 'estimatedTotal', 'name', 'phone', 'email',
+                    'address', 'message', 'consent', 'sourcePage', 'status', 'createdAt',
+                    'source', 'createdBy'];
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && isWaitlistOrder(data)
+        && isText(data.name, 1, 100)
+        && isText(data.phone, 7, 30)
+        && isText(data.email, 0, 200)
+        && isText(data.address, 5, 300)
+        && isText(data.message, 0, 2000)
+        && data.consent is bool
+        && isText(data.sourcePage, 0, 300)
+        && data.status == 'new'
+        && data.createdAt == request.time
+        && data.source == 'admin'
+        && data.createdBy == request.auth.token.email;
+    }
+
     // Waitlist quantities: unit 1-10 if present; battery 1-4 per unit (4 when
     // no unit is ordered, e.g. an existing owner adding batteries).
     function isQuantity(q, unit, battery) {
@@ -556,15 +623,13 @@ service cloud.firestore {
                && (batteries <= 4 || batteries <= 4 * units)));
     }
 
-    function isValidWaitlist(data) {
-      let fields = ['system', 'quantities', 'estimatedTotal', 'name', 'phone', 'email',
-                    'address', 'message', 'consent', 'sourcePage', 'status', 'createdAt'];
-      return data.keys().hasOnly(fields)
-        && data.keys().hasAll(fields)
-        // One system, and how many of its unit and/or its own battery, e.g.
-        // { 'MAU5000 Elite': 1, 'B5000 Elite': 2 }. Zero quantities are left out.
-        // Limits match waitlist-form.js: up to 10 units, 4 batteries per unit.
-        && data.quantities is map
+    // A sign-up's order: one system, and how many of its unit and/or its own
+    // battery, e.g. { 'MAU5000 Elite': 1, 'B5000 Elite': 2 }. Zero quantities
+    // are left out. Limits match waitlist-form.js (and admin.js): up to 10
+    // units, 4 batteries per unit. The estimate (pesos, from starting prices)
+    // is what was shown; not a quote.
+    function isWaitlistOrder(data) {
+      return data.quantities is map
         && data.quantities.size() >= 1
         && ((data.system == 'MSU4000 Elite'
                && data.quantities.keys().hasOnly(['MSU4000 Elite', 'B4000 Elite'])
@@ -572,14 +637,21 @@ service cloud.firestore {
             || (data.system == 'MAU5000 Elite'
                && data.quantities.keys().hasOnly(['MAU5000 Elite', 'B5000 Elite'])
                && isQuantity(data.quantities, 'MAU5000 Elite', 'B5000 Elite')))
+        && data.estimatedTotal is int
+        && data.estimatedTotal >= 0 && data.estimatedTotal <= 100000000;
+    }
+
+    function isValidWaitlist(data) {
+      let fields = ['system', 'quantities', 'estimatedTotal', 'name', 'phone', 'email',
+                    'address', 'message', 'consent', 'sourcePage', 'status', 'createdAt'];
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && isWaitlistOrder(data)
         && isText(data.name, 1, 100)
         && isText(data.phone, 7, 30)
         && isText(data.email, 0, 200)
         // Home / delivery address.
         && isText(data.address, 5, 300)
-        // Estimate shown to the visitor from starting prices (pesos); not a quote.
-        && data.estimatedTotal is int
-        && data.estimatedTotal >= 0 && data.estimatedTotal <= 100000000
         && isText(data.message, 0, 2000)
         && data.consent == true
         && isText(data.sourcePage, 0, 300)

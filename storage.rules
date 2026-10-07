@@ -9,15 +9,17 @@ service firebase.storage {
     // Files attached to "Schedule a Visit" requests (HPH RENEWABLE/schedule-a-visit/).
     // Anyone may upload a new image or PDF of up to 10 MB into a request's
     // folder (staff too, when adding a bill for a client); only admins and the
-    // encoder account can download them or delete them (HPH RENEWABLE/admin/:
-    // removing an attachment while editing, or an admin deleting the
-    // request); nobody can replace files.
+    // encoder account can delete them (HPH RENEWABLE/admin/: removing an
+    // attachment while editing, or an admin deleting the request); nobody can
+    // replace files. The installer can also view them, for the Site Visit
+    // checklist's "Import from Ocular Visit" (the client's bills).
     match /visitRequests/{requestId}/{fileName} {
       allow create: if resource == null
                     && request.resource.size <= 10 * 1024 * 1024
                     && (request.resource.contentType.matches('image/.*')
                         || request.resource.contentType == 'application/pdf');
-      allow get, delete: if isAdmin() || isEncoder();
+      allow get: if isAdmin() || isEncoder() || isInstaller();
+      allow delete: if isAdmin() || isEncoder();
       allow list, update: if false;
     }
 
@@ -34,14 +36,15 @@ service firebase.storage {
     }
 
     // Photos of inventory items (HPH RENEWABLE/admin/, Inventory tab;
-    // inventory/<item id>/). The installer account and admins can add an image
-    // of up to 10 MB, view them and remove them; nobody can replace a file.
+    // inventory/<item id>/). Admins, the installer and the encoder account can
+    // add an image of up to 10 MB, view them and remove them; nobody can
+    // replace a file.
     match /inventory/{itemId}/{fileName} {
-      allow create: if (isAdmin() || isInstaller())
+      allow create: if (isAdmin() || isInstaller() || isEncoder())
                     && resource == null
                     && request.resource.size <= 10 * 1024 * 1024
                     && request.resource.contentType.matches('image/.*');
-      allow get, delete: if isAdmin() || isInstaller();
+      allow get, delete: if isAdmin() || isInstaller() || isEncoder();
       allow list, update: if false;
     }
 

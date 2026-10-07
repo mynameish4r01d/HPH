@@ -2084,8 +2084,7 @@ a:link{
    import (admin.js sets body[data-role]). Its three tabs sit in one row. */
 body[data-role="encoder"]{
     .admin-overview, .admin-tab[data-tab="feedback"], .admin-tab[data-tab="nda"],
-    .admin-tab[data-tab="inspection"], .admin-tab[data-tab="installation"], .admin-tab[data-tab="inventory"],
-    .admin-import-sheet{
+    .admin-tab[data-tab="inspection"], .admin-tab[data-tab="installation"]{
         display: none !important;
     }
 }
@@ -2801,7 +2800,7 @@ body[data-role="installer"]{
     }
 
     .admin-tab:not([data-tab="inspection"]):not([data-tab="installation"]):not([data-tab="inventory"]),
-    .admin-overview, .admin-import-sheet{
+    .admin-overview{
         display: none !important;
     }
 }
@@ -5482,5 +5481,370 @@ body[data-role="installer"]{
         .admin-nav-who, .admin-nav-avatar{
             display: none;
         }
+    }
+}
+
+
+/* ===== Overview on phones =====
+   Desktop is unchanged (these pieces are hidden there). On phones: "Needs
+   attention" on top, sections that fold to a head with a one-line summary
+   (data-collapse, .admin-folded), Portfolio and Customer impact as one card,
+   the stat tiles as a row of chips you can swipe, the Pipeline as rows with
+   empty stages hidden, and long lists cut to 3 rows with "Show all". */
+.admin-attention, .admin-sec-sum, .admin-sec-chevron,
+.admin-portfolio-savings, .admin-show-all{
+    display: none;
+}
+
+@media only screen and (max-width:750px){
+    /* Covered by "Needs attention", or folded into the portfolio card. */
+    .admin-stale, .admin-checklists-alert, .admin-impact{
+        display: none !important;
+    }
+
+    /* ---- Needs attention */
+    .admin-attention:not([hidden]){
+        display: block;
+        margin: 16px 0;
+        padding: 14px 14px 6px;
+        border-radius: 12px;
+        background-color: var(--admin-warn-bg);
+    }
+
+    .admin-attention-title{
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--admin-warn-text);
+
+        .material-symbols-rounded{
+            font-size: 20px;
+        }
+    }
+
+    .admin-attention-list{
+        margin: 0;
+        padding: 0;
+        list-style: none;
+
+        li + li{
+            border-top: 1px solid color-mix(in srgb, var(--admin-warn-text) 18%, transparent);
+        }
+    }
+
+    .admin-attention-item{
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        min-height: 48px;
+        padding: 8px 0;
+        border: none;
+        background: none;
+        color: var(--admin-text);
+        font-family: inherit;
+        font-size: 14px;
+        line-height: 1.35;
+        text-align: left;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .admin-attention-icon{
+        flex: 0 0 auto;
+        font-size: 20px;
+        color: var(--admin-warn-text);
+    }
+
+    .admin-attention-stale .admin-attention-icon{
+        color: var(--admin-stale-text);
+    }
+
+    .admin-attention-text{
+        flex: 1;
+        min-width: 0;
+    }
+
+    .admin-attention-go{
+        flex: 0 0 auto;
+        color: var(--admin-subtle);
+    }
+
+    /* ---- Folding sections: the head is the toggle */
+    [data-collapse] > .admin-portfolio-head{
+        flex-wrap: nowrap;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+
+        .admin-portfolio-title{
+            flex: 0 0 auto;
+        }
+
+        /* The desktop hints and live status make way for the summary. */
+        .admin-pipeline-hint, .admin-portfolio-status{
+            display: none;
+        }
+
+        .admin-sec-sum{
+            display: block;
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            font-size: 13px;
+            color: var(--admin-muted);
+            text-align: right;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .admin-sec-chevron{
+            display: block;
+            flex: 0 0 auto;
+            margin-left: -6px;
+            color: var(--admin-subtle);
+            transition: transform 0.2s ease;
+        }
+
+        &:focus-visible{
+            outline: 2px solid var(--admin-mark);
+            outline-offset: 4px;
+            border-radius: 4px;
+        }
+    }
+
+    [data-collapse]:not(.admin-folded) > .admin-portfolio-head .admin-sec-chevron{
+        transform: rotate(180deg);
+    }
+
+    /* Folded: just the head (the portfolio keeps its 2 headline numbers, goal
+       and savings line, see below). */
+    [data-collapse].admin-folded:not(.admin-portfolio) > :not(.admin-portfolio-head){
+        display: none !important;
+    }
+
+    [data-collapse].admin-folded > .admin-portfolio-head{
+        margin-bottom: 0;
+    }
+
+    /* ---- Portfolio + Customer impact, one card */
+    .admin-portfolio.admin-folded{
+        > .admin-portfolio-head{
+            margin-bottom: 14px;
+        }
+
+        /* Two headline numbers: MX2250s installed and total kWp. */
+        .admin-portfolio-item:nth-child(2), .admin-portfolio-item:nth-child(3){
+            display: none;
+        }
+
+        .admin-portfolio-item:nth-child(4){
+            padding-top: 0;
+            padding-bottom: 0;
+            padding-left: 16px;
+            border-top: none;
+            border-left: 1px solid var(--admin-divider);
+        }
+
+    }
+
+    /* Its numbers are always in view, so its head needs no summary. */
+    .admin-portfolio .admin-sec-sum{
+        visibility: hidden;
+    }
+
+    .admin-portfolio-savings{
+        display: block;
+        margin: 12px 0 0;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--admin-muted);
+
+        strong{
+            color: var(--admin-text);
+            font-weight: 600;
+        }
+    }
+
+    /* ---- Stat tiles: one row of chips you can swipe */
+    .admin-overview .admin-stats{
+        display: flex;
+        gap: 8px;
+        margin: 12px 0 16px;
+        padding: 0 0 4px;
+        overflow-x: auto;
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+
+        &::-webkit-scrollbar{
+            display: none;
+        }
+    }
+
+    .admin-overview .admin-stat{
+        flex: 0 0 auto;
+        flex-direction: row;
+        align-items: baseline;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 18px;
+        scroll-snap-align: start;
+
+        .admin-stat-value{
+            font-size: 16px;
+        }
+
+        .admin-stat-label{
+            font-size: 12px;
+            white-space: nowrap;
+        }
+    }
+
+    /* ---- Pipeline: one row per stage, empty stages hidden */
+    .admin-pipeline-stages{
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        border-radius: 8px;
+        background-color: var(--admin-bg);
+        overflow: hidden;
+    }
+
+    .admin-pipeline-stage{
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 2px 12px;
+        padding: 12px 14px;
+        border: none;
+        border-radius: 0;
+
+        & + .admin-pipeline-stage{
+            border-top: 1px solid var(--admin-border);
+        }
+
+        &.admin-pipeline-empty{
+            display: none;
+        }
+
+        .admin-pipeline-label{
+            grid-row: 1;
+            grid-column: 1;
+            font-size: 14px;
+            color: var(--admin-text);
+        }
+
+        .admin-pipeline-count{
+            grid-row: 1;
+            grid-column: 2;
+            font-size: 16px;
+        }
+
+        .admin-pipeline-note{
+            grid-column: 1 / -1;
+        }
+
+        /* The share bar becomes a thin line under the row. */
+        .admin-pipeline-bar{
+            grid-column: 1 / -1;
+            height: 3px;
+            margin-top: 4px;
+        }
+    }
+
+    /* ---- Long lists: 3 rows, then "Show all" */
+    :not(.admin-showing-all) > .admin-cap-hide{
+        display: none !important;
+    }
+
+    .admin-show-all{
+        display: block;
+        width: 100%;
+        margin-top: 8px;
+        padding: 10px 0;
+        border: none;
+        background: none;
+        color: var(--admin-mark);
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+}
+
+/* A waitlist sign-up added by hand: its order (system, units, batteries)
+   above the contact fields, with the running estimate under them. */
+.admin-waitlist-order{
+    gap: 10px;
+    padding: 16px;
+    border-radius: 8px;
+    background-color: var(--admin-surface);
+}
+
+.admin-waitlist-order-row{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+@media only screen and (max-width:750px){
+    .admin-waitlist-order-row{
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Checklist files linked from the Ocular Visit request ("Import from Ocular
+   Visit"): PDFs as a tile that opens the file, and a small "From visit" tag
+   on anything linked rather than uploaded here. */
+.admin-ck-photo.admin-ck-photo-pdf{
+    position: relative;
+    display: grid;
+    place-content: center;
+    justify-items: center;
+    gap: 2px;
+    background-color: var(--admin-surface);
+    color: var(--admin-error);
+    text-decoration: none;
+    cursor: pointer;
+
+    .material-symbols-rounded{
+        font-size: 30px;
+    }
+
+    .admin-ck-photo-label{
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--admin-muted);
+    }
+}
+
+.admin-ck-photo{
+    position: relative;
+}
+
+.admin-ck-photo-linked{
+    position: absolute;
+    left: 4px;
+    bottom: 4px;
+    padding: 2px 6px;
+    border-radius: 8px;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 600;
+    pointer-events: none;
+}
+
+.admin-ck-tool.admin-ck-tool-import[hidden]{
+    display: none;
+}
+
+@media only screen and (max-width:750px){
+    .admin-ck-tools:has(.admin-ck-tool-main) .admin-ck-tool-import{
+        width: 100%;
+        justify-content: center;
+        height: 40px;
     }
 }

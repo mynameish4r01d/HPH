@@ -47,9 +47,6 @@ const MAX_ROWS = 500;
 const INVERTER_SN = /^Y[0-9A-Z]{15}$/;
 const PANEL_SN = /^Z[0-9A-Z]{18}$/;
 
-// The old installation Google Sheet, read once by "Import from Google Sheet".
-const INSTALL_SHEET_CSV = "https://docs.google.com/spreadsheets/d/1I7w59tsa54pBLcBUs2T55pb-8lvfLKzCe0in_eY41WY/gviz/tq?tqx=out:csv";
-
 // Stale alert: an open visit request or waitlist sign-up (not marked done /
 // contacted) older than this many hours gets an amber "No contact" tag, and
 // past STALE_HOURS a red "Stale" tag.
@@ -102,8 +99,7 @@ const overview = document.querySelector(".admin-overview");
 const detailPane = document.querySelector(".admin-detail-pane");
 const installActions = document.querySelector(".admin-install-actions");
 const checklistActions = document.querySelector(".admin-checklist-actions");
-const importButton = document.querySelector(".admin-import-sheet");
-const importStatus = document.querySelector(".admin-import-status");
+const addEntryActions = document.querySelector(".admin-add-entry-actions");
 const visitActions = document.querySelector(".admin-visit-actions");
 const openSolarButton = document.querySelector(".admin-opensolar-import");
 const openSolarFile = document.querySelector(".admin-opensolar-file");
@@ -317,7 +313,7 @@ const menuTabs = menu.querySelector(".admin-menu-tabs");
 const burger = account.querySelector(".admin-burger");
 const MENU_TABS = {
     installer: [["inspection", "Site Visit"], ["installation", "Installation"], ["inventory", "Inventory"]],
-    encoder: [["visits", "Ocular Visits"], ["waitlist", "Waitlist"], ["installs", "Installs"]],
+    encoder: [["visits", "Ocular Visits"], ["waitlist", "Waitlist"], ["installs", "Installs"], ["inventory", "Inventory"]],
     admin: [["visits", "Ocular Visits"], ["waitlist", "Waitlist"], ["feedback", "Feedback"], ["installs", "Installs"],
             ["inspection", "Inspection"], ["installation", "Commissioning"], ["inventory", "Inventory"], ["nda", "NDA"]],
 };
@@ -454,10 +450,10 @@ async function loadSubmissions() {
         // Let a checklist being filled in save what's pending first, so the
         // reload below doesn't lose it.
         if (flushChecklist) await flushChecklist();
-        // The encoder can't read feedback, NDA responses or the inventory; the
-        // installer only needs the visit requests (to pick a client), the
-        // checklists and the inventory.
-        const tabs = role === "encoder" ? ["visits", "waitlist", "installs"]
+        // The encoder can't read feedback or NDA responses; the installer only
+        // needs the visit requests (to pick a client), the checklists and the
+        // inventory.
+        const tabs = role === "encoder" ? ["visits", "waitlist", "installs", "inventory"]
             : role === "installer" ? ["visits", "inventory"]
             : ["visits", "waitlist", "feedback", "installs", "nda", "inventory"];
         const [lists, checklists] = await Promise.all([
@@ -480,7 +476,7 @@ async function loadSubmissions() {
         // The installer's home is the "start a checklist" picker (or, on the
         // Inventory tab, the stock summary); refresh it, unless the add-item
         // form is open.
-        else if (role === "admin" && inventoryHomeShown()) showInventoryHome();
+        else if ((role === "admin" || role === "encoder") && inventoryHomeShown()) showInventoryHome();
         else if (role === "installer" && formOpen && !selected && !checklistStartBusy && !itemFormOpen) {
             if (activeTab === "inventory") showInventoryHome();
             else showChecklistStart(activeTab);
@@ -749,6 +745,8 @@ function renderPipeline() {
                 cell.title = `${plural(count, ["visit request", "visit requests"])} at Installed, plus ${extra} past ${extra === 1 ? "install" : "installs"} from the Installs tab. Click to list the visit requests.`;
             }
             cell.append(bar);
+            // Phones hide empty stages.
+            if (!shown) cell.classList.add("admin-pipeline-empty");
             cell.addEventListener("click", () => showStage(tab, stage.key));
             row.append(cell);
         }
@@ -809,7 +807,178 @@ function renderReferrals() {
         row.append(rank, codeButton, stats, people);
         return row;
     });
-    referrals.querySelector(".admin-referrals-list").replaceChildren(...rows);
+    const list = referrals.querySelector(".admin-referrals-list");
+    list.replaceChildren(...rows);
+    capRows(list, rows);
+}
+
+// ---- the overview on phones
+// Desktop is unchanged; on phones (styles.css hides or reshapes the rest):
+//   - "Needs attention" at the top lists what's waiting (renderAttention()).
+//   - Sections with data-collapse fold to their head, which shows a one-line
+//     summary (setupCollapsibles(), updateFoldSums()); the folded portfolio
+//     keeps its 2 headline numbers instead. Only the Pipeline starts open;
+//     what you open or close is remembered on the phone.
+//   - Long lists show 3 rows and "Show all" (capRows()).
+
+const FOLD_KEY = "hph-admin-overview-open";
+const FOLD_OPEN_DEFAULT = ["pipeline"];
+const CAP_ROWS = 3;
+
+function foldState() {
+    try {
+        return JSON.parse(localStorage.getItem(FOLD_KEY)) || {};
+    } catch {
+        return {};
+    }
+}
+
+function saveFold(key, open) {
+    try {
+        const state = foldState();
+        state[key] = open;
+        localStorage.setItem(FOLD_KEY, JSON.stringify(state));
+    } catch {
+        // Private browsing etc.: it just won't be remembered.
+    }
+}
+
+function setupCollapsibles() {
+    const saved = foldState();
+    for (const section of document.querySelectorAll("[data-collapse]")) {
+        const key = section.dataset.collapse;
+        const head = section.querySelector(".admin-portfolio-head");
+        const open = key in saved ? saved[key] : FOLD_OPEN_DEFAULT.includes(key);
+        section.classList.toggle("admin-folded", !open);
+        head.setAttribute("aria-expanded", String(open));
+        const toggle = () => {
+            const nowOpen = section.classList.toggle("admin-folded") === false;
+            head.setAttribute("aria-expanded", String(nowOpen));
+            saveFold(key, nowOpen);
+        };
+        head.addEventListener("click", (e) => {
+            if (desktop.matches || e.target.closest("a, button")) return;
+            toggle();
+        });
+        head.addEventListener("keydown", (e) => {
+            if (desktop.matches || (e.key !== "Enter" && e.key !== " ")) return;
+            e.preventDefault();
+            toggle();
+        });
+    }
+    // The referral leaderboard is a <details>: folded by default on phones.
+    if (!desktop.matches) referrals.open = "referrals" in saved ? saved.referrals : false;
+    referrals.addEventListener("toggle", () => {
+        if (!desktop.matches) saveFold("referrals", referrals.open);
+    });
+    syncFoldHeads();
+    desktop.addEventListener("change", syncFoldHeads);
+}
+
+// The heads act as buttons only on phones.
+function syncFoldHeads() {
+    for (const head of document.querySelectorAll("[data-collapse] > .admin-portfolio-head")) {
+        if (desktop.matches) {
+            head.removeAttribute("role");
+            head.removeAttribute("tabindex");
+        } else {
+            head.setAttribute("role", "button");
+            head.tabIndex = 0;
+        }
+    }
+}
+
+const setSum = (key, text) => {
+    const sum = document.querySelector(`[data-collapse="${key}"] .admin-sec-sum`);
+    if (sum) sum.textContent = text;
+};
+
+function updateFoldSums() {
+    const open = ["visits", "waitlist"].reduce((n, tab) => n + data[tab].filter((e) => !isClosed(tab, e)).length, 0);
+    setSum("pipeline", `${open} open`);
+    const checklists = [...data.inspection, ...data.installation];
+    const going = checklists.filter((c) => c.status !== "submitted").length;
+    const fixes = checklists.reduce((n, c) => n + (c.fixes || 0), 0);
+    setSum("checklists", `${going} in progress${fixes ? ` · ${fixes} to fix` : ""}`);
+    const low = data.inventory.filter(needsRestock).length;
+    setSum("inventory", low ? `${low} to restock` : plural(data.inventory.length, ["item", "items"]));
+}
+
+// What's waiting on you, each line opening the list it's about.
+function renderAttention() {
+    const box = document.querySelector(".admin-attention");
+    if (role !== "admin") {
+        box.hidden = true;
+        return;
+    }
+    const items = [];
+    for (const tab of ["visits", "waitlist"]) {
+        const stale = data[tab].filter((e) => isStale(tab, e));
+        if (!stale.length) continue;
+        const late = stale.some((e) => hoursWaiting(tab, e) >= STALE_HOURS);
+        items.push({
+            icon: "schedule",
+            tone: late ? "stale" : "warn",
+            text: `${plural(stale.length, TABS[tab].pipeline.noun)} with no contact for ${STALE_WARN_HOURS} h+`,
+            go: () => showStage(tab, "stale"),
+        });
+    }
+    const low = data.inventory.filter(needsRestock);
+    if (low.length) {
+        items.push({
+            icon: "inventory_2",
+            tone: low.some((i) => stockState(i) === "out") ? "stale" : "warn",
+            text: `${plural(low.length, ["item needs", "items need"])} restocking`,
+            go: () => {
+                lowOnly = true;
+                selectTab("inventory");
+                renderLowFilter();
+                renderList();
+            },
+        });
+    }
+    const missing = data.visits.filter((v) => stageOf("visits", v) === "installing" && !data.installation.some((c) => c.visitId === v.id));
+    if (missing.length) {
+        items.push({
+            icon: "construction",
+            tone: "warn",
+            text: `${plural(missing.length, ["job", "jobs"])} installing without a checklist`,
+            go: () => showStage("visits", "installing"),
+        });
+    }
+    box.hidden = !items.length;
+    box.querySelector(".admin-attention-list").replaceChildren(...items.map((item) => {
+        const li = el("li");
+        const button = el("button", `admin-attention-item admin-attention-${item.tone}`);
+        button.type = "button";
+        button.append(
+            el("span", "material-symbols-rounded admin-attention-icon", item.icon),
+            el("span", "admin-attention-text", item.text),
+            el("span", "material-symbols-rounded admin-attention-go", "chevron_right"),
+        );
+        button.addEventListener("click", item.go);
+        li.append(button);
+        return li;
+    }));
+}
+
+// Phones: rows after the first CAP_ROWS hide until "Show all" (styles.css
+// hides .admin-cap-hide and the button on desktop).
+function capRows(container, rows) {
+    const old = container.nextElementSibling;
+    if (old && old.classList.contains("admin-show-all")) old.remove();
+    container.classList.remove("admin-showing-all");
+    rows.forEach((row, i) => row.classList.toggle("admin-cap-hide", i >= CAP_ROWS));
+    if (rows.length <= CAP_ROWS) return;
+    const button = el("button", "admin-show-all");
+    button.type = "button";
+    const label = () => (container.classList.contains("admin-showing-all") ? "Show fewer" : `Show all ${rows.length}`);
+    button.textContent = label();
+    button.addEventListener("click", () => {
+        container.classList.toggle("admin-showing-all");
+        button.textContent = label();
+    });
+    container.after(button);
 }
 
 // Product names in a waitlist sign-up (from `quantities`, or early test ones'
@@ -870,6 +1039,8 @@ function renderStats() {
     renderLowFilter();
     renderCategoryFilter();
     renderInventoryOverview();
+    renderAttention();
+    updateFoldSums();
 }
 
 // Every string in an entry, including those inside lists and maps (both
@@ -897,7 +1068,7 @@ function fromOpenSolar(entry) {
 }
 
 function fromWebsite(entry) {
-    return entry.source !== "opensolar" && entry.source !== "install";
+    return entry.source !== "opensolar" && entry.source !== "install" && entry.source !== "admin";
 }
 
 function filteredEntries() {
@@ -911,7 +1082,8 @@ function filteredEntries() {
                 : wanted === "open" ? !isClosed(activeTab, entry)
                 : stageOf(activeTab, entry) === wanted))
         && (product === "all" || waitlistProducts(entry).includes(product))
-        && (source === "all" || (source === "opensolar" ? fromOpenSolar(entry) : fromWebsite(entry)))
+        && (source === "all" || (source === "opensolar" ? fromOpenSolar(entry)
+            : source === "admin" ? entry.source === "admin" : fromWebsite(entry)))
         && (activeTab !== "inventory" || !lowOnly || needsRestock(entry))
         && (activeTab !== "inventory" || activeCategory === "all" || (entry.category || "") === activeCategory));
     const inventoryFilter = activeTab === "inventory" && (lowOnly || activeCategory !== "all");
@@ -1066,6 +1238,7 @@ function renderVisit(v) {
     );
     if (v.source === "install") list.append(detailRow("Source", "Added automatically from the Installs tab", { wide: true }));
     if (v.source === "opensolar") list.append(detailRow("Source", "Imported from OpenSolar", { wide: true }));
+    if (v.source === "admin") list.append(detailRow("Source", `Added on the admin page${v.createdBy ? ` by ${v.createdBy}` : ""}`, { wide: true }));
     const openSolarIds = serialList(v.openSolarIds);
     if (openSolarIds.length) {
         list.append(
@@ -1122,7 +1295,7 @@ function renderFeedback(f) {
 function renderNda(n) {
     const agreed = n.response === "agree";
     const badge = el("span", `admin-badge ${agreed ? "admin-badge-active" : "admin-badge-stale"}`, agreed ? "Agreed" : "Declined");
-    const meta = [n.email, n.reference].filter(Boolean).join(" · ");
+    const meta = [n.email, n.company, n.reference].filter(Boolean).join(" · ");
     const details = entryShell(n.fullName, meta, toDate(n.createdAt), { badge, dim: !agreed });
 
     const list = el("dl", "admin-details");
@@ -1132,10 +1305,15 @@ function renderNda(n) {
         detailRow("Mobile", n.phone, { href: n.phone ? `tel:${n.phone.replace(/[^\d+]/g, "")}` : "" }),
         detailRow("Quotation reference", n.reference),
         detailRow("Agreement date", n.agreementDate),
-        detailRow("Wording version", n.statementVersion),
+        detailRow("Wording version", n.statementVersion === NDA_IMPORT_VERSION ? "Google Form (earlier wording)" : n.statementVersion),
         detailRow("Submitted", formatDate(toDate(n.createdAt))),
-        detailRow("Response ID", n.id),
     );
+    // Responses imported from the old Google Form: their company, and when.
+    if (n.company) list.insertBefore(detailRow("Company / organization", n.company), list.children[3]);
+    if (n.source === "google-form") {
+        list.append(detailRow("Source", `Imported from Google Form${n.importedBy ? ` by ${n.importedBy}` : ""} · ${formatDate(toDate(n.importedAt))}`, { wide: true }));
+    }
+    list.append(detailRow("Response ID", n.id));
     const actions = el("div", "admin-actions admin-install-entry-actions");
     const error = el("span", "admin-action-error");
     actions.append(error, ...entryTools("nda", n, error));
@@ -1177,6 +1355,7 @@ function renderWaitlist(w) {
         detailRow("Note", w.message, { wide: true }),
         detailRow("Submitted", formatDate(toDate(w.createdAt))),
     );
+    if (w.source === "admin") list.append(detailRow("Source", `Added on the admin page${w.createdBy ? ` by ${w.createdBy}` : ""}`, { wide: true }));
     if (w.editedAt) list.append(editedRow(w));
     appendStage("waitlist", w, list, details);
     return details;
@@ -1413,9 +1592,11 @@ const CSV_COLUMNS = {
         ["Email", (n) => n.email],
         ["Mobile", (n) => n.phone],
         ["Quotation reference", (n) => n.reference],
+        ["Company / organization", (n) => n.company],
         ["Response", (n) => (n.response === "agree" ? "I Agree" : "I Do Not Agree")],
         ["Agreement date", (n) => n.agreementDate],
         ["Wording version", (n) => n.statementVersion],
+        ["Source", (n) => (n.source === "google-form" ? "Google Form import" : "Website")],
         ["Response ID", (n) => n.id],
     ],
 };
@@ -2259,8 +2440,7 @@ async function deleteInstall(install) {
     await batch.commit();
 }
 
-// ----- one-time import from the old Google Sheet (admins only)
-
+// A CSV file as rows of cells (quoted fields allowed); blank rows dropped.
 function parseCSV(text) {
     const rows = [];
     let row = [];
@@ -2286,133 +2466,13 @@ function parseCSV(text) {
     return rows.filter((r) => r.some((cell) => cell.trim()));
 }
 
-// The sheet writes dates as DD/MM/YYYY; installs store YYYY-MM-DD.
-function sheetDate(text) {
-    let m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(text);
-    if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
-    m = /^(\d{4})-(\d{2})-(\d{2})/.exec(text);
-    return m ? m[0] : "";
-}
-
-function sheetNumber(text) {
-    const value = parseFloat((text || "").replace(/[^0-9.]/g, ""));
-    return Number.isFinite(value) ? Math.round(value * 100) / 100 : null;
-}
-
-function setImportStatus(text) {
-    importStatus.textContent = text;
-    importStatus.hidden = !text;
-}
-
-async function importFromSheet() {
-    if (role !== "admin") return;
-    if (!confirm("Copy every installation from the Google Sheet into Firebase?\n\nRows already imported are skipped, so it's safe to run again. After this, the portfolio counters read from Firebase, and new installations are added here instead of in the sheet.")) return;
-
-    importButton.disabled = true;
-    setImportStatus("Reading the Google Sheet…");
-    try {
-        const res = await fetch(`${INSTALL_SHEET_CSV}&_=${Date.now()}`, { cache: "no-store" });
-        if (!res.ok) throw userError(`Couldn't read the Google Sheet (HTTP ${res.status}).`);
-        const rows = parseCSV(await res.text());
-        const header = (rows[0] || []).map((h) => h.trim().toLowerCase());
-        const col = (start) => header.findIndex((h) => h.startsWith(start));
-        const c = {
-            timestamp: col("timestamp"), name: col("client name"), email: col("email"),
-            contact: col("contact"), address: col("address"), inverters: col("micro inverter"),
-            batteries: col("battery"), panels: col("solar panel"), capacity: col("capacity"),
-            date: col("installation date"),
-        };
-        if (c.name === -1 || c.inverters === -1 || c.panels === -1) {
-            throw userError("The Google Sheet's columns have changed, so it can't be imported automatically.");
-        }
-
-        // Serials already in Firebase, and sheet rows already imported.
-        const taken = new Set((await firestore.getDocs(firestore.collection(db, "serials"))).docs.map((d) => d.id));
-        const imported = new Set(data.installs
-            .filter((i) => i.source === "sheet")
-            .map((i) => `${i.sheetTimestamp}|${i.clientName}`));
-
-        const email = auth.currentUser.email;
-        const body = rows.slice(1);
-        let added = 0;
-        let skipped = 0;
-        const repeats = [];
-        const failed = [];
-        for (const [n, r] of body.entries()) {
-            setImportStatus(`Importing ${n + 1} of ${body.length}…`);
-            const cell = (i) => (i >= 0 && r[i] ? r[i].trim() : "");
-            const clientName = cell(c.name).slice(0, 150) || "Unnamed client";
-            const sheetTimestamp = cell(c.timestamp).slice(0, 40);
-            if (imported.has(`${sheetTimestamp}|${clientName}`)) {
-                skipped++;
-                continue;
-            }
-            // A serial that's already on another install is left off this one.
-            const fresh = (list) => list.filter((sn) => {
-                if (!taken.has(sn)) return true;
-                repeats.push(sn);
-                return false;
-            });
-            const inverterParse = parseSerials(cell(c.inverters), INVERTER_SN);
-            const panelParse = parseSerials(cell(c.panels), PANEL_SN);
-            const inverterSerials = fresh(inverterParse.valid).slice(0, 100);
-            const panelSerials = fresh(panelParse.valid).slice(0, 400);
-            // Every panel entry counts, placeholders included, as the sheet did.
-            const panelCount = Math.min(2000, panelParse.valid.length + panelParse.dupes.length + panelParse.placeholders);
-
-            const ref = firestore.doc(firestore.collection(db, "installs"));
-            const batch = firestore.writeBatch(db);
-            batch.set(ref, {
-                clientName,
-                email: cell(c.email).slice(0, 200),
-                contact: cell(c.contact).slice(0, 100),
-                address: cell(c.address).slice(0, 300),
-                installDate: sheetDate(cell(c.date)),
-                // The sheet's capacity, or panels × 0.65 kWp where it's blank.
-                capacityKwp: sheetNumber(cell(c.capacity)) ?? capacityFor(Math.max(panelCount, panelSerials.length)),
-                inverterSerials,
-                panelSerials,
-                panelCount: Math.max(panelCount, panelSerials.length),
-                batterySerials: parseSerials(cell(c.batteries)).valid.slice(0, 50),
-                source: "sheet",
-                sheetTimestamp,
-                createdAt: firestore.serverTimestamp(),
-                createdBy: email,
-                updatedAt: null,
-                updatedBy: null,
-            });
-            inverterSerials.forEach((sn) => batch.set(serialDoc(sn), { type: "inverter", installId: ref.id }));
-            panelSerials.forEach((sn) => batch.set(serialDoc(sn), { type: "panel", installId: ref.id }));
-            batch.set(countDoc(ref.id), { inverters: inverterSerials.length, panels: Math.max(panelCount, panelSerials.length) });
-            try {
-                await batch.commit();
-                added++;
-                [...inverterSerials, ...panelSerials].forEach((sn) => taken.add(sn));
-            } catch (err) {
-                console.error("Admin: importing sheet row failed", clientName, err);
-                failed.push(clientName);
-                if (err.code === "permission-denied") {
-                    throw userError("Permission denied. Publish the latest /firestore.rules in the Firebase console, then try again.");
-                }
-            }
-        }
-
-        const parts = [`Imported ${plural(added, ["installation", "installations"])}`];
-        if (skipped) parts.push(`${skipped} already imported`);
-        if (repeats.length) parts.push(`serials already recorded elsewhere left off: ${repeats.join(", ")}`);
-        if (failed.length) parts.push(`couldn't import: ${failed.join(", ")}`);
-        setImportStatus(`${parts.join(" · ")}.`);
-        await loadSubmissions();
-    } catch (err) {
-        console.error("Admin: sheet import failed", err);
-        setImportStatus(err.userMessage || "The import stopped. Check your connection and try again.");
-    } finally {
-        importButton.disabled = false;
-    }
-}
-
 document.querySelector(".admin-add-install").addEventListener("click", () => showInstallForm(null));
-importButton.addEventListener("click", importFromSheet);
+
+
+// NDA responses imported from the old Google Form (a one-off import, since
+// removed) have `company`, `source: "google-form"`, `importedAt` / `importedBy`
+// and this wording version; renderNda() shows them.
+const NDA_IMPORT_VERSION = "google-form";
 
 
 // ----- installs -> Ocular Visits (automatic)
@@ -3130,17 +3190,24 @@ async function deleteEntry(tab, entry) {
 
 // The edit form in the detail pane (top of the page on phones), like the
 // install form.
+// `entry` null: add a new one by hand (admins and the team account), e.g.
+// from a phone call. It's saved at the New stage, marked as added on the
+// admin page (isValidStaffVisit / isValidStaffWaitlist in /firestore.rules).
 function showEditForm(tab, entry) {
     formOpen = true;
-    selected = { tab, id: entry.id };
+    selected = entry ? { tab, id: entry.id } : null;
     setBackButton();
-    detailPane.querySelector(".admin-detail-kind").textContent = `Edit ${TABS[tab].label.toLowerCase()}`;
+    detailPane.querySelector(".admin-detail-kind").textContent = `${entry ? "Edit" : "New"} ${TABS[tab].label.toLowerCase()}`;
     const main = el("div", "admin-entry-main");
     main.append(
-        el("span", "admin-entry-title", entry.name || "(no name)"),
-        el("span", "admin-entry-meta", tab === "visits"
-            ? "Correct the client's details, or add their electricity bills, then save."
-            : "Correct the contact details, then save. The order and estimate stay as submitted."),
+        el("span", "admin-entry-title", entry ? entry.name || "(no name)" : tab === "visits" ? "Add an ocular visit request" : "Add a waitlist sign-up"),
+        el("span", "admin-entry-meta", !entry
+            ? tab === "visits"
+                ? "For a client who called, messaged or walked in. Add their bills if you have them."
+                : "For someone who asked to join the waitlist by phone or message."
+            : tab === "visits"
+                ? "Correct the client's details, or add their electricity bills, then save."
+                : "Correct the contact details, then save. The order and estimate stay as submitted."),
     );
     detailPane.querySelector(".admin-detail-title").replaceChildren(main);
     detailPane.querySelector(".admin-detail-body").replaceChildren(editForm(tab, entry));
@@ -3170,7 +3237,7 @@ function editForm(tab, entry) {
 
     for (const spec of EDIT_FIELDS[tab]) {
         const wrap = el("label", spec.wide ? "admin-field admin-install-wide" : "admin-field");
-        const current = typeof entry[spec.name] === "string" ? entry[spec.name] : "";
+        const current = entry && typeof entry[spec.name] === "string" ? entry[spec.name] : "";
         let input;
         if (spec.options) {
             input = el("select", "admin-select");
@@ -3199,7 +3266,7 @@ function editForm(tab, entry) {
 
     // Attachments (visit requests): keep / remove the current files, add new
     // ones (images or PDFs, up to MAX_ATTACHMENTS in all).
-    const kept = tab === "visits" ? [...serialList(entry.attachments)] : null;
+    const kept = tab === "visits" ? [...serialList(entry && entry.attachments)] : null;
     const added = [];
     let refreshFiles = () => {};
     if (kept) {
@@ -3295,7 +3362,7 @@ function editForm(tab, entry) {
             }
             addFiles([...e.dataTransfer.files]);
         });
-        box.append(el("span", "admin-label", "Attachments (e.g. the last 3 electricity bills)"), list, drop, picker, note);
+        box.append(el("span", "admin-label", "Attachments (e.g. the latest electricity bill)"), list, drop, picker, note);
         grid.append(box);
     }
 
@@ -3305,11 +3372,14 @@ function editForm(tab, entry) {
     const cancel = el("button", "admin-action");
     cancel.type = "button";
     cancel.textContent = "Cancel";
-    cancel.addEventListener("click", () => showEntry(tab, entry.id));
+    cancel.addEventListener("click", () => (entry ? showEntry(tab, entry.id) : closeEntry()));
     const save = el("button", "admin-action admin-action-primary");
     save.type = "submit";
-    save.append(el("span", "material-symbols-rounded", "check_circle"), "Save changes");
+    const saveLabel = entry ? "Save changes" : tab === "visits" ? "Add visit request" : "Add sign-up";
+    save.append(el("span", "material-symbols-rounded", "check_circle"), saveLabel);
     actions.append(error, cancel, save);
+    // A new waitlist sign-up also needs its order.
+    const order = !entry && tab === "waitlist" ? waitlistOrderFields(grid) : null;
     form.append(grid, actions);
     refreshFiles();
 
@@ -3339,14 +3409,23 @@ function editForm(tab, entry) {
         }
         if (tab === "visits" && !values.product) values.product = "Not sure yet";
         if (tab === "visits" && !values.preferredTime) values.preferredTime = "Any time";
+        let orderValues = null;
+        if (order) {
+            orderValues = order.read();
+            if (orderValues.problem) {
+                error.textContent = orderValues.problem;
+                return;
+            }
+        }
 
         save.disabled = true;
         cancel.disabled = true;
         save.replaceChildren(el("span", "material-symbols-rounded", "hourglass_top"), added.length ? "Uploading…" : "Saving…");
         try {
-            await saveEdit(tab, entry, values, kept, added);
+            const id = entry ? entry.id : await saveNewEntry(tab, values, added, orderValues);
+            if (entry) await saveEdit(tab, entry, values, kept, added);
             formOpen = false;
-            selected = { tab, id: entry.id };
+            selected = { tab, id };
             await loadSubmissions();
         } catch (err) {
             console.error("Admin: saving edit failed", err);
@@ -3355,7 +3434,7 @@ function editForm(tab, entry) {
                 : "Couldn't save. Check your connection and try again.";
             save.disabled = false;
             cancel.disabled = false;
-            save.replaceChildren(el("span", "material-symbols-rounded", "check_circle"), "Save changes");
+            save.replaceChildren(el("span", "material-symbols-rounded", "check_circle"), saveLabel);
         }
     });
     return form;
@@ -3389,6 +3468,108 @@ async function saveEdit(tab, entry, values, kept, added) {
     }
 }
 
+
+// Starting prices for a new waitlist sign-up's estimate, per system (unit,
+// then its battery). Keep in sync with the data-price values in
+// join-waitlist/index.html, and the limits with waitlist-form.js and the rule.
+const WAITLIST_SYSTEMS = {
+    "MSU4000 Elite": { unit: ["MSU4000 Elite", 120000], battery: ["B4000 Elite", 90000] },
+    "MAU5000 Elite": { unit: ["MAU5000 Elite", 150000], battery: ["B5000 Elite", 100000] },
+};
+const WAITLIST_MAX_UNITS = 10;
+const WAITLIST_BATTERIES_PER_UNIT = 4;
+
+// System, units and batteries for a new sign-up, with the running estimate.
+function waitlistOrderFields(grid) {
+    const box = el("div", "admin-field admin-install-wide admin-waitlist-order");
+    const system = el("select", "admin-select");
+    for (const key of Object.keys(WAITLIST_SYSTEMS)) {
+        const option = el("option", "", `${key} system`);
+        option.value = key;
+        system.append(option);
+    }
+    const number = (label) => {
+        const wrap = el("label", "admin-field");
+        const input = el("input");
+        input.type = "number";
+        input.min = "0";
+        input.step = "1";
+        input.inputMode = "numeric";
+        input.value = "0";
+        const name = el("span", "admin-label", label);
+        wrap.append(name, input);
+        return { wrap, input, name };
+    };
+    const units = number("Units");
+    const batteries = number("Batteries");
+    units.input.value = "1";
+    const row = el("div", "admin-waitlist-order-row");
+    row.append(units.wrap, batteries.wrap);
+    const estimate = el("span", "admin-serial-summary");
+    const systemWrap = el("label", "admin-field");
+    systemWrap.append(el("span", "admin-label", "System *"), system);
+    box.append(el("span", "admin-label", "Order"), systemWrap, row, estimate);
+    grid.prepend(box);
+
+    const peso = (n) => `₱${n.toLocaleString()}`;
+    function read() {
+        const { unit, battery } = WAITLIST_SYSTEMS[system.value];
+        const u = Number(units.input.value);
+        const b = Number(batteries.input.value);
+        let problem = "";
+        if (!Number.isInteger(u) || u < 0 || u > WAITLIST_MAX_UNITS) problem = `Units must be a whole number from 0 to ${WAITLIST_MAX_UNITS}.`;
+        else if (!Number.isInteger(b) || b < 0 || b > WAITLIST_BATTERIES_PER_UNIT * Math.max(1, u)) problem = `Batteries must be a whole number up to ${WAITLIST_BATTERIES_PER_UNIT * Math.max(1, u)} (${WAITLIST_BATTERIES_PER_UNIT} per unit).`;
+        else if (!u && !b) problem = "Add at least one unit or battery.";
+        const quantities = {};
+        if (u > 0) quantities[unit[0]] = u;
+        if (b > 0) quantities[battery[0]] = b;
+        return { problem, system: system.value, quantities, estimatedTotal: (u || 0) * unit[1] + (b || 0) * battery[1] };
+    }
+    function update() {
+        const { unit, battery } = WAITLIST_SYSTEMS[system.value];
+        units.name.textContent = `${unit[0]} units (${peso(unit[1])} each)`;
+        batteries.name.textContent = `${battery[0]} batteries (${peso(battery[1])} each)`;
+        const r = read();
+        estimate.textContent = r.problem || `Estimated total: ${peso(r.estimatedTotal)} (estimate only, not a final quotation)`;
+        estimate.classList.toggle("bad", Boolean(r.problem));
+    }
+    for (const node of [system, units.input, batteries.input]) node.addEventListener("input", update);
+    update();
+    return { read };
+}
+
+// Saves a visit request or waitlist sign-up added by hand: uploads its files
+// first (visit requests), then creates it at the New stage.
+async function saveNewEntry(tab, values, added, order) {
+    const ref = firestore.doc(firestore.collection(db, TABS[tab].collection));
+    const entry = {
+        ...values,
+        consent: false,
+        sourcePage: "Admin page",
+        status: "new",
+        createdAt: firestore.serverTimestamp(),
+        source: "admin",
+        createdBy: currentEmail,
+    };
+    if (tab === "visits") {
+        const uploaded = [];
+        if (added.length) {
+            const { storageSdk, storage } = await loadStorage();
+            const stamp = Date.now();
+            for (const [i, file] of added.entries()) {
+                const path = `${TABS.visits.collection}/${ref.id}/admin-${stamp}-${i + 1}-${safeFileName(file.name)}`;
+                await storageSdk.uploadBytes(storageSdk.ref(storage, path), file, { contentType: fileType(file) });
+                uploaded.push(path);
+            }
+        }
+        entry.attachments = uploaded;
+    } else {
+        delete order.problem;
+        Object.assign(entry, order);
+    }
+    await firestore.setDoc(ref, entry);
+    return ref.id;
+}
 
 // "Details edited Oct 4, 2026, 2:05 PM by …", on entries an admin corrected.
 function editedRow(entry) {
@@ -3434,9 +3615,11 @@ function showEntry(tab, id) {
 }
 
 function closeEntry() {
-    // The encoder has no overview: its home is the "Add installation" form.
+    // The encoder has no overview: its home is the "Add installation" form, or
+    // "Stock on hand" on the Inventory tab.
     if (role === "encoder") {
-        showInstallForm(null);
+        if (activeTab === "inventory") showInventoryHome();
+        else showInstallForm(null);
         return;
     }
     // The installer's home is the "start a checklist" picker, or the stock
@@ -3464,10 +3647,11 @@ function closeEntry() {
 function setBackButton({ hidden = false } = {}) {
     const back = detailPane.querySelector(".admin-back");
     back.hidden = hidden;
-    const inventoryHome = role === "installer" && activeTab === "inventory";
+    // On the Inventory tab the installer's and encoder's home is "Stock on hand".
+    const inventoryHome = (role === "installer" || role === "encoder") && activeTab === "inventory";
     back.replaceChildren(
-        el("span", "material-symbols-rounded", role === "encoder" ? "add" : inventoryHome ? "inventory_2" : role === "installer" ? "add_task" : "close"),
-        role === "encoder" ? "New installation" : inventoryHome ? "Stock on hand" : role === "installer" ? "New checklist" : "Close",
+        el("span", "material-symbols-rounded", inventoryHome ? "inventory_2" : role === "encoder" ? "add" : role === "installer" ? "add_task" : "close"),
+        inventoryHome ? "Stock on hand" : role === "encoder" ? "New installation" : role === "installer" ? "New checklist" : "Close",
     );
 }
 
@@ -3572,9 +3756,17 @@ function checklistCounts(type, items) {
     return { total: all.length, answered: passed + fixes + na, passed, fixes, na };
 }
 
+// Photos uploaded to this checklist (jobChecklists/<id>/…), the ones deleted
+// with it. Files linked from the visit request ("Import from Ocular Visit")
+// belong to the request and are left alone.
 function checklistPhotoPaths(c) {
-    return Object.values(c.items || {}).flatMap((answer) => (Array.isArray(answer.photos) ? answer.photos : []));
+    return Object.values(c.items || {})
+        .flatMap((answer) => (Array.isArray(answer.photos) ? answer.photos : []))
+        .filter((path) => path.startsWith("jobChecklists/"));
 }
+
+// A file linked from the job's visit request rather than uploaded here.
+const isLinkedFile = (path) => path.startsWith(`${TABS.visits.collection}/`);
 
 // The text of each item marked "Needs fix" (for the CSV).
 function checklistFixList(c) {
@@ -3877,9 +4069,34 @@ function checklistForm(c) {
         fileInput.multiple = true;
         fileInput.hidden = true;
         photoButton.append(fileInput);
+        // "Import from Ocular Visit": links every attachment of the job's visit
+        // request (e.g. the client's bills) to this item. Only for items marked
+        // fromVisit, on a checklist started from a visit request that has files.
+        const visit = item.fromVisit && c.visitId ? data.visits.find((v) => v.id === c.visitId) : null;
+        const visitFiles = visit ? serialList(visit.attachments) : [];
+        const importButton = el("button", "admin-ck-tool admin-ck-tool-import");
+        importButton.type = "button";
+        importButton.append(el("span", "material-symbols-rounded", "attach_file"), `Import from Ocular Visit (${visitFiles.length})`);
+        importButton.hidden = !visitFiles.length;
+        importButton.addEventListener("click", () => {
+            const current = (items[item.id] && items[item.id].photos) || [];
+            const fresh = visitFiles.filter((path) => !current.includes(path));
+            const room = Math.max(0, CK_MAX_PHOTOS - current.length);
+            photoError.textContent = "";
+            if (!fresh.length) {
+                photoError.textContent = "Those files are already added.";
+                return;
+            }
+            if (fresh.length > room) photoError.textContent = `Up to ${CK_MAX_PHOTOS} files per item: ${room ? `added the first ${room}` : "remove one to add more"}.`;
+            if (!room) return;
+            setItem(item.id, { r: "", photos: [...current, ...fresh.slice(0, room)] });
+            drawPhotos();
+            sync();
+            persist();
+        });
         if (item.type === "photo") {
             photoButton.classList.add("admin-ck-tool-main");
-            tools.append(photoButton, choices);
+            tools.append(photoButton, importButton, choices);
             if (!item.notePrompt) tools.append(noteButton);
         } else if (item.options) tools.append(noteButton);
         else tools.append(noteButton, photoButton);
@@ -3891,28 +4108,44 @@ function checklistForm(c) {
 
         function photoThumb(path) {
             const li = el("li");
-            const frame = el("span", "admin-thumb admin-ck-photo");
-            const img = el("img");
-            img.alt = "Photo";
-            img.addEventListener("error", () => frame.classList.add("admin-ck-photo-broken"));
-            const local = localUrls.get(path);
-            if (local) img.src = local;
-            else {
-                loadStorage()
-                    .then(({ storageSdk, storage }) => storageSdk.getDownloadURL(storageSdk.ref(storage, path)))
-                    .then((url) => { img.src = url; })
-                    .catch(() => frame.classList.add("admin-ck-photo-broken"));
+            const linked = isLinkedFile(path);
+            const pdf = /\.pdf$/i.test(path);
+            // A PDF (e.g. a bill linked from the visit request) shows as a tile
+            // that opens the file; images as thumbnails.
+            const frame = el(pdf ? "a" : "span", `admin-thumb admin-ck-photo${pdf ? " admin-ck-photo-pdf" : ""}`);
+            const urlPromise = localUrls.has(path)
+                ? Promise.resolve(localUrls.get(path))
+                : loadStorage().then(({ storageSdk, storage }) => storageSdk.getDownloadURL(storageSdk.ref(storage, path)));
+            if (pdf) {
+                frame.target = "_blank";
+                frame.rel = "noopener";
+                frame.title = `Open ${path.split("/").pop()}`;
+                frame.append(el("span", "material-symbols-rounded", "picture_as_pdf"), el("span", "admin-ck-photo-label", "PDF"));
+                urlPromise.then((url) => { frame.href = url; }).catch(() => frame.classList.add("admin-ck-photo-broken"));
+            } else {
+                const img = el("img");
+                img.alt = "Photo";
+                img.addEventListener("error", () => frame.classList.add("admin-ck-photo-broken"));
+                urlPromise.then((url) => { img.src = url; }).catch(() => frame.classList.add("admin-ck-photo-broken"));
+                frame.append(img);
             }
-            frame.append(img);
+            if (linked) {
+                const tag = el("span", "admin-ck-photo-linked", "From visit");
+                tag.title = "Linked from the Ocular Visit request; removing it here doesn't delete the client's file.";
+                frame.append(tag);
+            }
             const remove = el("button", "admin-ck-photo-remove");
             remove.type = "button";
-            remove.setAttribute("aria-label", "Remove photo");
+            remove.setAttribute("aria-label", linked ? "Unlink file" : "Remove photo");
             remove.append(el("span", "material-symbols-rounded", "close"));
             remove.addEventListener("click", async () => {
-                if (!confirm("Remove this photo?")) return;
+                if (!confirm(linked ? "Remove this file from the checklist? It stays with the Ocular Visit request." : "Remove this photo?")) return;
                 setItem(item.id, { photos: (items[item.id].photos || []).filter((p) => p !== path) });
                 drawPhotos();
+                sync();
                 persist();
+                // Linked files belong to the visit request: only unlinked.
+                if (linked) return;
                 try {
                     const { storageSdk, storage } = await loadStorage();
                     await storageSdk.deleteObject(storageSdk.ref(storage, path));
@@ -4274,17 +4507,20 @@ function renderChecklistOverview() {
     const rows = [...jobs.values()].sort((a, b) => (b.updated || 0) - (a.updated || 0)).slice(0, 12);
     if (!rows.length) {
         table.replaceChildren(el("p", "admin-empty", "No checklists started yet. Installers start them from the Installer Checklists workspace."));
+        capRows(table, []);
         return;
     }
     const head = el("div", "admin-checklists-row admin-checklists-head");
     head.append(el("span", "", "Job"), el("span", "", CHECKLISTS.inspection.title), el("span", "", CHECKLISTS.installation.title));
-    table.replaceChildren(head, ...rows.map((job) => {
+    const jobRows = rows.map((job) => {
         const row = el("div", "admin-checklists-row");
         const name = el("span", "admin-checklists-job");
         name.append(el("strong", "", job.name || "(no name)"), el("span", "", job.address || ""));
         row.append(name, checklistCell(job.inspection), checklistCell(job.installation));
         return row;
-    }));
+    });
+    table.replaceChildren(head, ...jobRows);
+    capRows(table, jobRows);
 }
 
 
@@ -5301,6 +5537,8 @@ function renderInventoryOverview() {
         selectTab("inventory");
         openInventoryItem(item.id);
     }));
+    const restock = box.querySelector(".admin-inv-restock-list");
+    if (restock) capRows(restock, [...restock.children]);
 }
 
 // True while the right-hand pane shows "Stock on hand".
@@ -5411,6 +5649,9 @@ lowFilterButton.addEventListener("click", () => {
 inventoryActions.querySelector(".admin-add-item").addEventListener("click", () => showItemForm(null));
 
 
+setupCollapsibles();
+
+
 // ------------------------------------------------------------------- tabs
 
 // The stage filter, rebuilt with the active tab's stages (hidden on tabs
@@ -5446,6 +5687,12 @@ function selectTab(name) {
         else if (desktop.matches && inventoryHomeShown()) closeEntry();
         else if (!selected && !formOpen) overview.hidden = true;
     }
+    // The encoder: "Stock on hand" on the Inventory tab; leaving it goes back
+    // to its home, the "Add installation" form.
+    if (role === "encoder") {
+        if (name === "inventory" && (!selected || inventoryHomeShown())) showInventoryHome();
+        else if (inventoryHomeShown()) closeEntry();
+    }
     // Phones: start the section at the top (also when an overview link opened it).
     if (!desktop.matches) window.scrollTo({ top: 0 });
     document.querySelectorAll(".admin-tab").forEach((t) => {
@@ -5463,6 +5710,8 @@ function selectTab(name) {
     installActions.hidden = name !== "installs";
     visitActions.hidden = name !== "visits" || role !== "admin";
     checklistActions.hidden = !CHECKLIST_TYPES.includes(name);
+    addEntryActions.hidden = !["visits", "waitlist"].includes(name) || !(role === "admin" || role === "encoder");
+    addEntryActions.querySelector(".admin-add-entry-text").textContent = name === "waitlist" ? "Add sign-up" : "Add visit request";
     inventoryActions.hidden = name !== "inventory";
     updateStatusFilter();
     renderList();
@@ -5471,6 +5720,10 @@ function selectTab(name) {
     if (role === "installer" && CHECKLIST_TYPES.includes(name)) showChecklistStart(name);
     else if (role === "installer" && name === "inventory") showInventoryHome();
 }
+
+addEntryActions.querySelector(".admin-add-entry").addEventListener("click", () => {
+    if (activeTab === "visits" || activeTab === "waitlist") showEditForm(activeTab, null);
+});
 
 checklistActions.querySelector(".admin-start-checklist").addEventListener("click", () => {
     if (CHECKLIST_TYPES.includes(activeTab)) showChecklistStart(activeTab);

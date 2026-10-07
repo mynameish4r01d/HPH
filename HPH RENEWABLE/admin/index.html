@@ -200,15 +200,30 @@
                         </button>
                     </div>
 
+                    <!-- Phones: what's waiting on you (no contact 48h+, restocks, jobs
+                         installing without a checklist), each opening its list. Filled in
+                         by renderAttention() in admin.js; hidden when there's nothing. -->
+                    <section class="admin-attention" aria-label="Needs attention" hidden>
+                        <div class="admin-attention-title">
+                            <span class="material-symbols-rounded">notifications_active</span>
+                            Needs attention
+                        </div>
+                        <ul class="admin-attention-list"></ul>
+                    </section>
+
                     <!-- Live portfolio counters, filled in by ../portfolio-counters.js
                          (same Google Sheet as the Home and Portfolio pages). -->
-                    <section class="admin-portfolio" aria-label="Installed portfolio">
+                    <!-- data-collapse: on phones the section folds to its head (see
+                         setupCollapsibles() in admin.js). -->
+                    <section class="admin-portfolio" aria-label="Installed portfolio" data-collapse="portfolio">
                         <div class="admin-portfolio-head">
                             <span class="admin-portfolio-title">Installed portfolio</span>
                             <span class="admin-portfolio-status">
                                 <span class="admin-portfolio-dot" data-portfolio-status-dot></span>
                                 <span data-portfolio-status-text>Loading&hellip;</span>
                             </span>
+                            <span class="admin-sec-sum"></span>
+                            <span class="material-symbols-rounded admin-sec-chevron" aria-hidden="true">expand_more</span>
                         </div>
                         <div class="admin-portfolio-grid">
                             <div class="admin-portfolio-item">
@@ -236,6 +251,11 @@
                             </div>
                             <div class="admin-goal-track"><div class="admin-goal-fill"></div></div>
                         </div>
+                        <!-- Phones: Customer impact as one line (its own box is hidden there). -->
+                        <p class="admin-portfolio-savings">
+                            Customer savings: <strong data-portfolio-count="yearly-savings">&mdash;</strong> a year
+                            · <strong data-portfolio-count="lifetime-savings">&mdash;</strong> over 25 years
+                        </p>
                         <div class="admin-portfolio-error" data-portfolio-error></div>
                     </section>
 
@@ -290,20 +310,24 @@
                     <div class="admin-stale" role="status" hidden></div>
 
                     <!-- Pipeline: how many entries are at each stage. Filled in by admin.js. -->
-                    <section class="admin-pipeline" aria-label="Pipeline">
+                    <section class="admin-pipeline" aria-label="Pipeline" data-collapse="pipeline">
                         <div class="admin-portfolio-head">
                             <span class="admin-portfolio-title">Pipeline</span>
                             <span class="admin-pipeline-hint">Click a stage to list who's in it.</span>
+                            <span class="admin-sec-sum"></span>
+                            <span class="material-symbols-rounded admin-sec-chevron" aria-hidden="true">expand_more</span>
                         </div>
                         <div class="admin-pipeline-groups"></div>
                     </section>
 
                     <!-- Installer checklists (admins): how far each job's inspection and
                          commissioning checklists are. Filled in by admin.js. -->
-                    <section class="admin-checklists" aria-label="Installer checklists" hidden>
+                    <section class="admin-checklists" aria-label="Installer checklists" data-collapse="checklists" hidden>
                         <div class="admin-portfolio-head">
                             <span class="admin-portfolio-title">Installer checklists</span>
                             <span class="admin-pipeline-hint">Click a job to open its checklist.</span>
+                            <span class="admin-sec-sum"></span>
+                            <span class="material-symbols-rounded admin-sec-chevron" aria-hidden="true">expand_more</span>
                         </div>
                         <div class="admin-checklists-summary"></div>
                         <div class="admin-checklists-alert" role="status" hidden></div>
@@ -312,10 +336,12 @@
 
                     <!-- Inventory (admins): the same "Stock on hand" summary as the installer
                          sees. Filled in by renderInventoryOverview() in admin.js. -->
-                    <section class="admin-inventory-box" aria-label="Inventory" hidden>
+                    <section class="admin-inventory-box" aria-label="Inventory" data-collapse="inventory" hidden>
                         <div class="admin-portfolio-head">
                             <span class="admin-portfolio-title">Inventory</span>
                             <span class="admin-pipeline-hint admin-inventory-box-hint"></span>
+                            <span class="admin-sec-sum"></span>
+                            <span class="material-symbols-rounded admin-sec-chevron" aria-hidden="true">expand_more</span>
                         </div>
                         <div class="admin-inventory-box-body"></div>
                     </section>
@@ -370,6 +396,7 @@
                             <option value="all">All sources</option>
                             <option value="website">Website form</option>
                             <option value="opensolar">OpenSolar</option>
+                            <option value="admin">Added on the admin page</option>
                         </select>
 
                         <!-- Inventory only: one category, with counts (filled in by admin.js). -->
@@ -384,18 +411,12 @@
                 <!-- Waitlist only: filter by product, with per-product totals. -->
                 <div class="admin-product-filter" role="group" aria-label="Filter waitlist by product" hidden></div>
 
-                <!-- Installs only: add one (the form opens on the right), and for full
-                     admins a one-time import of the old installation Google Sheet. -->
+                <!-- Installs only: add one (the form opens on the right). -->
                 <div class="admin-install-actions" hidden>
                     <button type="button" class="admin-action admin-action-primary admin-add-install">
                         <span class="material-symbols-rounded">add</span>
                         Add installation
                     </button>
-                    <button type="button" class="admin-action admin-import-sheet" title="Copy every installation from the old Google Sheet into Firebase (rows already imported are skipped)">
-                        <span class="material-symbols-rounded">cloud_download</span>
-                        Import from Google Sheet
-                    </button>
-                    <p class="admin-import-status" role="status" hidden></p>
                 </div>
 
                 <!-- Inspection and Commissioning tabs: start a checklist for a job
@@ -417,6 +438,15 @@
                     <button type="button" class="admin-action admin-low-filter" aria-pressed="false">
                         <span class="material-symbols-rounded">warning</span>
                         <span class="admin-low-filter-text">Restock needed</span>
+                    </button>
+                </div>
+
+                <!-- Ocular Visits and Waitlist, admins and the team account: add one by
+                     hand (e.g. from a phone call); the form opens on the right. -->
+                <div class="admin-install-actions admin-add-entry-actions" hidden>
+                    <button type="button" class="admin-action admin-action-primary admin-add-entry">
+                        <span class="material-symbols-rounded">add</span>
+                        <span class="admin-add-entry-text">Add</span>
                     </button>
                 </div>
 
