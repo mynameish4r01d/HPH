@@ -21,6 +21,38 @@ service firebase.storage {
       allow list, update: if false;
     }
 
+    // Photos on installer checklist items (HPH RENEWABLE/admin/, jobChecklists/
+    // <checklist id>/). The installer account and admins can add an image of up
+    // to 10 MB, view them and remove them; nobody can replace a file.
+    match /jobChecklists/{checklistId}/{fileName} {
+      allow create: if (isAdmin() || isInstaller())
+                    && resource == null
+                    && request.resource.size <= 10 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow get, delete: if isAdmin() || isInstaller();
+      allow list, update: if false;
+    }
+
+    // Photos of inventory items (HPH RENEWABLE/admin/, Inventory tab;
+    // inventory/<item id>/). The installer account and admins can add an image
+    // of up to 10 MB, view them and remove them; nobody can replace a file.
+    match /inventory/{itemId}/{fileName} {
+      allow create: if (isAdmin() || isInstaller())
+                    && resource == null
+                    && request.resource.size <= 10 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow get, delete: if isAdmin() || isInstaller();
+      allow list, update: if false;
+    }
+
+    // The installer account (adds and views checklist photos). Keep in step
+    // with INSTALLER_EMAILS in HPH RENEWABLE/admin/admin.js and isInstaller()
+    // in /firestore.rules.
+    function isInstaller() {
+      return request.auth != null
+        && request.auth.token.email in ['hphrenewable@gmail.com'];
+    }
+
     // The encoder account (sees visit request attachments, can add or remove
     // them while editing). Keep in step with ENCODER_EMAILS in
     // HPH RENEWABLE/admin/admin.js and isEncoder() in /firestore.rules.

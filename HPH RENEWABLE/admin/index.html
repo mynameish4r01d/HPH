@@ -32,19 +32,38 @@
 <body>
 
     <header class="admin-bar">
-        <!-- Logo, then "| Admin Overview" so it's clear this is the admin page. -->
+        <!-- Just the logo: the page speaks for itself. -->
         <div class="admin-brand">
             <a href="../home/index.html" class="admin-logo">
                 <img src="../global-elements/HPH Renewable Black.png" alt="HPH Renewable" class="img">
             </a>
-            <span class="admin-brand-label">Admin Overview</span>
         </div>
 
         <div class="admin-account" hidden>
             <span class="admin-account-email"></span>
             <button type="button" class="admin-signout">Sign out</button>
+            <!-- Phones only: opens .admin-menu (tabs and sign out) and turns into its close button. -->
+            <button type="button" class="admin-burger" aria-label="Open menu" aria-expanded="false" aria-controls="admin-menu">
+                <span class="admin-burger-line"></span>
+                <span class="admin-burger-line"></span>
+            </button>
         </div>
     </header>
+
+    <!-- Phones: same look and motion as the website's phone menu (home page). It
+         opens behind the fixed top bar, extends down the screen, then its contents
+         fade in one by one. -->
+    <nav class="admin-menu" id="admin-menu" aria-label="Menu">
+        <div class="admin-menu-inner">
+            <div class="admin-menu-heading admin-menu-title"></div>
+            <div class="admin-menu-tabs" role="tablist"></div>
+            <div class="admin-menu-foot">
+                <div class="admin-menu-heading">Signed in as</div>
+                <div class="admin-menu-email"></div>
+                <button type="button" class="admin-menu-signout">Sign out</button>
+            </div>
+        </div>
+    </nav>
 
     <main class="admin-page">
         <p class="admin-status">Loading…</p>
@@ -81,10 +100,96 @@
         </section>
 
         <section class="admin-dashboard" hidden>
-            <!-- Desktop: the sidebar (tabs, filters, list) is pinned on the left and
-                 a clicked entry opens in .admin-detail-pane on the right, in place of
-                 the overview. Phones keep one column: overview, then the list, with
-                 entries opening in place. -->
+            <!-- Desktop: three columns. The navigation (.admin-nav), the list with its
+                 search and filters (.admin-sidebar), and the right-hand pane, where a
+                 clicked entry opens (.admin-detail-pane). Overview hides the list and
+                 shows the overview there. Phones keep one column: overview, then the
+                 list, with entries opening in place. -->
+            <!-- Desktop: the navigation column (like a macOS app's sidebar): the logo,
+                 Overview (admins), the tabs in two groups, and the account at the
+                 bottom. Each role sees only its own tabs (role rules in styles.css),
+                 and a group with none left is hidden. Phones use the burger menu
+                 (.admin-menu) instead. -->
+            <nav class="admin-nav" aria-label="Sections">
+                <a href="../home/index.html" class="admin-nav-brand">
+                    <img src="../global-elements/HPH Renewable Black.png" alt="HPH Renewable">
+                </a>
+
+                <div class="admin-nav-scroll">
+                    <button type="button" class="admin-nav-item admin-nav-overview">
+                        <span class="material-symbols-rounded admin-tab-icon">space_dashboard</span>
+                        <span class="admin-tab-label">Overview</span>
+                    </button>
+
+                    <div class="admin-nav-group" data-group="clients">
+                        <div class="admin-nav-heading">Clients</div>
+                        <div class="admin-tabs" role="tablist" aria-label="Clients">
+                        <button type="button" class="admin-tab active" role="tab" aria-selected="true" data-tab="visits">
+                            <span class="material-symbols-rounded admin-tab-icon">event</span>
+                            <span class="admin-tab-label">Ocular Visits</span>
+                            <span class="admin-tab-count" data-count="visits"></span>
+                        </button>
+                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="waitlist">
+                            <span class="material-symbols-rounded admin-tab-icon">hourglass_top</span>
+                            <span class="admin-tab-label">Waitlist</span>
+                            <span class="admin-tab-count" data-count="waitlist"></span>
+                        </button>
+                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="feedback">
+                            <span class="material-symbols-rounded admin-tab-icon">reviews</span>
+                            <span class="admin-tab-label">Feedback</span>
+                            <span class="admin-tab-count" data-count="feedback"></span>
+                        </button>
+                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="nda">
+                            <span class="material-symbols-rounded admin-tab-icon">contract</span>
+                            <span class="admin-tab-label">NDA</span>
+                            <span class="admin-tab-count" data-count="nda"></span>
+                        </button>
+                        </div>
+                    </div>
+
+                    <div class="admin-nav-group" data-group="operations">
+                        <div class="admin-nav-heading">Operations</div>
+                        <div class="admin-tabs" role="tablist" aria-label="Operations">
+                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="installs">
+                            <span class="material-symbols-rounded admin-tab-icon">solar_power</span>
+                            <span class="admin-tab-label">Installs</span>
+                            <span class="admin-tab-count" data-count="installs"></span>
+                        </button>
+                        <!-- Installer checklists. The installer account sees these as Site Visit
+                             and Installation; admins as Inspection and Commissioning (so
+                             "Installation" isn't confused with Installs). -->
+                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="inspection">
+                            <span class="material-symbols-rounded admin-tab-icon">fact_check</span>
+                            <span class="admin-tab-label"><span class="admin-tab-short">Inspection</span><span class="admin-tab-full">Site Visit</span></span>
+                            <span class="admin-tab-count" data-count="inspection"></span>
+                        </button>
+                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="installation">
+                            <span class="material-symbols-rounded admin-tab-icon">construction</span>
+                            <span class="admin-tab-label"><span class="admin-tab-short">Commissioning</span><span class="admin-tab-full">Installation</span></span>
+                            <span class="admin-tab-count" data-count="installation"></span>
+                        </button>
+                        <!-- Installer and admins: stock on hand (see the "inventory" section of admin.js). -->
+                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="inventory">
+                            <span class="material-symbols-rounded admin-tab-icon">inventory_2</span>
+                            <span class="admin-tab-label">Inventory</span>
+                            <span class="admin-tab-count" data-count="inventory"></span>
+                        </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-nav-account">
+                    <span class="admin-nav-avatar" aria-hidden="true"></span>
+                    <span class="admin-nav-who">
+                        <span class="admin-nav-role"></span>
+                        <span class="admin-nav-email"></span>
+                    </span>
+                    <button type="button" class="admin-nav-signout" title="Sign out" aria-label="Sign out">
+                        <span class="material-symbols-rounded">logout</span>
+                    </button>
+                </div>
+            </nav>
+
             <div class="admin-main">
                 <div class="admin-overview">
                     <div class="admin-heading">
@@ -174,6 +279,10 @@
                             <span class="admin-stat-value" data-stat="referrals">–</span>
                             <span class="admin-stat-label">Referred visits</span>
                         </div>
+                        <div class="admin-stat">
+                            <span class="admin-stat-value" data-stat="nda">–</span>
+                            <span class="admin-stat-label">NDA agreements</span>
+                        </div>
                     </div>
 
                     <!-- Stale alert: open visit requests / waitlist sign-ups with no
@@ -187,6 +296,28 @@
                             <span class="admin-pipeline-hint">Click a stage to list who's in it.</span>
                         </div>
                         <div class="admin-pipeline-groups"></div>
+                    </section>
+
+                    <!-- Installer checklists (admins): how far each job's inspection and
+                         commissioning checklists are. Filled in by admin.js. -->
+                    <section class="admin-checklists" aria-label="Installer checklists" hidden>
+                        <div class="admin-portfolio-head">
+                            <span class="admin-portfolio-title">Installer checklists</span>
+                            <span class="admin-pipeline-hint">Click a job to open its checklist.</span>
+                        </div>
+                        <div class="admin-checklists-summary"></div>
+                        <div class="admin-checklists-alert" role="status" hidden></div>
+                        <div class="admin-checklists-table"></div>
+                    </section>
+
+                    <!-- Inventory (admins): the same "Stock on hand" summary as the installer
+                         sees. Filled in by renderInventoryOverview() in admin.js. -->
+                    <section class="admin-inventory-box" aria-label="Inventory" hidden>
+                        <div class="admin-portfolio-head">
+                            <span class="admin-portfolio-title">Inventory</span>
+                            <span class="admin-pipeline-hint admin-inventory-box-hint"></span>
+                        </div>
+                        <div class="admin-inventory-box-body"></div>
                     </section>
 
                     <!-- Referral leaderboard: visit requests grouped by referral code,
@@ -208,8 +339,8 @@
                     <div class="admin-detail-sticky">
                         <div class="admin-detail-head">
                             <button type="button" class="admin-back">
-                                <span class="material-symbols-rounded">arrow_back</span>
-                                Back to overview
+                                <span class="material-symbols-rounded">close</span>
+                                Close
                             </button>
                             <span class="admin-detail-kind"></span>
                         </div>
@@ -217,28 +348,32 @@
                     </div>
                     <div class="admin-detail-body"></div>
                 </div>
+
+                <!-- Desktop, list view with nothing open (shown by CSS when both the
+                     overview and the detail pane are hidden). -->
+                <div class="admin-pane-empty">
+                    <span class="material-symbols-rounded">left_click</span>
+                    <p>Select an entry from the list</p>
+                </div>
             </div>
 
             <aside class="admin-sidebar" aria-label="Submissions">
+                <!-- Desktop: the open section's name (set by selectTab()). -->
+                <h2 class="admin-list-title"></h2>
                 <div class="admin-toolbar">
-                    <div class="admin-tabs" role="tablist">
-                        <button type="button" class="admin-tab active" role="tab" aria-selected="true" data-tab="visits">
-                            Ocular Visits <span class="admin-tab-count" data-count="visits"></span>
-                        </button>
-                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="waitlist">
-                            Waitlist <span class="admin-tab-count" data-count="waitlist"></span>
-                        </button>
-                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="feedback">
-                            Feedback <span class="admin-tab-count" data-count="feedback"></span>
-                        </button>
-                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="installs">
-                            Installs <span class="admin-tab-count" data-count="installs"></span>
-                        </button>
-                    </div>
-
                     <div class="admin-filters">
                         <!-- Options (the active tab's stages) come from admin.js. -->
                         <select class="admin-status-filter" aria-label="Filter by stage"></select>
+
+                        <!-- Ocular Visits only: where the entry came from. -->
+                        <select class="admin-source-filter" aria-label="Filter by source" hidden>
+                            <option value="all">All sources</option>
+                            <option value="website">Website form</option>
+                            <option value="opensolar">OpenSolar</option>
+                        </select>
+
+                        <!-- Inventory only: one category, with counts (filled in by admin.js). -->
+                        <select class="admin-category-filter" aria-label="Filter by category" hidden></select>
 
                         <input type="search" class="admin-search" placeholder="Search name, phone, email, message…" aria-label="Search submissions">
                     </div>
@@ -261,6 +396,28 @@
                         Import from Google Sheet
                     </button>
                     <p class="admin-import-status" role="status" hidden></p>
+                </div>
+
+                <!-- Inspection and Commissioning tabs: start a checklist for a job
+                     (the picker opens on the right). -->
+                <div class="admin-install-actions admin-checklist-actions" hidden>
+                    <button type="button" class="admin-action admin-action-primary admin-start-checklist">
+                        <span class="material-symbols-rounded">add_task</span>
+                        Start a checklist
+                    </button>
+                </div>
+
+                <!-- Inventory tab: add an item (the form opens on the right), and show only
+                     items at or below their restock level. -->
+                <div class="admin-install-actions admin-inventory-actions" hidden>
+                    <button type="button" class="admin-action admin-action-primary admin-add-item">
+                        <span class="material-symbols-rounded">add</span>
+                        Add item
+                    </button>
+                    <button type="button" class="admin-action admin-low-filter" aria-pressed="false">
+                        <span class="material-symbols-rounded">warning</span>
+                        <span class="admin-low-filter-text">Restock needed</span>
+                    </button>
                 </div>
 
                 <!-- Ocular Visits, admins only: import an OpenSolar project export (CSV).
@@ -289,6 +446,10 @@
                     <div class="admin-list" data-list="waitlist" hidden></div>
                     <div class="admin-list" data-list="feedback" hidden></div>
                     <div class="admin-list" data-list="installs" hidden></div>
+                    <div class="admin-list" data-list="inspection" hidden></div>
+                    <div class="admin-list" data-list="installation" hidden></div>
+                    <div class="admin-list" data-list="nda" hidden></div>
+                    <div class="admin-list" data-list="inventory" hidden></div>
                 </div>
             </aside>
         </section>

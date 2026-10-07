@@ -17,7 +17,7 @@ service cloud.firestore {
       allow create: if isValidVisitRequest(request.resource.data)
         || (isStaff() && isValidCopiedVisit(request.resource.data))
         || (isAdmin() && isValidOpenSolarVisit(requestId, request.resource.data));
-      allow read: if isStaff();
+      allow read: if isStaff() || isInstaller();
       allow update: if (isAdmin() && (isValidStatusChange() || isValidOpenSolarSync()))
         || (isStaff()
             && (isValidStageChange(['new', 'contacted', 'scheduled', 'visited', 'quoted', 'installing', 'installed'])
@@ -30,6 +30,75 @@ service cloud.firestore {
     // read or delete it; nobody can change it (it's the customer's words).
     match /feedback/{feedbackId} {
       allow create: if isValidFeedback(request.resource.data);
+      allow read, delete: if isAdmin();
+      allow update: if false;
+    }
+
+    // Installer checklists (HPH RENEWABLE/admin/, the Site visit inspection and
+    // Installation and commissioning tabs). One document per job and checklist
+    // type; the checklist's content lives in admin/checklist-templates.js. The
+    // installer account (and admins) start one and fill it in while it's
+    // "in_progress", but only its creator can change it; submitting it locks
+    // it. Admins can read every checklist, reopen a submitted one, or delete.
+    match /jobChecklists/{checklistId} {
+      allow read: if isAdmin() || isInstaller();
+      allow create: if canFillChecklists() && isValidChecklistCreate(request.resource.data);
+      allow update: if (canFillChecklists()
+            && resource.data.status == 'in_progress'
+            && resource.data.createdBy == request.auth.token.email
+            && isValidChecklistUpdate(resource.data, request.resource.data))
+        || (isAdmin()
+            && resource.data.status == 'submitted'
+            && isValidChecklistReopen(resource.data, request.resource.data));
+      allow delete: if isAdmin();
+    }
+
+    // Inventory (HPH RENEWABLE/admin/, Inventory tab): stock on hand, kept by
+    // the installer account and admins. Every change to an item's count is
+    // written together with an inventoryLog record in one transaction, and the
+    // item points at that record (lastLogId), so the history always explains
+    // the count. Details and photos can change without a record; the count
+    // can't. Admins delete any item, the installer only items it added.
+    match /inventory/{itemId} {
+      allow read: if canFillChecklists();
+      allow create: if canFillChecklists()
+        && isValidInventoryItem(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.createdBy == request.auth.token.email
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.token.email
+        && isInventoryLogFor(itemId, request.resource.data);
+      allow update: if canFillChecklists()
+        && isValidInventoryItem(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.token.email
+        && ((request.resource.data.qty == resource.data.qty
+             && request.resource.data.lastLogId == resource.data.lastLogId)
+            || (request.resource.data.lastLogId != resource.data.lastLogId
+                && isInventoryLogFor(itemId, request.resource.data)
+                && getAfter(/databases/$(database)/documents/inventoryLog/$(request.resource.data.lastLogId)).data.qtyBefore
+                     == resource.data.qty));
+      allow delete: if isAdmin()
+        || (isInstaller() && resource.data.createdBy == request.auth.token.email);
+    }
+
+    // One record per change to an item's count (see /inventory above). Never
+    // changed; admins may delete old records.
+    match /inventoryLog/{logId} {
+      allow read: if canFillChecklists();
+      allow create: if canFillChecklists() && isValidInventoryLog(logId, request.resource.data);
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // Confidentiality Agreement (NDA) responses from
+    // HPH RENEWABLE/legal-policies/confidentiality-agreement/ (nda-form.js).
+    // Anyone may submit a response; only admins can read or delete them, and
+    // nobody can change one after it's recorded.
+    match /ndaResponses/{responseId} {
+      allow create: if isValidNdaResponse(request.resource.data);
       allow read, delete: if isAdmin();
       allow update: if false;
     }
@@ -142,6 +211,21 @@ service cloud.firestore {
       return isAdmin() || isEncoder();
     }
 
+    // The installer account: signs in on the admin page to a workspace with
+    // only the two checklist tabs and Inventory. It can read visit requests
+    // (to pick a client) but change none, start and fill in checklists, and
+    // keep the inventory. Keep in step
+    // with INSTALLER_EMAILS in HPH RENEWABLE/admin/admin.js and isInstaller()
+    // in /storage.rules.
+    function isInstaller() {
+      return request.auth != null
+        && request.auth.token.email in ['hphrenewable@gmail.com'];
+    }
+
+    function canFillChecklists() {
+      return isAdmin() || isInstaller();
+    }
+
     function isValidInstall(data) {
       let fields = ['clientName', 'email', 'contact', 'address', 'installDate', 'capacityKwp',
                     'inverterSerials', 'panelSerials', 'panelCount', 'batterySerials', 'source',
@@ -165,6 +249,68 @@ service cloud.firestore {
         && data.source in ['admin', 'sheet']
         && isText(data.sheetTimestamp, 0, 40)
         && data.createdBy is string;
+    }
+
+    // An inventory item: name, category, unit, count, restock level (0 = no
+    // warning), note, up to 6 photo paths (inventory/<id>/ in Storage) and the
+    // history record of its latest count change. Limits match admin.js
+    // (INV_MAX_QTY, INV_MAX_PHOTOS).
+    function isValidInventoryItem(data) {
+      let fields = ['name', 'category', 'unit', 'qty', 'lowAt', 'note', 'photos', 'lastLogId',
+                    'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && isText(data.name, 1, 100)
+        && isText(data.category, 0, 50)
+        && isText(data.unit, 1, 20)
+        && data.qty is int && data.qty >= 0 && data.qty <= 1000000
+        && data.lowAt is int && data.lowAt >= 0 && data.lowAt <= 1000000
+        && isText(data.note, 0, 500)
+        && data.photos is list && data.photos.size() <= 6
+        && isText(data.lastLogId, 1, 100)
+        && data.createdBy is string;
+    }
+
+    // The item's lastLogId names a history record, written in the same batch,
+    // for this item that ends at the item's count.
+    function isInventoryLogFor(itemId, item) {
+      let log = /databases/$(database)/documents/inventoryLog/$(item.lastLogId);
+      return existsAfter(log)
+        && getAfter(log).data.itemId == itemId
+        && getAfter(log).data.qtyAfter == item.qty;
+    }
+
+    // A history record: before + change = after; the item must end at "after"
+    // and point at this record; "create" only with a new item (from 0), and
+    // otherwise "before" must be the item's count until now. Use lowers it,
+    // restock raises it, count (a correction) either way.
+    function isValidInventoryLog(logId, data) {
+      let fields = ['itemId', 'itemName', 'reason', 'change', 'qtyBefore', 'qtyAfter',
+                    'job', 'note', 'at', 'by'];
+      let item = /databases/$(database)/documents/inventory/$(data.itemId);
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && isText(data.itemId, 1, 100)
+        && isText(data.itemName, 1, 100)
+        && data.reason in ['create', 'use', 'restock', 'count']
+        && data.change is int
+        && data.qtyBefore is int && data.qtyBefore >= 0
+        && data.qtyAfter is int && data.qtyAfter >= 0
+        && data.qtyAfter == data.qtyBefore + data.change
+        && isText(data.job, 0, 150)
+        && isText(data.note, 0, 300)
+        && data.at == request.time
+        && data.by == request.auth.token.email
+        && existsAfter(item)
+        && getAfter(item).data.qty == data.qtyAfter
+        && getAfter(item).data.lastLogId == logId
+        && ((data.reason == 'create' && !exists(item) && data.qtyBefore == 0)
+            || (data.reason != 'create'
+                && data.change != 0
+                && exists(item)
+                && get(item).data.qty == data.qtyBefore
+                && (data.reason != 'use' || data.change < 0)
+                && (data.reason != 'restock' || data.change > 0)));
     }
 
     // A serial's document: the ID must be a well-formed serial of its type
@@ -452,6 +598,97 @@ service cloud.firestore {
         && isText(data.name, 0, 100)
         && isText(data.contact, 0, 200)
         && data.allowPublish is bool
+        && isText(data.sourcePage, 0, 300)
+        && data.status == 'new'
+        && data.createdAt == request.time;
+    }
+
+    // The counters a checklist keeps for the admin overview, so it needn't
+    // read every answer: they must add up.
+    function isChecklistCounts(data) {
+      return data.total is int && data.total >= 0 && data.total <= 150
+        && data.answered is int && data.answered >= 0 && data.answered <= data.total
+        && data.passed is int && data.passed >= 0
+        && data.fixes is int && data.fixes >= 0
+        && data.na is int && data.na >= 0
+        && data.passed + data.fixes + data.na == data.answered;
+    }
+
+    // A new checklist: nothing answered yet.
+    function isValidChecklistCreate(data) {
+      let fields = ['type', 'visitId', 'clientName', 'address', 'items', 'total',
+                    'answered', 'passed', 'fixes', 'na', 'status', 'version',
+                    'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && data.type in ['inspection', 'installation']
+        && isText(data.visitId, 0, 100)
+        && isText(data.clientName, 1, 100)
+        && isText(data.address, 0, 300)
+        && data.items is map && data.items.size() == 0
+        && isChecklistCounts(data) && data.answered == 0
+        && data.status == 'in_progress'
+        && isText(data.version, 1, 40)
+        && data.createdBy == request.auth.token.email
+        && data.updatedBy == request.auth.token.email
+        && data.createdAt == request.time
+        && data.updatedAt == request.time;
+    }
+
+    // Saving answers, or submitting (which needs everything answered and a
+    // name). The job's details never change.
+    function isValidChecklistUpdate(before, data) {
+      let base = ['type', 'visitId', 'clientName', 'address', 'items', 'total',
+                  'answered', 'passed', 'fixes', 'na', 'status', 'version',
+                  'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
+      return data.keys().hasOnly(base.concat(['signedOffBy', 'submittedAt']))
+        && data.keys().hasAll(base)
+        && data.type == before.type
+        && data.visitId == before.visitId
+        && data.clientName == before.clientName
+        && data.address == before.address
+        && data.version == before.version
+        && data.createdAt == before.createdAt
+        && data.createdBy == before.createdBy
+        && data.items is map && data.items.size() <= 150
+        && isChecklistCounts(data)
+        && data.updatedBy == request.auth.token.email
+        && data.updatedAt == request.time
+        && ((data.status == 'in_progress'
+              && !('signedOffBy' in data) && !('submittedAt' in data))
+            || (data.status == 'submitted'
+              && data.answered == data.total
+              && isText(data.signedOffBy, 2, 100)
+              && data.submittedAt == request.time));
+    }
+
+    // An admin reopening a submitted checklist: only the status and the
+    // sign-off change.
+    function isValidChecklistReopen(before, data) {
+      return data.diff(before).affectedKeys()
+          .hasOnly(['status', 'signedOffBy', 'submittedAt', 'updatedAt', 'updatedBy'])
+        && data.status == 'in_progress'
+        && data.updatedAt == request.time
+        && data.updatedBy == request.auth.token.email;
+    }
+
+    // An NDA response: name and email required, "agree" or "disagree", the date
+    // shown on the form (YYYY-MM-DD) and the wording version it answered
+    // (STATEMENT_VERSION in nda-form.js — keep the two in step).
+    function isValidNdaResponse(data) {
+      let fields = ['fullName', 'email', 'phone', 'reference', 'response',
+                    'agreementDate', 'statementVersion', 'sourcePage', 'status', 'createdAt'];
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && isText(data.fullName, 2, 100)
+        && isText(data.email, 3, 200)
+        && data.email.matches('^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$')
+        && isText(data.phone, 0, 40)
+        && isText(data.reference, 0, 200)
+        && data.response in ['agree', 'disagree']
+        && data.agreementDate is string
+        && data.agreementDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && data.statementVersion == '2026-10'
         && isText(data.sourcePage, 0, 300)
         && data.status == 'new'
         && data.createdAt == request.time;

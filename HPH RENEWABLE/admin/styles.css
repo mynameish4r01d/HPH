@@ -97,18 +97,6 @@ a:link{
         min-width: 0;
     }
 
-    /* "| Admin Overview": the divider is the label's left border. */
-    .admin-brand-label{
-        flex-shrink: 0;
-        padding-left: 14px;
-        border-left: 1px solid var(--admin-border);
-        font-size: 14px;
-        font-weight: 500;
-        line-height: 18px;
-        color: var(--admin-muted);
-        white-space: nowrap;
-    }
-
     .admin-logo{
         display: block;
         min-width: 0;
@@ -709,7 +697,7 @@ a:link{
 
 .admin-stats{
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     gap: 12px;
     margin: 28px 0 36px;
 }
@@ -791,7 +779,9 @@ a:link{
     min-width: 0;
 }
 
-.admin-status-filter{
+.admin-status-filter,
+.admin-source-filter,
+.admin-category-filter{
     flex-shrink: 0;
     height: 40px;
     padding: 0 36px 0 12px;
@@ -1865,19 +1855,13 @@ a:link{
         max-width: 620px;
     }
 
-    /* Toolbar stacked: tabs across the top, then search and the filter. */
+    /* Toolbar stacked: search, then the filters. */
     .admin-sidebar .admin-toolbar{
         flex-direction: column;
         flex-wrap: nowrap;
         align-items: stretch;
         gap: 10px;
         padding-bottom: 14px;
-    }
-
-    .admin-sidebar .admin-tab{
-        flex: 1 1 auto;
-        padding: 0 6px;
-        font-size: 12px;
     }
 
     .admin-sidebar .admin-filters{
@@ -2099,14 +2083,10 @@ a:link{
 /* The encoder account: no overview dashboard, no Feedback tab, no sheet
    import (admin.js sets body[data-role]). Its three tabs sit in one row. */
 body[data-role="encoder"]{
-    .admin-overview, .admin-tab[data-tab="feedback"], .admin-import-sheet{
+    .admin-overview, .admin-tab[data-tab="feedback"], .admin-tab[data-tab="nda"],
+    .admin-tab[data-tab="inspection"], .admin-tab[data-tab="installation"], .admin-tab[data-tab="inventory"],
+    .admin-import-sheet{
         display: none !important;
-    }
-}
-
-@media only screen and (min-width:751px){
-    body[data-role="encoder"] .admin-sidebar .admin-tabs{
-        grid-template-columns: repeat(3, 1fr);
     }
 }
 
@@ -2233,14 +2213,6 @@ body[data-role="encoder"]{
         flex: 1 1 240px;
         margin: 0;
         text-align: right;
-    }
-}
-
-@media only screen and (min-width:751px){
-    /* Four tabs: two rows of two in the sidebar. */
-    .admin-sidebar .admin-tabs{
-        display: grid;
-        grid-template-columns: 1fr 1fr;
     }
 }
 
@@ -2764,16 +2736,6 @@ body[data-role="encoder"] .admin-visit-actions{
         display: none;
     }
 
-    /* Smaller label and spacing so the logo keeps more of its width. */
-    .admin-bar .admin-brand{
-        gap: 10px;
-    }
-
-    .admin-bar .admin-brand-label{
-        padding-left: 10px;
-        font-size: 12px;
-    }
-
     .admin-entry .admin-entry-date{
         display: none;
     }
@@ -2800,5 +2762,2715 @@ body[data-role="encoder"] .admin-visit-actions{
 
     .admin-referral-people{
         padding-left: 0;
+    }
+}
+
+/* Inspection / Commissioning tabs: short names for admins, full names for the installer. */
+.admin-tab-full{
+    display: none;
+}
+
+body[data-role="installer"]{
+    .admin-tab-short{
+        display: none;
+    }
+
+    .admin-tab-full{
+        display: inline;
+    }
+}
+
+
+/* ===== Installer checklists =====
+   The two checklist tabs, the installer account's workspace (only those tabs),
+   the "start a checklist" picker, the form an installer fills in, the read-only
+   report admins see, and the overview box (admin.js, checklist-templates.js). */
+
+/* Tabs: short names among the admin's tabs, full names for the installer. */
+.admin-tab-full{
+    display: none;
+}
+
+body[data-role="installer"]{
+    .admin-tab-full{
+        display: inline;
+    }
+
+    .admin-tab-short{
+        display: none;
+    }
+
+    .admin-tab:not([data-tab="inspection"]):not([data-tab="installation"]):not([data-tab="inventory"]),
+    .admin-overview, .admin-import-sheet{
+        display: none !important;
+    }
+}
+
+/* Progress: a small bar in list rows, a larger one in an open checklist. */
+.admin-ck-meta{
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+
+    > span:last-child{
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.admin-ck-minibar{
+    flex: 0 0 auto;
+    display: inline-block;
+    width: 56px;
+    height: 6px;
+    border-radius: 3px;
+    background-color: var(--admin-goal-track);
+    overflow: hidden;
+
+    i{
+        display: block;
+        height: 100%;
+        border-radius: 3px;
+        background-color: var(--admin-goal);
+        transition: width 0.25s ease;
+    }
+}
+
+.admin-ck{
+    padding: 4px 0 8px;
+}
+
+.admin-ck-head{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px 16px;
+}
+
+.admin-ck-job{
+    min-width: 0;
+
+    span{
+        font-size: 13px;
+        color: var(--admin-muted);
+    }
+}
+
+.admin-ck-kind{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--admin-subtle);
+
+    .material-symbols-rounded{
+        font-size: 18px;
+    }
+}
+
+.admin-ck-sample{
+    padding: 2px 8px;
+    border-radius: 10px;
+    background-color: var(--admin-warn-bg);
+    color: var(--admin-warn-text);
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.admin-ck-toprow{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    margin-top: 14px;
+}
+
+.admin-ck-progress{
+    flex: 1 1 220px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    margin-top: 14px;
+}
+
+.admin-ck-toprow .admin-ck-progress{
+    margin-top: 0;
+}
+
+.admin-ck-bar{
+    flex: 1;
+    height: 8px;
+    border-radius: 4px;
+    background-color: var(--admin-goal-track);
+    overflow: hidden;
+
+    i{
+        display: block;
+        height: 100%;
+        border-radius: 4px;
+        background-color: var(--admin-goal);
+        transition: width 0.25s ease;
+    }
+}
+
+.admin-ck-count{
+    font-size: 12px;
+    color: var(--admin-muted);
+    white-space: nowrap;
+}
+
+.admin-ck-save{
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--admin-subtle);
+    cursor: default;
+
+    &[data-state="ok"]{
+        color: var(--admin-active-text);
+    }
+
+    &[data-state="error"]{
+        color: var(--admin-stale-text);
+        text-decoration: underline;
+        cursor: pointer;
+    }
+}
+
+.admin-ck-intro{
+    margin: 14px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--admin-muted);
+}
+
+.admin-ck-signoff{
+    margin: 10px 0 0;
+    font-size: 12px;
+    color: var(--admin-muted);
+}
+
+.admin-ck-section{
+    margin-top: 28px;
+}
+
+.admin-ck-section-title{
+    margin: 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--admin-border);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: var(--admin-subtle);
+}
+
+.admin-ck-text{
+    font-size: 14px;
+    line-height: 1.45;
+}
+
+.admin-ck-hint{
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--admin-muted);
+}
+
+.admin-ck-item{
+    padding: 14px 0;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+/* The form: the item's text beside its three choices, then note and photos. */
+.admin-ck-edit .admin-ck-item{
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 10px 16px;
+    transition: box-shadow 0.2s ease, padding 0.2s ease;
+
+    &[data-state="pass"]{
+        box-shadow: inset 3px 0 0 var(--admin-active-text);
+        padding-left: 12px;
+    }
+
+    &[data-state="fix"]{
+        box-shadow: inset 3px 0 0 var(--admin-warn-text);
+        padding-left: 12px;
+    }
+}
+
+.admin-ck-choices{
+    display: flex;
+    gap: 6px;
+}
+
+/* A question with set answers: the answers wrap instead of squeezing. */
+.admin-ck-choices.admin-ck-options{
+    flex-wrap: wrap;
+}
+
+.admin-ck-value{
+    margin-top: 2px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+/* The photo button is the main action of a photo item. */
+.admin-ck-tool.admin-ck-tool-main{
+    height: 36px;
+    border-style: solid;
+    border-color: var(--admin-accent);
+    color: var(--admin-accent);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.admin-ck-choice{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 18px;
+    background-color: var(--admin-field);
+    color: var(--admin-text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+    .material-symbols-rounded{
+        font-size: 18px;
+        color: var(--admin-subtle);
+    }
+
+    &:hover{
+        border-color: var(--admin-subtle);
+    }
+
+    &[aria-pressed="true"]{
+        font-weight: 600;
+    }
+
+    &.admin-ck-choice-pass[aria-pressed="true"]{
+        border-color: var(--admin-active-text);
+        background-color: var(--admin-active-bg);
+        color: var(--admin-active-text);
+    }
+
+    &.admin-ck-choice-fix[aria-pressed="true"]{
+        border-color: var(--admin-warn-text);
+        background-color: var(--admin-warn-bg);
+        color: var(--admin-warn-text);
+    }
+
+    &.admin-ck-choice-na[aria-pressed="true"]{
+        border-color: var(--admin-subtle);
+        background-color: var(--admin-surface);
+    }
+
+    &[aria-pressed="true"] .material-symbols-rounded{
+        color: inherit;
+    }
+}
+
+.admin-ck-extra{
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 8px;
+}
+
+.admin-ck-note{
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    background-color: var(--admin-field);
+    color: var(--admin-text);
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.45;
+    resize: vertical;
+
+    &[hidden]{
+        display: none;
+    }
+
+    &:focus{
+        outline: none;
+        border-color: var(--admin-accent);
+    }
+}
+
+.admin-ck-tools{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.admin-ck-tool{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border: 1px dashed var(--admin-border);
+    border-radius: 16px;
+    background: none;
+    color: var(--admin-muted);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    .material-symbols-rounded{
+        font-size: 18px;
+    }
+
+    &:hover{
+        border-color: var(--admin-subtle);
+        color: var(--admin-text);
+    }
+}
+
+.admin-ck-error{
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--admin-error);
+
+    &:empty{
+        display: none;
+    }
+}
+
+.admin-ck-extra .admin-ck-error{
+    margin: 0;
+}
+
+/* Photos: the existing thumbnail grid, smaller, with a remove button. */
+.admin-ck-photos{
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+    gap: 8px;
+    margin: 0;
+
+    &:empty{
+        display: none;
+    }
+
+    li{
+        position: relative;
+    }
+}
+
+.admin-ck-photo{
+    cursor: default;
+    aspect-ratio: 1 / 1;
+
+    &.admin-ck-photo-broken{
+        display: grid;
+        place-items: center;
+
+        img{
+            display: none;
+        }
+
+        &::before{
+            content: "image_not_supported";
+            font-family: "Material Symbols Rounded";
+            font-size: 24px;
+            color: var(--admin-subtle);
+        }
+    }
+}
+
+.admin-ck-photo-remove{
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background-color: rgba(0, 0, 0, 0.6);
+    color: #FFFFFF;
+    cursor: pointer;
+
+    .material-symbols-rounded{
+        font-size: 16px;
+    }
+}
+
+/* The read-only report: mark, item and result per row. */
+.admin-ck:not(.admin-ck-edit) .admin-ck-item{
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 10px;
+
+    &.admin-ck-fix{
+        background-color: color-mix(in srgb, var(--admin-warn-bg) 55%, transparent);
+    }
+}
+
+.admin-ck-mark{
+    color: var(--admin-subtle);
+
+    .material-symbols-rounded{
+        font-size: 20px;
+    }
+}
+
+.admin-ck-pass .admin-ck-mark{
+    color: var(--admin-active-text);
+}
+
+.admin-ck-fix .admin-ck-mark{
+    color: var(--admin-warn-text);
+}
+
+.admin-ck-result{
+    padding: 2px 8px;
+    border-radius: 10px;
+    background-color: var(--admin-surface);
+    color: var(--admin-muted);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.admin-ck-pass .admin-ck-result{
+    background-color: var(--admin-active-bg);
+    color: var(--admin-active-text);
+}
+
+.admin-ck-fix .admin-ck-result{
+    background-color: var(--admin-warn-bg);
+    color: var(--admin-warn-text);
+}
+
+.admin-ck-open .admin-ck-text{
+    color: var(--admin-muted);
+}
+
+.admin-ck-note-text{
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background-color: var(--admin-surface);
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+/* Sign off. */
+.admin-ck-field{
+    display: grid;
+    gap: 6px;
+    margin-top: 12px;
+
+    > span{
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--admin-muted);
+    }
+
+    input{
+        box-sizing: border-box;
+        width: 100%;
+        height: 42px;
+        padding: 0 12px;
+        border: 1px solid var(--admin-border);
+        border-radius: 6px;
+        background-color: var(--admin-field);
+        color: var(--admin-text);
+        font-family: inherit;
+        font-size: 15px;
+
+        &:focus{
+            outline: none;
+            border-color: var(--admin-accent);
+        }
+    }
+}
+
+.admin-ck-submit{
+    .admin-ck-field{
+        max-width: 360px;
+    }
+
+    .admin-action{
+        margin-top: 14px;
+        height: 44px;
+        padding: 0 20px;
+        font-size: 14px;
+
+        &:disabled{
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+    }
+}
+
+.admin-ck-submit-note{
+    margin: 12px 0 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--admin-muted);
+}
+
+/* The "start a checklist" picker. */
+.admin-ck-start{
+    display: grid;
+    gap: 14px;
+    padding-top: 6px;
+
+    .admin-ck-intro{
+        margin: 0;
+    }
+}
+
+.admin-ck-start-tools{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+}
+
+.admin-ck-search{
+    flex: 1 1 220px;
+    box-sizing: border-box;
+    min-width: 0;
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 6px;
+    background-color: var(--admin-field);
+    color: var(--admin-text);
+    font-family: inherit;
+    font-size: 15px;
+
+    &:focus{
+        outline: none;
+        border-color: var(--admin-accent);
+    }
+}
+
+.admin-ck-showall{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--admin-muted);
+    cursor: pointer;
+
+    input{
+        accent-color: var(--admin-accent);
+    }
+}
+
+.admin-ck-start-note{
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--admin-subtle);
+}
+
+.admin-ck-clients{
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.admin-ck-client{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+
+    .admin-action{
+        flex: 0 0 auto;
+    }
+}
+
+.admin-ck-client-info{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    strong{
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    span{
+        overflow: hidden;
+        font-size: 12px;
+        color: var(--admin-muted);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.admin-ck-manual{
+    padding: 12px 14px;
+    border: 1px dashed var(--admin-border);
+    border-radius: 8px;
+
+    summary{
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    .admin-action{
+        margin-top: 14px;
+    }
+}
+
+/* Overview: Inventory box, the installer's "Stock on hand" summary. On the
+   box's grey background the plain tiles and restock rows are white. */
+.admin-inventory-box{
+    margin: 0 0 24px;
+    padding: 20px;
+    border-radius: 6px;
+    background-color: var(--admin-surface);
+
+    &[hidden]{
+        display: none;
+    }
+
+    .admin-inv-home{
+        padding-top: 14px;
+    }
+
+    .admin-inv-tile:not(.admin-inv-tile-low):not(.admin-inv-tile-out){
+        background-color: var(--admin-bg);
+    }
+}
+
+/* Overview: how far each job's checklists are. */
+.admin-checklists{
+    margin: 0 0 24px;
+    padding: 20px;
+    border-radius: 6px;
+    background-color: var(--admin-surface);
+
+    &[hidden]{
+        display: none;
+    }
+}
+
+.admin-checklists-summary{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: 14px;
+
+    .admin-stat{
+        padding: 16px;
+        background-color: var(--admin-bg);
+    }
+
+    .admin-stat-value-small{
+        font-size: 14px;
+        line-height: 1.35;
+        letter-spacing: 0;
+    }
+}
+
+.admin-checklists-alert{
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    background-color: var(--admin-warn-bg);
+    color: var(--admin-warn-text);
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.admin-checklists-table{
+    margin-top: 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background-color: var(--admin-bg);
+    overflow: hidden;
+}
+
+.admin-checklists-row{
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+
+    & + &{
+        border-top: 1px solid var(--admin-border);
+    }
+}
+
+.admin-checklists-head{
+    padding-top: 8px;
+    padding-bottom: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--admin-subtle);
+}
+
+.admin-checklists-job{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    strong{
+        overflow: hidden;
+        font-size: 13px;
+        font-weight: 600;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    span{
+        overflow: hidden;
+        font-size: 12px;
+        color: var(--admin-muted);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.admin-ck-cell{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: var(--admin-text);
+    font-family: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover{
+        background-color: var(--admin-surface);
+    }
+
+    &.admin-ck-cell-none{
+        color: var(--admin-subtle);
+        cursor: default;
+
+        &:hover{
+            background: none;
+        }
+    }
+}
+
+@media only screen and (max-width:750px){
+    .admin-checklists-summary{
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .admin-checklists-head{
+        display: none;
+    }
+
+    .admin-checklists-row{
+        grid-template-columns: 1fr;
+        gap: 2px;
+    }
+
+    /* Phones: an item's choices go under its text, as three equal buttons
+       big enough for a gloved finger. */
+    .admin-ck-edit .admin-ck-item{
+        grid-template-columns: 1fr;
+    }
+
+    .admin-ck-choices{
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .admin-ck-choices.admin-ck-options{
+        display: flex;
+    }
+
+    .admin-ck-choices.admin-ck-options .admin-ck-choice{
+        flex: 1 1 auto;
+    }
+
+    .admin-ck-tool.admin-ck-tool-main{
+        height: 44px;
+    }
+
+    .admin-ck-choice{
+        height: 44px;
+        padding: 0 6px;
+    }
+
+    .admin-ck-tool{
+        height: 36px;
+    }
+
+    .admin-ck-client{
+        flex-wrap: wrap;
+    }
+
+    .admin-ck-client .admin-action{
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+
+/* ===== Checklist polish =====
+   Cards for items with numbered badges, a progress card, a tinted intro, a
+   segmented look for the answer buttons, and a sign-off card. Later than the
+   checklist block above, so it wins at equal specificity. */
+.admin-ck{
+    counter-reset: ckitem;
+}
+
+.admin-ck-progress{
+    padding: 12px 14px;
+    border-radius: 10px;
+    background-color: var(--admin-surface);
+}
+
+.admin-ck-toprow .admin-ck-progress{
+    flex: 1 1 240px;
+}
+
+.admin-ck-bar{
+    height: 10px;
+    border-radius: 5px;
+    background-color: var(--admin-goal-track);
+
+    i{
+        border-radius: 5px;
+    }
+}
+
+.admin-ck-count{
+    font-weight: 500;
+    color: var(--admin-text);
+}
+
+.admin-ck-intro{
+    padding: 10px 14px;
+    border-left: 3px solid var(--admin-mark);
+    border-radius: 0 8px 8px 0;
+    background-color: var(--admin-surface);
+}
+
+.admin-ck-section{
+    margin-top: 32px;
+}
+
+.admin-ck-section-title{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 10px;
+    border-bottom: none;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0;
+
+    &::after{
+        content: "";
+        flex: 1;
+        height: 1px;
+        background-color: var(--admin-border);
+    }
+}
+
+/* Items become cards. */
+.admin-ck-item{
+    counter-increment: ckitem;
+    margin-top: 10px;
+    padding: 16px;
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    background-color: var(--admin-bg);
+}
+
+.admin-ck-edit .admin-ck-item{
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+
+    &[data-state="pass"]{
+        padding-left: 16px;
+        box-shadow: none;
+        border-color: color-mix(in srgb, var(--admin-active-text) 45%, var(--admin-border));
+        background-color: color-mix(in srgb, var(--admin-active-bg) 35%, var(--admin-bg));
+    }
+
+    &[data-state="fix"]{
+        padding-left: 16px;
+        box-shadow: none;
+        border-color: color-mix(in srgb, var(--admin-warn-text) 55%, var(--admin-border));
+        background-color: color-mix(in srgb, var(--admin-warn-bg) 45%, var(--admin-bg));
+    }
+}
+
+/* Numbered badge before the item text (form only; the report has its own marks). */
+.admin-ck-edit .admin-ck-text{
+    font-weight: 500;
+
+    &::before{
+        content: counter(ckitem);
+        display: inline-grid;
+        place-items: center;
+        min-width: 22px;
+        height: 22px;
+        margin-right: 10px;
+        padding: 0 6px;
+        box-sizing: border-box;
+        border-radius: 11px;
+        background-color: var(--admin-surface);
+        color: var(--admin-muted);
+        font-size: 12px;
+        font-weight: 600;
+        vertical-align: 1px;
+        transition: background-color 0.2s ease, color 0.2s ease;
+    }
+}
+
+.admin-ck-edit .admin-ck-item[data-state="pass"] .admin-ck-text::before{
+    content: "✓";
+    background-color: var(--admin-active-text);
+    color: var(--admin-bg);
+}
+
+.admin-ck-edit .admin-ck-item[data-state="fix"] .admin-ck-text::before{
+    content: "!";
+    background-color: var(--admin-warn-text);
+    color: var(--admin-bg);
+}
+
+.admin-ck-edit .admin-ck-hint{
+    margin-left: 32px;
+}
+
+/* Answer buttons: a connected segmented control. */
+.admin-ck-choices:not(.admin-ck-options){
+    gap: 0;
+    padding: 3px;
+    border-radius: 21px;
+    background-color: var(--admin-surface);
+}
+
+.admin-ck-choices:not(.admin-ck-options) .admin-ck-choice{
+    border-color: transparent;
+    background-color: transparent;
+    color: var(--admin-muted);
+
+    &:hover{
+        color: var(--admin-text);
+        border-color: transparent;
+    }
+
+    &[aria-pressed="true"]{
+        background-color: var(--admin-bg);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    }
+
+    &.admin-ck-choice-pass[aria-pressed="true"]{
+        background-color: var(--admin-active-bg);
+        border-color: transparent;
+    }
+
+    &.admin-ck-choice-fix[aria-pressed="true"]{
+        background-color: var(--admin-warn-bg);
+        border-color: transparent;
+    }
+
+    &.admin-ck-choice-na[aria-pressed="true"]{
+        background-color: var(--admin-bg);
+        border-color: transparent;
+        color: var(--admin-text);
+    }
+}
+
+.admin-ck-choice:focus-visible,
+.admin-ck-tool:focus-visible{
+    outline: 2px solid var(--admin-mark);
+    outline-offset: 2px;
+}
+
+/* Set-answer questions keep separate pills. */
+.admin-ck-choices.admin-ck-options .admin-ck-choice[aria-pressed="true"]{
+    box-shadow: 0 0 0 1px currentColor inset;
+}
+
+.admin-ck-extra{
+    padding-top: 2px;
+}
+
+.admin-ck-note{
+    border-radius: 8px;
+    background-color: var(--admin-bg);
+
+    &:focus{
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-mark) 18%, transparent);
+        border-color: var(--admin-mark);
+    }
+}
+
+.admin-ck-tool{
+    border-style: solid;
+    background-color: var(--admin-surface);
+    border-color: transparent;
+
+    &[aria-pressed="true"]{
+        color: var(--admin-text);
+        border-color: var(--admin-border);
+    }
+}
+
+.admin-ck-tool.admin-ck-tool-main{
+    background-color: var(--admin-accent);
+    border-color: var(--admin-accent);
+    color: var(--admin-on-accent);
+
+    &:hover{
+        opacity: 0.88;
+    }
+}
+
+.admin-ck-photos .admin-ck-photo{
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Report rows are cards too. */
+.admin-ck:not(.admin-ck-edit) .admin-ck-item{
+    padding: 12px 14px;
+
+    &.admin-ck-fix{
+        border-color: color-mix(in srgb, var(--admin-warn-text) 45%, var(--admin-border));
+    }
+}
+
+/* Sign-off card. */
+.admin-ck-submit{
+    padding: 4px 18px 20px;
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    background-color: var(--admin-surface);
+
+    .admin-ck-section-title{
+        padding-top: 14px;
+    }
+
+    .admin-ck-field input{
+        border-radius: 8px;
+    }
+
+    .admin-action{
+        border-radius: 22px;
+    }
+}
+
+.admin-ck-client{
+    border-radius: 12px;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+
+    &:hover{
+        border-color: var(--admin-subtle);
+        background-color: var(--admin-surface);
+    }
+}
+
+@media only screen and (max-width:750px){
+    .admin-ck-item{
+        padding: 14px;
+    }
+
+    .admin-ck-edit .admin-ck-item[data-state]{
+        padding-left: 14px;
+    }
+
+    .admin-ck-submit{
+        padding: 4px 14px 18px;
+
+        .admin-ck-field{
+            max-width: none;
+        }
+
+        .admin-action{
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    .admin-ck-choices:not(.admin-ck-options) .admin-ck-choice{
+        height: 40px;
+        border-radius: 20px;
+    }
+
+    .admin-ck-choices:not(.admin-ck-options){
+        border-radius: 23px;
+    }
+
+    .admin-ck-tool.admin-ck-tool-main{
+        width: 100%;
+        justify-content: center;
+    }
+
+    .admin-ck-tools:has(.admin-ck-tool-main) .admin-ck-choices{
+        width: 100%;
+    }
+}
+
+/* ===== Inventory =====
+   The Inventory tab (installer and admins; the "inventory" section of
+   admin.js): the stock panel on each item (count, Use / Add stock / Set count,
+   a −/+ stepper and a preview of the new count), its photos and history, the
+   add / edit form, the installer's "Stock on hand" home, and the sidebar's
+   "Restock needed" filter. */
+
+/* Sidebar: "Restock needed (n)" turns amber when something needs restocking,
+   and solid while it's filtering the list. */
+.admin-action.admin-low-filter{
+    &.admin-low-filter-alert{
+        border-color: color-mix(in srgb, var(--admin-warn-text) 45%, transparent);
+        color: var(--admin-warn-text);
+    }
+
+    &[aria-pressed="true"]{
+        border-color: var(--admin-warn-text);
+        background-color: var(--admin-warn-bg);
+        color: var(--admin-warn-text);
+    }
+}
+
+/* Inventory list grouped by category: a heading per category with its item
+   count and how many need restocking. On desktop it stays pinned at the top
+   of the sidebar list while that category scrolls past. */
+.admin-inv-group{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 18px 0 8px;
+    border-bottom: 1px solid var(--admin-border);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--admin-subtle);
+
+    &:first-child{
+        padding-top: 4px;
+    }
+}
+
+.admin-inv-group-count{
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-inv-group-low{
+    margin-left: auto;
+    font-weight: 600;
+    color: var(--admin-warn-text);
+}
+
+@media only screen and (min-width:751px){
+    .admin-sidebar .admin-inv-group{
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        margin: 0 -4px;
+        padding-left: 4px;
+        padding-right: 4px;
+        border-bottom: none;
+        background-color: var(--admin-bg);
+    }
+}
+
+.admin-inv{
+    display: grid;
+    gap: 20px;
+    padding-bottom: 8px;
+}
+
+.admin-inv-stock{
+    display: grid;
+    gap: 14px;
+    padding: 18px;
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    background-color: var(--admin-bg);
+}
+
+.admin-inv-top{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 6px 16px;
+}
+
+.admin-inv-count{
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+}
+
+.admin-inv-qty{
+    font-size: 44px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-inv-unit{
+    font-size: 16px;
+    color: var(--admin-muted);
+}
+
+.admin-inv-state{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--admin-active-text);
+
+    .admin-inv-state-dot{
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: currentColor;
+    }
+}
+
+.admin-inv-stock-low .admin-inv-state{
+    color: var(--admin-warn-text);
+}
+
+.admin-inv-stock-out .admin-inv-state{
+    color: var(--admin-stale-text);
+}
+
+/* Use / Add stock / Set count: a segmented control, like the checklist answers. */
+.admin-inv-modes{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    padding: 3px;
+    border-radius: 21px;
+    background-color: var(--admin-surface);
+}
+
+.admin-inv-mode{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    height: 36px;
+    padding: 0 8px;
+    border: none;
+    border-radius: 18px;
+    background: none;
+    color: var(--admin-muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    .material-symbols-rounded{
+        font-size: 18px;
+    }
+
+    &:hover{
+        color: var(--admin-text);
+    }
+
+    &[aria-pressed="true"]{
+        background-color: var(--admin-bg);
+        color: var(--admin-text);
+        font-weight: 600;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    }
+
+    &:focus-visible{
+        outline: 2px solid var(--admin-mark);
+        outline-offset: 2px;
+    }
+}
+
+.admin-inv-steprow{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+}
+
+/* − [n] +, iOS-style capsule. */
+.admin-inv-stepper{
+    display: inline-flex;
+    align-items: center;
+    height: 48px;
+    border-radius: 24px;
+    background-color: var(--admin-surface);
+}
+
+.admin-inv-step{
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border: none;
+    border-radius: 24px;
+    background: none;
+    color: var(--admin-text);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    .material-symbols-rounded{
+        font-size: 22px;
+    }
+
+    &:disabled{
+        color: var(--admin-subtle);
+        opacity: 0.5;
+        cursor: default;
+    }
+
+    &:focus-visible{
+        outline: 2px solid var(--admin-mark);
+        outline-offset: -2px;
+    }
+}
+
+.admin-inv-amount{
+    width: 72px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--admin-text);
+    font-family: inherit;
+    font-size: 20px;
+    font-weight: 600;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button, &::-webkit-inner-spin-button{
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    &:focus{
+        outline: none;
+        background-color: var(--admin-bg);
+        box-shadow: 0 0 0 2px var(--admin-mark);
+    }
+}
+
+.admin-inv-preview{
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--admin-muted);
+    font-variant-numeric: tabular-nums;
+
+    .material-symbols-rounded{
+        font-size: 18px;
+    }
+
+    strong{
+        color: var(--admin-text);
+        font-weight: 600;
+    }
+
+    .admin-inv-preview-bad{
+        color: var(--admin-error);
+    }
+}
+
+.admin-inv-field{
+    &[hidden]{
+        display: none;
+    }
+
+    input{
+        border-radius: 8px;
+        font-size: 15px;
+    }
+}
+
+/* Instead of a save button: "Saving in a moment… Cancel", "Saving…",
+   "Saved" or an error, under the controls. Holds its height so the panel
+   doesn't jump. */
+.admin-inv-autosave{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 20px;
+    margin: 0;
+    font-size: 13px;
+    color: var(--admin-muted);
+
+    &[data-tone="wait"], &[data-tone="busy"]{
+        color: var(--admin-mark);
+    }
+
+    &[data-tone="busy"] .admin-inv-autosave-text::before,
+    &[data-tone="wait"] .admin-inv-autosave-text::before{
+        content: "";
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        margin-right: 8px;
+        border-radius: 50%;
+        background-color: currentColor;
+        vertical-align: 1px;
+        animation: admin-inv-pulse 1s ease-in-out infinite;
+    }
+
+    &[data-tone="ok"]{
+        color: var(--admin-active-text);
+    }
+
+    &[data-tone="ok"] .admin-inv-autosave-text::before{
+        content: "check_circle";
+        margin-right: 6px;
+        font-family: "Material Symbols Rounded";
+        font-size: 17px;
+        vertical-align: -3px;
+    }
+
+    &[data-tone="error"]{
+        color: var(--admin-error);
+    }
+}
+
+.admin-inv-autosave-cancel{
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--admin-text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+
+    &[hidden]{
+        display: none;
+    }
+}
+
+@keyframes admin-inv-pulse{
+    50%{
+        opacity: 0.3;
+    }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .admin-inv-autosave .admin-inv-autosave-text::before{
+        animation: none !important;
+    }
+}
+
+.admin-inv-stock .admin-ck-error{
+    margin: 0;
+}
+
+/* The photo beside an item's name: in the list, the phone list and the open
+   item's header. A box icon when there's no photo. */
+.admin-inv-thumb{
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 0;
+    background-color: var(--admin-surface);
+    overflow: hidden;
+
+    img{
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .material-symbols-rounded{
+        font-size: 22px;
+        color: var(--admin-subtle);
+    }
+
+    &.admin-inv-thumb-broken img{
+        display: none;
+    }
+}
+
+/* The desktop sidebar stacks a row's name over its date; inventory rows put
+   the photo on the left of the name and count instead. */
+.admin-sidebar .admin-entry.admin-inv-entry summary{
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+
+    .admin-entry-date{
+        display: none;
+    }
+}
+
+/* Quick − count + on each list row (quickStepper() in admin.js). The count
+   turns blue while taps are waiting to be saved. */
+.admin-inv-quick{
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    height: 36px;
+    border-radius: 18px;
+    background-color: var(--admin-surface);
+    cursor: default;
+}
+
+.admin-inv-quick-btn{
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: none;
+    border-radius: 18px;
+    background: none;
+    color: var(--admin-text);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+
+    .material-symbols-rounded{
+        font-size: 20px;
+    }
+
+    &:hover{
+        background-color: color-mix(in srgb, var(--admin-text) 8%, transparent);
+    }
+
+    &:active{
+        transform: scale(0.9);
+    }
+
+    &:disabled{
+        color: var(--admin-subtle);
+        opacity: 0.45;
+        cursor: default;
+
+        &:hover{
+            background: none;
+        }
+    }
+
+    &:focus-visible{
+        outline: 2px solid var(--admin-mark);
+        outline-offset: -2px;
+    }
+}
+
+.admin-inv-quick-count{
+    min-width: 30px;
+    padding: 0 2px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    transition: color 0.15s ease;
+}
+
+.admin-inv-quick.pending .admin-inv-quick-count{
+    color: var(--admin-mark);
+}
+
+/* An item's Restock / Out of stock tag, on its own line under the count. */
+.admin-inv-tagline{
+    display: flex;
+    margin-top: 2px;
+}
+
+/* The open item's header: a bigger photo. */
+.admin-detail-title .admin-inv-thumb{
+    width: 56px;
+    height: 56px;
+    border-radius: 4px;
+}
+
+/* The open item's photo, like a social media profile picture: a square photo
+   with slightly rounded corners and a ring, beside the name and category (the stock panel below shows the
+   status). */
+.admin-inv-profile{
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin: 0;
+}
+
+.admin-inv-avatar{
+    position: relative;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 112px;
+    height: 112px;
+    padding: 0;
+    border: 4px solid var(--admin-bg);
+    border-radius: 6px;
+    background-color: var(--admin-surface);
+    box-shadow: 0 0 0 1px var(--admin-border), 0 4px 14px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    cursor: zoom-in;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.2s ease;
+
+    img{
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    &:hover{
+        transform: scale(1.03);
+    }
+
+    &:focus-visible{
+        outline: 2px solid var(--admin-mark);
+        outline-offset: 3px;
+    }
+
+    &.loading img:not([src]), &.broken img{
+        visibility: hidden;
+    }
+
+    &.broken::after{
+        content: "image_not_supported";
+        position: absolute;
+        font-family: "Material Symbols Rounded";
+        font-size: 28px;
+        color: var(--admin-subtle);
+    }
+
+    /* No photo yet: a dashed box that opens the edit form. */
+    &.admin-inv-avatar-empty{
+        border: 1.5px dashed var(--admin-subtle);
+        background: none;
+        box-shadow: none;
+        color: var(--admin-subtle);
+        cursor: pointer;
+
+        .material-symbols-rounded{
+            font-size: 32px;
+        }
+
+        &:hover{
+            color: var(--admin-text);
+            border-color: var(--admin-text);
+        }
+    }
+}
+
+.admin-inv-profile-info{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 0;
+}
+
+.admin-inv-profile-name{
+    max-width: 100%;
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+    overflow-wrap: anywhere;
+}
+
+.admin-inv-profile-sub{
+    font-size: 14px;
+    color: var(--admin-muted);
+}
+
+.admin-inv-profile-hint{
+    font-size: 12px;
+    color: var(--admin-subtle);
+}
+
+.admin-inv-profile-photos{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--admin-mark);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+
+    .material-symbols-rounded{
+        font-size: 18px;
+    }
+
+    &:hover{
+        text-decoration: underline;
+    }
+}
+
+@media only screen and (max-width:750px){
+    .admin-inv-thumb{
+        width: 48px;
+        height: 48px;
+    }
+
+    /* Bigger targets for thumbs. */
+    .admin-inv-quick{
+        height: 40px;
+        border-radius: 20px;
+    }
+
+    .admin-inv-quick-btn{
+        width: 40px;
+        height: 40px;
+        border-radius: 20px;
+    }
+
+    .admin-inv-avatar{
+        width: 96px;
+        height: 96px;
+    }
+
+    .admin-inv-profile-name{
+        font-size: 20px;
+    }
+}
+
+.admin-inv-photos{
+    margin: 0;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+
+    .admin-thumb{
+        aspect-ratio: 1 / 1;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+}
+
+.admin-inv .admin-details{
+    margin: 0;
+}
+
+/* History: newest first, with the change on the right. */
+.admin-inv-log{
+    display: grid;
+    gap: 0;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.admin-inv-log-row{
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 10px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--admin-border);
+
+    &:last-child{
+        border-bottom: none;
+    }
+}
+
+.admin-inv-log-icon{
+    font-size: 20px;
+    color: var(--admin-active-text);
+}
+
+.admin-inv-log-down .admin-inv-log-icon{
+    color: var(--admin-warn-text);
+}
+
+.admin-inv-log-line{
+    font-size: 14px;
+    line-height: 1.4;
+
+    strong{
+        font-weight: 600;
+    }
+}
+
+.admin-inv-log-meta{
+    margin-top: 2px;
+    overflow: hidden;
+    font-size: 12px;
+    color: var(--admin-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-inv-log-note{
+    margin-top: 6px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    background-color: var(--admin-surface);
+    font-size: 13px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.admin-inv-log-change{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    font-variant-numeric: tabular-nums;
+
+    strong{
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--admin-active-text);
+    }
+
+    span{
+        font-size: 12px;
+        color: var(--admin-muted);
+        white-space: nowrap;
+    }
+}
+
+.admin-inv-log-down .admin-inv-log-change strong{
+    color: var(--admin-warn-text);
+}
+
+/* Add / edit form. */
+.admin-inv-form{
+    .admin-install-grid textarea{
+        font-family: inherit;
+        font-size: 15px;
+    }
+
+    .admin-ck-tool-main{
+        justify-self: start;
+    }
+}
+
+/* Add item / Save changes on the left, Cancel on the right, the same width;
+   any error sits on its own line above them. */
+.admin-install-form-actions.admin-inv-form-actions{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 10px 12px;
+
+    .admin-install-error{
+        flex: 1 1 100%;
+        text-align: left;
+
+        &:empty{
+            display: none;
+        }
+    }
+
+    .admin-action{
+        flex: 1 1 0;
+        min-width: 0;
+        justify-content: center;
+        height: 44px;
+    }
+}
+
+.admin-inv-form-photos:empty{
+    display: none;
+}
+
+/* The installer's "Stock on hand" home. */
+.admin-inv-home{
+    display: grid;
+    gap: 18px;
+    padding-top: 6px;
+
+    .admin-ck-intro{
+        margin: 0;
+    }
+}
+
+.admin-inv-tiles{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+}
+
+.admin-inv-tile{
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px;
+    border-radius: 12px;
+    background-color: var(--admin-surface);
+
+    &.admin-inv-tile-low{
+        background-color: var(--admin-warn-bg);
+        color: var(--admin-warn-text);
+    }
+
+    &.admin-inv-tile-out{
+        background-color: var(--admin-stale-bg);
+        color: var(--admin-stale-text);
+    }
+}
+
+.admin-inv-tile-value{
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-inv-tile-label{
+    font-size: 12px;
+    color: inherit;
+    opacity: 0.8;
+}
+
+.admin-inv-restock-list{
+    display: grid;
+    gap: 8px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.admin-inv-restock-row{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: 0;
+    background-color: var(--admin-bg);
+    color: var(--admin-text);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+
+    &:hover{
+        border-color: var(--admin-subtle);
+        background-color: var(--admin-surface);
+    }
+
+    > .material-symbols-rounded{
+        color: var(--admin-subtle);
+    }
+
+    /* A straight coloured edge on the left. */
+    &.admin-inv-restock-low, &.admin-inv-restock-out{
+        border-left-width: 3px;
+    }
+
+    &.admin-inv-restock-low{
+        border-left-color: var(--admin-warn-text);
+    }
+
+    &.admin-inv-restock-out{
+        border-left-color: var(--admin-stale-text);
+    }
+}
+
+.admin-inv-restock-info{
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    strong{
+        overflow: hidden;
+        font-size: 14px;
+        font-weight: 600;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    span{
+        font-size: 12px;
+        color: var(--admin-muted);
+    }
+}
+
+.admin-inv-restock-qty{
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-inv-restock-low .admin-inv-restock-qty{
+    color: var(--admin-warn-text);
+}
+
+.admin-inv-restock-out .admin-inv-restock-qty{
+    color: var(--admin-stale-text);
+}
+
+@media only screen and (max-width:750px){
+    .admin-inv-stock{
+        padding: 16px 14px;
+    }
+
+    .admin-inv-mode{
+        height: 40px;
+        border-radius: 20px;
+    }
+
+    .admin-inv-modes{
+        border-radius: 23px;
+    }
+
+
+    .admin-inv-tile{
+        padding: 12px;
+    }
+
+    .admin-inv-tile-value{
+        font-size: 24px;
+    }
+}
+
+/* ===== Phone top bar and menu =====
+   Matches the website's phone nav and menu (home page): a fixed 64px bar with
+   the logo and a two-line burger that turns into an X, and a panel that opens
+   behind the bar, extends down the screen, and fades in big 28px rows one by
+   one, then a dark full-width button. The menu holds the account's tabs (the
+   tab bar is hidden on phones) and Sign out. */
+.admin-burger, .admin-menu{
+    display: none;
+}
+
+@media only screen and (max-width:750px){
+    html{
+        /* Keeps scrollIntoView() targets clear of the fixed bar. */
+        scroll-padding-top: calc(64px + env(safe-area-inset-top) + 12px);
+    }
+
+    .admin-bar{
+        --bar-height: calc(64px + env(safe-area-inset-top));
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 110;
+        width: 100%;
+        height: var(--bar-height);
+        box-sizing: border-box;
+        padding: env(safe-area-inset-top) 20px 0;
+        background-color: var(--admin-bg);
+
+        .admin-account .admin-signout{
+            display: none;
+        }
+    }
+
+    .admin-page{
+        padding-top: calc(64px + env(safe-area-inset-top) + 24px);
+    }
+
+    .admin-sidebar .admin-tabs{
+        display: none;
+    }
+
+    .admin-bar .admin-burger{
+        width: 44px;
+        height: 44px;
+        margin-right: -10px;
+        padding: 0;
+        border: none;
+        background: none;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .admin-burger-line{
+        display: block;
+        width: 20px;
+        height: 1.5px;
+        border-radius: 1px;
+        background-color: #1A1A1A;
+        transition: transform 0.3s cubic-bezier(0.28, 0.11, 0.32, 1);
+    }
+
+    .admin-burger.active{
+        .admin-burger-line:nth-child(1){
+            transform: translateY(3.75px) rotate(45deg);
+        }
+
+        .admin-burger-line:nth-child(2){
+            transform: translateY(-3.75px) rotate(-45deg);
+        }
+    }
+
+    body.admin-menu-open{
+        overflow: hidden;
+    }
+
+    .admin-menu{
+        --nav-height: calc(64px + env(safe-area-inset-top));
+        --ease-panel: cubic-bezier(0.32, 0.72, 0, 1);
+
+        position: fixed;
+        inset: 0;
+        z-index: 100;
+        display: block;
+        background-color: #FFFFFF;
+        color: #1A1A1A;
+        font-family: inter;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        visibility: hidden;
+        clip-path: inset(0 0 calc(100% - var(--nav-height)) 0);
+        transition: clip-path 0.45s var(--ease-panel) 0.12s, visibility 0s linear 0.57s;
+
+        &.open{
+            visibility: visible;
+            clip-path: inset(0 0 0 0);
+            transition: clip-path 0.5s var(--ease-panel), visibility 0s linear 0s;
+        }
+    }
+
+    .admin-menu-inner{
+        box-sizing: border-box;
+        min-height: 100%;
+        padding: calc(88px + env(safe-area-inset-top)) 24px 48px;
+        display: flex;
+        flex-direction: column;
+
+        > *{
+            opacity: 0;
+            transform: translateY(-8px);
+            transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+    }
+
+    .admin-menu.open .admin-menu-inner > *{
+        opacity: 1;
+        transform: translateY(0);
+        transition: opacity 0.4s ease, transform 0.4s var(--ease-panel);
+    }
+
+    .admin-menu.open .admin-menu-inner > :nth-child(1){ transition-delay: 0.18s; }
+    .admin-menu.open .admin-menu-inner > :nth-child(2){ transition-delay: 0.23s; }
+    .admin-menu.open .admin-menu-inner > :nth-child(3){ transition-delay: 0.28s; }
+
+    @media (prefers-reduced-motion: reduce){
+        .admin-menu, .admin-menu.open, .admin-menu-inner > *, .admin-menu.open .admin-menu-inner > *,
+        .admin-burger-line{
+            transition-duration: 0s !important;
+            transition-delay: 0s !important;
+        }
+    }
+
+    .admin-menu-heading{
+        font-size: 12px;
+        font-weight: 400;
+        color: #7D8187;
+    }
+
+    .admin-menu-tabs{
+        display: flex;
+        flex-direction: column;
+        margin-top: 6px;
+    }
+
+    .admin-menu-tab{
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 14px 0;
+        border: none;
+        background: none;
+        color: #7D8187;
+        font-family: inherit;
+        font-size: 28px;
+        font-weight: 500;
+        letter-spacing: -0.02em;
+        text-align: left;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+
+        .admin-menu-label{
+            flex: 1;
+            min-width: 0;
+        }
+
+        .admin-menu-count{
+            font-size: 15px;
+            font-weight: 400;
+            letter-spacing: 0;
+            color: #7D8187;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* The open tab is dark, marked with a small blue dot (the website's accent). */
+        .admin-menu-dot{
+            flex: 0 0 auto;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--admin-mark);
+            opacity: 0;
+            transform: scale(0.4);
+            transition: opacity 0.2s ease, transform 0.3s var(--ease-panel);
+        }
+
+        &.active{
+            color: #1A1A1A;
+
+            .admin-menu-dot{
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    }
+
+    /* Admins have seven tabs: slightly smaller rows so they fit. */
+    body[data-role="admin"] .admin-menu-tab{
+        padding: 10px 0;
+        font-size: 24px;
+    }
+
+    .admin-menu-foot{
+        margin-top: auto;
+        padding-top: 56px;
+        display: grid;
+        gap: 6px;
+    }
+
+    .admin-menu-email{
+        overflow: hidden;
+        font-size: 15px;
+        line-height: 1.4;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .admin-menu-signout{
+        margin-top: 16px;
+        height: 48px;
+        border: none;
+        border-radius: 4px;
+        background-color: #1A1A1A;
+        color: #FFFFFF;
+        font-family: inherit;
+        font-size: 15px;
+        font-weight: 500;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Dark theme: the website's text colours (#EBEBEB / #9E9E9E). */
+    @media (prefers-color-scheme: dark){
+        /* The admin page's own dark surface, so the bar and menu blend into it. */
+        .admin-menu{
+            background-color: var(--admin-bg);
+            color: #EBEBEB;
+        }
+
+        .admin-burger-line{
+            background-color: #EBEBEB;
+        }
+
+        .admin-menu-tab{
+            color: #9E9E9E;
+
+            .admin-menu-count{
+                color: #9E9E9E;
+            }
+
+            &.active{
+                color: #EBEBEB;
+            }
+        }
+
+        .admin-menu-signout{
+            background-color: #EBEBEB;
+            color: #0C0C0C;
+        }
+    }
+}
+
+
+/* ===== Navigation column (desktop) =====
+   Like a macOS app's sidebar (e.g. Apple Music): the logo, Overview (admins),
+   the tabs in two groups with small grey headings, each row an accent icon,
+   its name and count, the open one on a soft rounded highlight, and the
+   account at the bottom. Three columns: navigation, the list
+   (.admin-sidebar, with the section's name on top), and the right-hand pane.
+   On Overview the list column hides. Phones use the burger menu instead. */
+.admin-nav, .admin-list-title, .admin-pane-empty{
+    display: none;
+}
+
+@media only screen and (min-width:751px){
+    /* The navigation has the logo and account, so the top bar goes. */
+    body:has(.admin-dashboard:not([hidden])) .admin-bar{
+        display: none;
+    }
+
+    .admin-dashboard{
+        grid-template-columns: 232px 340px minmax(0, 1fr);
+        grid-template-areas: "nav sidebar main";
+        height: 100vh;
+        height: 100dvh;
+    }
+
+    body[data-view="overview"] .admin-dashboard{
+        grid-template-columns: 232px minmax(0, 1fr);
+        grid-template-areas: "nav main";
+
+        .admin-sidebar{
+            display: none;
+        }
+    }
+
+    .admin-nav{
+        grid-area: nav;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        border-right: 1px solid var(--admin-border);
+        background-color: var(--admin-surface);
+        font-family: inter;
+    }
+
+    .admin-nav-brand{
+        display: block;
+        flex: 0 0 auto;
+        padding: 28px 24px 22px;
+
+        /* Scales with the column and keeps its proportions (the logo is about
+           16.5:1, so a fixed height would squeeze it in a narrow column). */
+        img{
+            display: block;
+            width: 100%;
+            max-width: 200px;
+            height: auto;
+            filter: var(--admin-logo-filter);
+        }
+    }
+
+    .admin-nav-scroll{
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 0 12px 16px;
+    }
+
+    .admin-nav-heading{
+        margin: 20px 0 6px;
+        padding: 0 12px;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--admin-subtle);
+    }
+
+    /* The tabs, as navigation rows (more specific than .admin-tab's own rules). */
+    .admin-nav .admin-tabs{
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 0;
+        border-radius: 0;
+        background: none;
+    }
+
+    .admin-nav .admin-tab, .admin-nav .admin-nav-item{
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        height: 38px;
+        padding: 0 12px;
+        border: none;
+        border-radius: 8px;
+        background: none;
+        box-shadow: none;
+        color: var(--admin-text);
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: 500;
+        text-align: left;
+        white-space: nowrap;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: background-color 0.15s ease;
+
+        .admin-tab-icon{
+            flex: 0 0 auto;
+            font-size: 21px;
+            color: var(--admin-mark);
+        }
+
+        .admin-tab-label{
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .admin-tab-count{
+            margin: 0;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--admin-subtle);
+        }
+
+        &:hover{
+            background-color: color-mix(in srgb, var(--admin-text) 5%, transparent);
+        }
+
+        &:focus-visible{
+            outline: 2px solid var(--admin-mark);
+            outline-offset: -2px;
+        }
+    }
+
+    /* The open section: a soft highlight and bold name. On Overview, no tab is. */
+    .admin-nav .admin-nav-overview.active,
+    body[data-view="list"] .admin-nav .admin-tab.active{
+        background-color: color-mix(in srgb, var(--admin-text) 9%, transparent);
+        font-weight: 600;
+    }
+
+    .admin-nav .admin-nav-overview{
+        margin-bottom: 2px;
+    }
+
+    /* Overview is for admins; the installer has no Clients tabs. */
+    body:not([data-role="admin"]) .admin-nav-overview,
+    body[data-role="installer"] .admin-nav-group[data-group="clients"]{
+        display: none;
+    }
+
+    /* The account, pinned at the bottom. */
+    .admin-nav-account{
+        flex: 0 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 14px 16px 18px 20px;
+        border-top: 1px solid var(--admin-border);
+    }
+
+    .admin-nav-avatar{
+        flex: 0 0 auto;
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: linear-gradient(160deg, color-mix(in srgb, var(--admin-mark) 55%, #FFFFFF), var(--admin-mark));
+        color: #FFFFFF;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+
+    .admin-nav-who{
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+    }
+
+    .admin-nav-role{
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--admin-text);
+    }
+
+    .admin-nav-email{
+        overflow: hidden;
+        font-size: 12px;
+        color: var(--admin-muted);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .admin-nav-signout{
+        flex: 0 0 auto;
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        border: none;
+        border-radius: 8px;
+        background: none;
+        color: var(--admin-muted);
+        cursor: pointer;
+
+        .material-symbols-rounded{
+            font-size: 20px;
+        }
+
+        &:hover{
+            background-color: color-mix(in srgb, var(--admin-text) 7%, transparent);
+            color: var(--admin-text);
+        }
+    }
+
+    /* The list column: the open section's name on top. */
+    .admin-list-title{
+        display: block;
+        margin: 6px 0 14px;
+        font-size: 22px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--admin-text);
+    }
+
+    .admin-sidebar{
+        padding-top: 22px;
+        border-right: 1px solid var(--admin-border);
+    }
+
+    /* Nothing open in list view. */
+    .admin-main:has(> .admin-overview[hidden]):has(> .admin-detail-pane[hidden]) .admin-pane-empty{
+        display: grid;
+        place-content: center;
+        justify-items: center;
+        gap: 10px;
+        height: 100%;
+        min-height: 300px;
+        color: var(--admin-subtle);
+        text-align: center;
+
+        .material-symbols-rounded{
+            font-size: 40px;
+        }
+
+        p{
+            margin: 0;
+            font-size: 14px;
+        }
+    }
+}
+
+@media only screen and (min-width:751px) and (max-width:1100px){
+    .admin-dashboard{
+        grid-template-columns: 200px 300px minmax(0, 1fr);
+    }
+
+    body[data-view="overview"] .admin-dashboard{
+        grid-template-columns: 200px minmax(0, 1fr);
+    }
+}
+
+/* Narrow desktop: the navigation shrinks to icons (names in tooltips). */
+@media only screen and (min-width:751px) and (max-width:900px){
+    .admin-dashboard{
+        grid-template-columns: 64px 280px minmax(0, 1fr);
+    }
+
+    body[data-view="overview"] .admin-dashboard{
+        grid-template-columns: 64px minmax(0, 1fr);
+    }
+
+    .admin-nav-brand{
+        padding: 24px 0 14px;
+        overflow: hidden;
+
+        img{
+            width: 40px;
+            height: auto;
+            margin: 0 auto;
+            object-fit: cover;
+            object-position: left;
+        }
+    }
+
+    .admin-nav-scroll{
+        padding: 0 8px 12px;
+    }
+
+    .admin-nav-heading{
+        height: 1px;
+        margin: 12px 8px;
+        padding: 0;
+        overflow: hidden;
+        background-color: var(--admin-border);
+        color: transparent;
+    }
+
+    .admin-nav .admin-tab, .admin-nav .admin-nav-item{
+        justify-content: center;
+        padding: 0;
+
+        .admin-tab-label, .admin-tab-count{
+            display: none;
+        }
+    }
+
+    .admin-nav-account{
+        justify-content: center;
+        padding: 12px 0 16px;
+
+        .admin-nav-who, .admin-nav-avatar{
+            display: none;
+        }
     }
 }

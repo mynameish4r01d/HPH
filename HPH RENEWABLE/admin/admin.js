@@ -16,10 +16,17 @@
 // (editing or deleting only its own), and can view, edit and move visit
 // requests and waitlist sign-ups through the pipeline, but not delete them.
 // Keep it in step with isEncoder() in /firestore.rules and /storage.rules.
+// The installer account (INSTALLER_EMAILS) opens on a workspace with just the
+// two checklist tabs (Site visit inspection, Installation and commissioning)
+// and Inventory: it can read visit requests, to pick a client, start and fill
+// in checklists, and keep the inventory, but nothing else. Keep it in step with isInstaller() in
+// /firestore.rules and /storage.rules. See the "installer checklists" section
+// below and checklist-templates.js (the checklist content).
 // The rules are what actually protect the data; these lists only affect
 // what the page displays.
 
 import { firebaseConfig } from "../firebase-config.js";
+import { CHECKLISTS, CHECKLIST_VERSION } from "./checklist-templates.js";
 
 const FIREBASE_VERSION = "12.3.0";
 const ADMIN_EMAILS = [
@@ -29,6 +36,9 @@ const ADMIN_EMAILS = [
 ];
 const ENCODER_EMAILS = [
     "inquiries@hphtechsolutions.com",
+];
+const INSTALLER_EMAILS = [
+    "hphrenewable@gmail.com",
 ];
 const MAX_ROWS = 500;
 
@@ -83,6 +93,7 @@ const statusFilter = document.querySelector(".admin-status-filter");
 const refreshButton = document.querySelector(".admin-refresh");
 const staleAlert = document.querySelector(".admin-stale");
 const referrals = document.querySelector(".admin-referrals");
+const sourceFilter = document.querySelector(".admin-source-filter");
 const productFilter = document.querySelector(".admin-product-filter");
 const listCount = document.querySelector(".admin-list-count");
 const exportButton = document.querySelector(".admin-export");
@@ -90,9 +101,9 @@ const mainArea = document.querySelector(".admin-main");
 const overview = document.querySelector(".admin-overview");
 const detailPane = document.querySelector(".admin-detail-pane");
 const installActions = document.querySelector(".admin-install-actions");
+const checklistActions = document.querySelector(".admin-checklist-actions");
 const importButton = document.querySelector(".admin-import-sheet");
 const importStatus = document.querySelector(".admin-import-status");
-const brandLabel = document.querySelector(".admin-brand-label");
 const visitActions = document.querySelector(".admin-visit-actions");
 const openSolarButton = document.querySelector(".admin-opensolar-import");
 const openSolarFile = document.querySelector(".admin-opensolar-file");
@@ -102,7 +113,7 @@ const openSolarStatus = document.querySelector(".admin-opensolar-status");
 // in styles.css. Phones open entries in place instead.
 const desktop = window.matchMedia("(min-width: 751px)");
 
-const emptyData = () => ({ visits: [], waitlist: [], feedback: [], installs: [] });
+const emptyData = () => ({ visits: [], waitlist: [], feedback: [], installs: [], nda: [], inspection: [], installation: [], inventory: [] });
 let data = emptyData();
 // "admin" (everything) or "encoder" (installations only); null signed out.
 let role = null;
@@ -113,6 +124,12 @@ let activeProduct = "all";
 let selected = null;
 // True while the install form (add / edit) is in the detail pane.
 let formOpen = false;
+// Installer checklists (see the "installer checklists" section): the two
+// checklist types, a hook that saves a checklist being filled in before a
+// reload, and a flag while a new checklist is being created.
+const CHECKLIST_TYPES = ["inspection", "installation"];
+let flushChecklist = null;
+let checklistStartBusy = false;
 
 
 // ---------------------------------------------------------------- helpers
@@ -143,6 +160,10 @@ function isEncoderEmail(email) {
     return Boolean(email) && ENCODER_EMAILS.includes(email.toLowerCase());
 }
 
+function isInstallerEmail(email) {
+    return Boolean(email) && INSTALLER_EMAILS.includes(email.toLowerCase());
+}
+
 function show(section) {
     status.hidden = section !== status;
     loginSection.hidden = section !== loginSection;
@@ -159,13 +180,14 @@ authSdk.onAuthStateChanged(auth, async (user) => {
         role = null;
         currentEmail = "";
         delete document.body.dataset.role;
-        brandLabel.textContent = "Admin Overview";
+        delete document.body.dataset.view;
+        setMenu(false);
         closeEntry();
         show(loginSection);
         return;
     }
 
-    role = isAdminEmail(user.email) ? "admin" : isEncoderEmail(user.email) ? "encoder" : null;
+    role = isAdminEmail(user.email) ? "admin" : isEncoderEmail(user.email) ? "encoder" : isInstallerEmail(user.email) ? "installer" : null;
     if (!role) {
         const email = user.email;
         await authSdk.signOut(auth);
@@ -175,17 +197,21 @@ authSdk.onAuthStateChanged(auth, async (user) => {
 
     loginError.hidden = true;
     currentEmail = user.email.toLowerCase();
-    // CSS hides the overview and the other tabs for the encoder.
+    // CSS hides the overview and the other tabs for the encoder and installer.
     document.body.dataset.role = role;
-    brandLabel.textContent = role === "encoder" ? "Team Workspace" : "Admin Overview";
     account.querySelector(".admin-account-email").textContent = user.email;
     account.hidden = false;
+    buildMenu();
     show(dashboard);
     if (role === "encoder") {
         selectTab("installs");
         showInstallForm(null);
+    } else if (role === "installer") {
+        selectTab("inspection"); // shows the "start a checklist" picker
     } else {
         selectTab(activeTab);
+        // Admins start on the overview (desktop: the list column hides).
+        setView("overview");
     }
     loadSubmissions();
 });
@@ -205,7 +231,7 @@ loginForm.addEventListener("submit", async (e) => {
         showLoginError("Enter your email and password.");
         return;
     }
-    if (!isAdminEmail(email) && !isEncoderEmail(email)) {
+    if (!isAdminEmail(email) && !isEncoderEmail(email) && !isInstallerEmail(email)) {
         showLoginError("This account doesn't have admin access.");
         return;
     }
@@ -285,6 +311,117 @@ function signInErrorMessage(code) {
 
 account.querySelector(".admin-signout").addEventListener("click", () => authSdk.signOut(auth));
 
+// ---- phone menu: the signed-in account's tabs and sign out
+const menu = document.querySelector(".admin-menu");
+const menuTabs = menu.querySelector(".admin-menu-tabs");
+const burger = account.querySelector(".admin-burger");
+const MENU_TABS = {
+    installer: [["inspection", "Site Visit"], ["installation", "Installation"], ["inventory", "Inventory"]],
+    encoder: [["visits", "Ocular Visits"], ["waitlist", "Waitlist"], ["installs", "Installs"]],
+    admin: [["visits", "Ocular Visits"], ["waitlist", "Waitlist"], ["feedback", "Feedback"], ["installs", "Installs"],
+            ["inspection", "Inspection"], ["installation", "Commissioning"], ["inventory", "Inventory"], ["nda", "NDA"]],
+};
+
+function setMenu(open) {
+    if (open) {
+        // Counts as the tab bar shows them, once the lists have loaded.
+        for (const button of menuTabs.children) {
+            const count = document.querySelector(`.admin-tab-count[data-count="${button.dataset.tab}"]`);
+            button.querySelector(".admin-menu-count").textContent = count ? count.textContent : "";
+        }
+    }
+    menu.classList.toggle("open", open);
+    burger.classList.toggle("active", open);
+    burger.setAttribute("aria-label", open ? "Close menu" : "Open menu");
+    burger.setAttribute("aria-expanded", String(open));
+    document.body.classList.toggle("admin-menu-open", open);
+}
+
+// ---- desktop navigation column (.admin-nav)
+// body[data-view] is "overview" (admins: the overview fills the right; the
+// list column hides) or "list" (a tab's list, with the open entry on the
+// right, or "Select an entry" when nothing is open).
+const navOverview = document.querySelector(".admin-nav-overview");
+const listTitle = document.querySelector(".admin-list-title");
+
+function setView(view) {
+    document.body.dataset.view = view;
+    navOverview.classList.toggle("active", view === "overview");
+    navOverview.setAttribute("aria-current", String(view === "overview"));
+    if (view === "overview" && role === "admin") {
+        // Close any open entry and show the overview.
+        selected = null;
+        formOpen = false;
+        itemFormOpen = false;
+        detailPane.hidden = true;
+        detailPane.querySelector(".admin-detail-body").replaceChildren();
+        detailPane.querySelector(".admin-detail-title").replaceChildren();
+        overview.hidden = false;
+        markSelected();
+        mainArea.scrollTop = 0;
+    }
+}
+
+navOverview.addEventListener("click", () => setView("overview"));
+
+// The account at the bottom of the navigation: initials, role and email.
+function fillNavAccount() {
+    const local = currentEmail.split("@")[0] || "";
+    const parts = local.split(/[._-]+/).filter(Boolean);
+    const initials = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : local.slice(0, 2);
+    document.querySelector(".admin-nav-avatar").textContent = initials.toUpperCase();
+    document.querySelector(".admin-nav-role").textContent = role === "encoder" ? "Team Workspace"
+        : role === "installer" ? "Installer" : "Admin";
+    document.querySelector(".admin-nav-email").textContent = currentEmail;
+}
+
+document.querySelector(".admin-nav-signout").addEventListener("click", () => authSdk.signOut(auth));
+
+// The tab's name as this account sees it (installer: Site Visit / Installation).
+function tabLabel(key) {
+    const found = (MENU_TABS[role] || MENU_TABS.admin).find(([k]) => k === key);
+    return found ? found[1] : TABS[key].label;
+}
+
+function buildMenu() {
+    fillNavAccount();
+    // Names as tooltips, for the icon-only navigation on narrow screens.
+    for (const tab of document.querySelectorAll(".admin-nav .admin-tab")) tab.title = tabLabel(tab.dataset.tab);
+    navOverview.title = "Overview";
+    const tabs = MENU_TABS[role] || [];
+    // The phone menu's small heading names the workspace.
+    menu.querySelector(".admin-menu-title").textContent = role === "encoder" ? "Team Workspace"
+        : role === "installer" ? "Installer Checklists" : "Admin Overview";
+    menu.querySelector(".admin-menu-email").textContent = currentEmail;
+    menuTabs.replaceChildren(...tabs.map(([key, label]) => {
+        const button = el("button", "admin-menu-tab");
+        button.type = "button";
+        button.setAttribute("role", "tab");
+        button.dataset.tab = key;
+        button.append(el("span", "admin-menu-label", label), el("span", "admin-menu-count"), el("span", "admin-menu-dot"));
+        button.addEventListener("click", () => {
+            setMenu(false);
+            document.querySelector(`.admin-tab[data-tab="${key}"]`).click();
+        });
+        return button;
+    }));
+    markMenuTab();
+}
+
+function markMenuTab() {
+    for (const button of menuTabs.children) {
+        const active = button.dataset.tab === activeTab;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-selected", String(active));
+    }
+}
+
+burger.addEventListener("click", () => setMenu(!menu.classList.contains("open")));
+menu.querySelector(".admin-menu-signout").addEventListener("click", () => { setMenu(false); authSdk.signOut(auth); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && menu.classList.contains("open")) setMenu(false); });
+// Leaving the phone layout (e.g. rotating) closes it.
+window.matchMedia("(min-width: 751px)").addEventListener("change", (e) => { if (e.matches) setMenu(false); });
+
 
 // ------------------------------------------------------------------- data
 
@@ -306,12 +443,25 @@ async function loadSubmissions() {
     });
 
     try {
-        // The encoder can't read feedback.
-        const tabs = role === "encoder" ? ["visits", "waitlist", "installs"] : ["visits", "waitlist", "feedback", "installs"];
-        const lists = await Promise.all(tabs.map((tab) => fetchCollection(TABS[tab].collection)));
+        // Let a checklist being filled in save what's pending first, so the
+        // reload below doesn't lose it.
+        if (flushChecklist) await flushChecklist();
+        // The encoder can't read feedback, NDA responses or the inventory; the
+        // installer only needs the visit requests (to pick a client), the
+        // checklists and the inventory.
+        const tabs = role === "encoder" ? ["visits", "waitlist", "installs"]
+            : role === "installer" ? ["visits", "inventory"]
+            : ["visits", "waitlist", "feedback", "installs", "nda", "inventory"];
+        const [lists, checklists] = await Promise.all([
+            Promise.all(tabs.map((tab) => fetchCollection(TABS[tab].collection))),
+            role === "encoder" ? [] : fetchCollection("jobChecklists"),
+        ]);
         data = emptyData();
         tabs.forEach((tab, i) => { data[tab] = lists[i]; });
+        // The checklists tabs are one collection split by type.
+        for (const type of CHECKLIST_TYPES) data[type] = checklists.filter((c) => c.type === type);
         data.installs.sort(byInstallDate);
+        data.inventory.sort(byStock);
         renderStats();
         renderList();
         fillMissingCapacities();
@@ -319,6 +469,14 @@ async function loadSubmissions() {
         // Re-show the open entry with the fresh data (or close it if it's
         // gone), unless the install form is open.
         if (selected && !formOpen) showEntry(selected.tab, selected.id);
+        // The installer's home is the "start a checklist" picker (or, on the
+        // Inventory tab, the stock summary); refresh it, unless the add-item
+        // form is open.
+        else if (role === "admin" && inventoryHomeShown()) showInventoryHome();
+        else if (role === "installer" && formOpen && !selected && !checklistStartBusy && !itemFormOpen) {
+            if (activeTab === "inventory") showInventoryHome();
+            else showChecklistStart(activeTab);
+        }
     } catch (err) {
         console.error("Admin: loading submissions failed", err);
         loadError.textContent = err.code === "permission-denied"
@@ -400,6 +558,31 @@ const TABS = {
         collection: "installs",
         label: "Installation",
         render: (entry) => renderInstall(entry),
+    },
+    // Confidentiality Agreement (NDA) responses from
+    // legal-policies/confidentiality-agreement/ (admins only).
+    nda: {
+        collection: "ndaResponses",
+        label: "NDA response",
+        render: (entry) => renderNda(entry),
+    },
+    // Installer checklists: one collection (jobChecklists), shown on two tabs
+    // by type. See the "installer checklists" section below.
+    inspection: {
+        collection: "jobChecklists",
+        label: "Site visit inspection",
+        render: (entry) => renderChecklist(entry),
+    },
+    installation: {
+        collection: "jobChecklists",
+        label: "Installation and commissioning",
+        render: (entry) => renderChecklist(entry),
+    },
+    // Stock on hand (installer and admins). See the "inventory" section below.
+    inventory: {
+        collection: "inventory",
+        label: "Inventory item",
+        render: (entry) => renderInventoryItem(entry),
     },
 };
 
@@ -663,6 +846,7 @@ function renderStats() {
     set("referrals", data.visits.filter((v) => (v.referralCode || "").trim()).length);
     set("waitlist", data.waitlist.length);
     set("feedback", data.feedback.length);
+    set("nda", data.nda.filter((n) => n.response === "agree").length);
     const rating = document.querySelector('[data-stat="rating"]');
     rating.textContent = ratings.length ? `${average} ` : "–";
     if (ratings.length) rating.append(el("span", "admin-star-filled", "★"));
@@ -672,8 +856,12 @@ function renderStats() {
     }
     renderStaleAlert();
     renderPipeline();
+    renderChecklistOverview();
     renderReferrals();
     renderProductFilter();
+    renderLowFilter();
+    renderCategoryFilter();
+    renderInventoryOverview();
 }
 
 // Every string in an entry, including those inside lists and maps (both
@@ -694,17 +882,32 @@ function matches(entry, term) {
 
 // The active tab's entries that match the search, stage filter and (waitlist)
 // product chip: what the list shows, and what Export CSV downloads.
+// Where a visit request came from. Entries linked to an OpenSolar project count
+// as OpenSolar, and also as Website when they began as a website request.
+function fromOpenSolar(entry) {
+    return entry.source === "opensolar" || serialList(entry.openSolarIds).length > 0;
+}
+
+function fromWebsite(entry) {
+    return entry.source !== "opensolar" && entry.source !== "install";
+}
+
 function filteredEntries() {
     const term = search.value.trim().toLowerCase();
     const wanted = TABS[activeTab].pipeline ? statusFilter.value : "all";
     const product = activeTab === "waitlist" ? activeProduct : "all";
+    const source = activeTab === "visits" ? sourceFilter.value : "all";
     const entries = data[activeTab].filter((entry) => matches(entry, term)
         && (wanted === "all"
             || (wanted === "stale" ? isStale(activeTab, entry)
                 : wanted === "open" ? !isClosed(activeTab, entry)
                 : stageOf(activeTab, entry) === wanted))
-        && (product === "all" || waitlistProducts(entry).includes(product)));
-    return { entries, filtered: Boolean(term) || wanted !== "all" || product !== "all" };
+        && (product === "all" || waitlistProducts(entry).includes(product))
+        && (source === "all" || (source === "opensolar" ? fromOpenSolar(entry) : fromWebsite(entry)))
+        && (activeTab !== "inventory" || !lowOnly || needsRestock(entry))
+        && (activeTab !== "inventory" || activeCategory === "all" || (entry.category || "") === activeCategory));
+    const inventoryFilter = activeTab === "inventory" && (lowOnly || activeCategory !== "all");
+    return { entries, filtered: Boolean(term) || wanted !== "all" || product !== "all" || source !== "all" || inventoryFilter };
 }
 
 function renderList() {
@@ -714,11 +917,15 @@ function renderList() {
     listCount.textContent = filtered ? `${entries.length} of ${total} shown` : plural(total, ["entry", "entries"]);
     exportButton.disabled = !entries.length;
     if (!entries.length) {
-        const none = activeTab === "installs" ? "No installations yet." : "Nothing submitted yet.";
+        const none = activeTab === "installs" ? "No installations yet."
+            : activeTab === "inventory" ? "No items yet. Add the first one with “Add item”."
+            : "Nothing submitted yet.";
         list.replaceChildren(el("p", "admin-empty", filtered ? "No matches." : none));
         return;
     }
-    list.replaceChildren(...entries.map((entry) => renderEntry(activeTab, entry)));
+    list.replaceChildren(...(activeTab === "inventory" && activeCategory === "all"
+        ? groupedInventory(entries)
+        : entries.map((entry) => renderEntry(activeTab, entry))));
     markSelected();
 }
 
@@ -902,6 +1109,32 @@ function renderFeedback(f) {
     return details;
 }
 
+// An NDA response: who, whether they agreed (green Agreed / red Declined tag),
+// and the quotation it's for.
+function renderNda(n) {
+    const agreed = n.response === "agree";
+    const badge = el("span", `admin-badge ${agreed ? "admin-badge-active" : "admin-badge-stale"}`, agreed ? "Agreed" : "Declined");
+    const meta = [n.email, n.reference].filter(Boolean).join(" · ");
+    const details = entryShell(n.fullName, meta, toDate(n.createdAt), { badge, dim: !agreed });
+
+    const list = el("dl", "admin-details");
+    list.append(
+        detailRow("Response", agreed ? "I Agree" : "I Do Not Agree"),
+        detailRow("Email", n.email, { href: n.email ? `mailto:${n.email}` : "" }),
+        detailRow("Mobile", n.phone, { href: n.phone ? `tel:${n.phone.replace(/[^\d+]/g, "")}` : "" }),
+        detailRow("Quotation reference", n.reference),
+        detailRow("Agreement date", n.agreementDate),
+        detailRow("Wording version", n.statementVersion),
+        detailRow("Submitted", formatDate(toDate(n.createdAt))),
+        detailRow("Response ID", n.id),
+    );
+    const actions = el("div", "admin-actions admin-install-entry-actions");
+    const error = el("span", "admin-action-error");
+    actions.append(error, ...entryTools("nda", n, error));
+    details.append(actions, ticket("nda", n, list));
+    return details;
+}
+
 // "1 × MAU5000 Elite", "2 × B5000 Elite": units (MSU/MAU) before batteries.
 // Sign-ups store `quantities`; early test ones had a `products` list or a
 // single `product`, shown without counts.
@@ -1071,7 +1304,41 @@ async function setStage(tab, entry, stage, details, actions, errorText) {
 // Export CSV: what the list shows (active tab, search, stage filter, product
 // chip), for Excel or Google Sheets. Starts with a byte-order mark so Excel
 // reads ₱ and ñ correctly.
+const CHECKLIST_CSV = [
+    ["Started", (c) => csvDate(toDate(c.createdAt))],
+    ["Client", (c) => c.clientName],
+    ["Address", (c) => c.address],
+    ["Checklist", (c) => (CHECKLISTS[c.type] ? CHECKLISTS[c.type].title : c.type)],
+    ["Status", (c) => (c.status === "submitted" ? "Submitted" : "In progress")],
+    ["Answered", (c) => c.answered],
+    ["Items", (c) => c.total],
+    ["Passed", (c) => c.passed],
+    ["Need fixing", (c) => c.fixes],
+    ["N/A", (c) => c.na],
+    ["Items needing a fix", (c) => checklistFixList(c).join("; ")],
+    ["Started by", (c) => c.createdBy],
+    ["Signed off by", (c) => c.signedOffBy],
+    ["Submitted", (c) => csvDate(toDate(c.submittedAt))],
+    ["Last updated", (c) => csvDate(toDate(c.updatedAt))],
+    ["Checklist ID", (c) => c.id],
+];
+
 const CSV_COLUMNS = {
+    inspection: CHECKLIST_CSV,
+    installation: CHECKLIST_CSV,
+    inventory: [
+        ["Item", (i) => i.name],
+        ["Category", (i) => i.category],
+        ["Count", (i) => qtyOf(i)],
+        ["Unit", (i) => unitOf(i)],
+        ["Restock at or below", (i) => (i.lowAt > 0 ? i.lowAt : "")],
+        ["Status", (i) => ({ out: "Out of stock", low: "Restock needed", ok: "In stock" })[stockState(i)]],
+        ["Note", (i) => i.note],
+        ["Photos", (i) => serialList(i.photos).length],
+        ["Last updated", (i) => csvDate(toDate(i.updatedAt))],
+        ["Updated by", (i) => i.updatedBy],
+        ["Item ID", (i) => i.id],
+    ],
     visits: [
         ["Submitted", (v) => csvDate(toDate(v.createdAt))],
         ["Name", (v) => v.name],
@@ -1131,6 +1398,17 @@ const CSV_COLUMNS = {
         ["Contact", (f) => f.contact],
         ["OK to publish", (f) => (f.allowPublish ? "Yes" : "No")],
         ["Feedback ID", (f) => f.id],
+    ],
+    nda: [
+        ["Submitted", (n) => csvDate(toDate(n.createdAt))],
+        ["Full name", (n) => n.fullName],
+        ["Email", (n) => n.email],
+        ["Mobile", (n) => n.phone],
+        ["Quotation reference", (n) => n.reference],
+        ["Response", (n) => (n.response === "agree" ? "I Agree" : "I Do Not Agree")],
+        ["Agreement date", (n) => n.agreementDate],
+        ["Wording version", (n) => n.statementVersion],
+        ["Response ID", (n) => n.id],
     ],
 };
 
@@ -2199,7 +2477,7 @@ function installVisit(install, installId, stage) {
 // so one that already exists (another admin got there first) is just skipped.
 let syncingInstalls = false;
 async function syncInstallsToVisits() {
-    if (!role || syncingInstalls) return;
+    if (!role || role === "installer" || syncingInstalls) return;
     const missing = data.installs.filter((install) => !installHasVisit(install));
     if (!missing.length) return;
     syncingInstalls = true;
@@ -2809,7 +3087,7 @@ function deleteButton(tab, entry, errorText) {
     remove.append(el("span", "material-symbols-rounded", "delete"), "Delete");
     remove.addEventListener("click", async () => {
         const files = tab === "visits" ? serialList(entry.attachments).length : 0;
-        const what = `${TABS[tab].label.toLowerCase()} from ${entry.name || "this client"}`;
+        const what = `${TABS[tab].label.toLowerCase()} from ${entry.name || entry.clientName || entry.fullName || "this client"}`;
         if (!confirm(`Delete this ${what}?${files ? ` Its ${plural(files, ["attachment", "attachments"])} will be deleted too.` : ""} It's removed from Firebase for good and can't be undone.`)) return;
         remove.disabled = true;
         errorText.textContent = "";
@@ -2833,7 +3111,7 @@ function deleteButton(tab, entry, errorText) {
 // already gone is fine.
 async function deleteEntry(tab, entry) {
     await firestore.deleteDoc(firestore.doc(db, TABS[tab].collection, entry.id));
-    const paths = tab === "visits" ? serialList(entry.attachments) : [];
+    const paths = tab === "visits" ? serialList(entry.attachments) : CHECKLIST_TYPES.includes(tab) ? checklistPhotoPaths(entry) : [];
     if (paths.length) {
         const { storageSdk, storage } = await loadStorage();
         await Promise.all(paths.map((path) => storageSdk.deleteObject(storageSdk.ref(storage, path)).catch((err) => {
@@ -3123,6 +3401,7 @@ function showEntry(tab, id) {
     const sameEntry = selected && selected.tab === tab && selected.id === id && !formOpen;
     selected = { tab, id };
     formOpen = false;
+    itemFormOpen = false;
     setBackButton();
 
     const details = renderEntry(tab, entry);
@@ -3133,10 +3412,12 @@ function showEntry(tab, id) {
     // the entry's own summary is hidden in the pane.
     detailPane.querySelector(".admin-detail-title").replaceChildren(
         ...[...details.querySelector("summary").children]
-            .filter((child) => !child.classList.contains("admin-chevron"))
+            // The quick − / + stays in the list (a copy wouldn't work).
+            .filter((child) => !child.classList.contains("admin-chevron") && !child.classList.contains("admin-inv-quick"))
             .map((child) => child.cloneNode(true)),
     );
     detailPane.querySelector(".admin-detail-body").replaceChildren(details);
+    hydrateThumbs(detailPane.querySelector(".admin-detail-title"));
     overview.hidden = true;
     detailPane.hidden = false;
     // A different entry starts at the top; a refresh of the same one stays put.
@@ -3150,13 +3431,24 @@ function closeEntry() {
         showInstallForm(null);
         return;
     }
+    // The installer's home is the "start a checklist" picker, or the stock
+    // summary on the Inventory tab.
+    if (role === "installer") {
+        if (activeTab === "inventory") showInventoryHome();
+        else showChecklistStart(CHECKLIST_TYPES.includes(activeTab) ? activeTab : "inspection");
+        return;
+    }
     selected = null;
     formOpen = false;
+    itemFormOpen = false;
     detailPane.hidden = true;
     detailPane.querySelector(".admin-detail-body").replaceChildren();
     detailPane.querySelector(".admin-detail-title").replaceChildren();
-    overview.hidden = false;
+    // Desktop list view: "Select an entry" instead of the overview, or, on the
+    // Inventory tab, "Stock on hand".
+    overview.hidden = desktop.matches && document.body.dataset.view === "list";
     markSelected();
+    if (role === "admin" && desktop.matches && document.body.dataset.view === "list" && activeTab === "inventory") showInventoryHome();
 }
 
 // The pane's back button: back to the overview for admins, to a new
@@ -3164,9 +3456,10 @@ function closeEntry() {
 function setBackButton({ hidden = false } = {}) {
     const back = detailPane.querySelector(".admin-back");
     back.hidden = hidden;
+    const inventoryHome = role === "installer" && activeTab === "inventory";
     back.replaceChildren(
-        el("span", "material-symbols-rounded", role === "encoder" ? "add" : "arrow_back"),
-        role === "encoder" ? "New installation" : "Back to overview",
+        el("span", "material-symbols-rounded", role === "encoder" ? "add" : inventoryHome ? "inventory_2" : role === "installer" ? "add_task" : "close"),
+        role === "encoder" ? "New installation" : inventoryHome ? "Stock on hand" : role === "installer" ? "New checklist" : "Close",
     );
 }
 
@@ -3201,7 +3494,1914 @@ detailPane.querySelector(".admin-back").addEventListener("click", closeEntry);
 // Shrinking to the phone layout: back to entries opening in place.
 desktop.addEventListener("change", () => {
     if (!desktop.matches && selected) closeEntry();
+    // Phones always show admins the overview above the list.
+    else if (role === "admin" && !selected && !formOpen) {
+        overview.hidden = desktop.matches && document.body.dataset.view === "list";
+    }
 });
+
+
+// ------------------------------------------------------ installer checklists
+//
+// The installer account (and admins, to try it out) start a checklist for a job
+// and answer each item Pass / Needs fix / N/A, with an optional note and
+// photos. Two kinds, shown as two tabs: "inspection" (Site visit inspection)
+// and "installation" (Installation and commissioning). The content is in
+// checklist-templates.js. One Firestore document per job and kind
+// (jobChecklists, id "<kind>-<visit request id>" for a client from the Ocular
+// Visits list, or an automatic id for a job typed in by hand). It saves as the
+// installer goes; submitting needs every item answered and a name, and locks it
+// until an admin reopens it. Each document keeps counters (answered, passed,
+// fixes, n/a) so the overview needn't read every answer. Photos are in Storage
+// under jobChecklists/<id>/. Security rules: /firestore.rules, /storage.rules.
+
+const CK_MAX_PHOTOS = 6;
+const CK_SAVE_DELAY_MS = 700;
+// The clients the picker lists by default, by their visit request's stage.
+// Searching, or "Show all clients", ignores this.
+const CK_START_STAGES = {
+    inspection: ["new", "contacted", "scheduled", "visited"],
+    installation: ["quoted", "installing"],
+};
+const CK_RESULTS = {
+    pass: { label: "Pass", icon: "check_circle" },
+    fix: { label: "Needs fix", icon: "warning" },
+    na: { label: "N/A", icon: "do_not_disturb_on" },
+    open: { label: "Not answered", icon: "radio_button_unchecked" },
+};
+
+const checklistItems = (type) => CHECKLISTS[type].sections.flatMap((section) => section.items);
+
+// The counters saved with a checklist, worked out from its answers against
+// the current checklist content.
+// An item's result: pass, fix, na, or "" while unanswered. A normal item stores
+// it as `r`. A question with set answers stores the chosen answer as `v`, and
+// it's a fix when that answer is in the item's `flagged` list. A photo item is
+// a pass once it has a photo (and its note, if one is required), or N/A.
+function itemResult(item, answer) {
+    answer = answer || {};
+    if (item.options) {
+        if (!item.options.includes(answer.v)) return "";
+        return (item.flagged || []).includes(answer.v) ? "fix" : "pass";
+    }
+    if (item.type === "photo") {
+        if (answer.r === "na") return "na";
+        const hasPhoto = Array.isArray(answer.photos) && answer.photos.length > 0;
+        const hasNote = Boolean(answer.note && answer.note.trim());
+        return hasPhoto && (!item.noteRequired || hasNote) ? "pass" : "";
+    }
+    return answer.r === "pass" || answer.r === "fix" || answer.r === "na" ? answer.r : "";
+}
+
+function checklistCounts(type, items) {
+    let passed = 0, fixes = 0, na = 0;
+    const all = checklistItems(type);
+    for (const item of all) {
+        const r = itemResult(item, items[item.id]);
+        if (r === "pass") passed++;
+        else if (r === "fix") fixes++;
+        else if (r === "na") na++;
+    }
+    return { total: all.length, answered: passed + fixes + na, passed, fixes, na };
+}
+
+function checklistPhotoPaths(c) {
+    return Object.values(c.items || {}).flatMap((answer) => (Array.isArray(answer.photos) ? answer.photos : []));
+}
+
+// The text of each item marked "Needs fix" (for the CSV).
+function checklistFixList(c) {
+    const items = c.items || {};
+    if (!CHECKLISTS[c.type]) return [];
+    return checklistItems(c.type).filter((item) => itemResult(item, items[item.id]) === "fix").map((item) => item.options ? `${item.text}: ${items[item.id].v}` : item.text);
+}
+
+const checklistPercent = (c) => (c.total ? Math.round(((c.answered || 0) / c.total) * 100) : 0);
+
+// The progress line under an entry's name: a small bar and the counts.
+function checklistMeta(c) {
+    const meta = el("span", "admin-ck-meta");
+    const bar = el("span", "admin-ck-minibar");
+    const fill = el("i");
+    fill.style.width = `${checklistPercent(c)}%`;
+    bar.append(fill);
+    const bits = [`${c.answered || 0} of ${c.total || 0} answered`];
+    if (c.fixes) bits.push(`${c.fixes} need fixing`);
+    meta.append(bar, el("span", "", bits.join(" · ")));
+    return meta;
+}
+
+// Keeps the list entry and the pane header current as answers change.
+function refreshChecklistMeta(c) {
+    const targets = [...document.querySelectorAll(`.admin-list [data-id="${CSS.escape(c.id)}"] .admin-entry-meta`)];
+    const pane = detailPane.querySelector(".admin-detail-title .admin-entry-meta");
+    if (pane && selected && selected.id === c.id) targets.push(pane);
+    for (const target of targets) target.replaceChildren(checklistMeta(c));
+}
+
+// The big progress bar and count at the top of an open checklist.
+function checklistProgress(c) {
+    const node = el("div", "admin-ck-progress");
+    const bar = el("div", "admin-ck-bar");
+    const fill = el("i");
+    bar.append(fill);
+    const text = el("span", "admin-ck-count");
+    node.append(bar, text);
+    const update = (x) => {
+        fill.style.width = `${checklistPercent(x)}%`;
+        const bits = [`${x.answered || 0} of ${x.total || 0} answered`];
+        if (x.fixes) bits.push(`${x.fixes} need fixing`);
+        if (x.na) bits.push(`${x.na} N/A`);
+        text.textContent = bits.join(" · ");
+    };
+    update(c);
+    return { node, update };
+}
+
+function checklistHead(c) {
+    const tpl = CHECKLISTS[c.type];
+    const head = el("div", "admin-ck-head");
+    // The client's name is already in the line above (the pane header or the
+    // list row), so this shows just the address.
+    const job = el("div", "admin-ck-job");
+    job.append(el("span", "", c.address || "No address"));
+    const kind = el("div", "admin-ck-kind");
+    kind.append(el("span", "material-symbols-rounded", "checklist"), el("span", "", tpl.title));
+    if (tpl.sample) kind.append(el("span", "admin-ck-sample", "Sample content"));
+    head.append(job, kind);
+    return head;
+}
+
+// One checklist as a list entry. Its body is built the first time it's opened:
+// the form for its creator while it's in progress, the read-only report for
+// everyone else (and once submitted).
+function renderChecklist(c) {
+    const submitted = c.status === "submitted";
+    const badge = el("span", `admin-badge ${submitted ? "" : "admin-badge-stage"}`.trim(), submitted ? "Submitted" : "In progress");
+    const details = entryShell(c.clientName, checklistMeta(c), toDate(c.updatedAt) || toDate(c.createdAt), { badge });
+    const mine = (c.createdBy || "").toLowerCase() === currentEmail;
+    const editable = !submitted && mine && (role === "installer" || role === "admin");
+
+    if (role === "admin") {
+        const actions = el("div", "admin-actions admin-install-entry-actions");
+        const error = el("span", "admin-action-error");
+        actions.append(error);
+        if (submitted) actions.append(reopenButton(c, error));
+        actions.append(...entryTools(c.type, c, error));
+        details.append(actions);
+    }
+
+    const body = el("div", "admin-ck-body");
+    details.append(body);
+    let built = false;
+    details.addEventListener("toggle", () => {
+        if (!details.open || built) return;
+        built = true;
+        body.replaceChildren(editable ? checklistForm(c) : checklistReport(c));
+    });
+    return details;
+}
+
+function reopenButton(c, errorText) {
+    const button = el("button", "admin-action");
+    button.type = "button";
+    button.append(el("span", "material-symbols-rounded", "lock_open"), "Reopen for the installer");
+    button.addEventListener("click", async () => {
+        if (!confirm("Reopen this checklist so the installer can change it? Their sign-off is removed.")) return;
+        button.disabled = true;
+        errorText.textContent = "";
+        try {
+            await firestore.updateDoc(firestore.doc(db, "jobChecklists", c.id), {
+                status: "in_progress",
+                signedOffBy: firestore.deleteField(),
+                submittedAt: firestore.deleteField(),
+                updatedAt: firestore.serverTimestamp(),
+                updatedBy: currentEmail,
+            });
+            await loadSubmissions();
+        } catch (err) {
+            console.error("Admin: reopening checklist failed", err);
+            errorText.textContent = err.code === "permission-denied"
+                ? "Couldn't reopen it. Publish the latest /firestore.rules in the Firebase console, then try again."
+                : "Couldn't reopen it. Check your connection and try again.";
+            button.disabled = false;
+        }
+    });
+    return button;
+}
+
+// The read-only view: every item's answer, note and photos.
+function checklistReport(c) {
+    const tpl = CHECKLISTS[c.type];
+    const wrap = el("div", "admin-ck");
+    wrap.append(checklistHead(c), checklistProgress(c).node);
+    wrap.append(el("p", "admin-ck-signoff", c.status === "submitted"
+        ? `Signed off by ${c.signedOffBy || "—"} · ${formatDate(toDate(c.submittedAt))}`
+        : `In progress${c.createdBy ? ` · started by ${c.createdBy}` : ""} · last updated ${formatDate(toDate(c.updatedAt) || toDate(c.createdAt))}`));
+    const items = c.items || {};
+    for (const section of tpl.sections) {
+        const sec = el("section", "admin-ck-section");
+        sec.append(el("h3", "admin-ck-section-title", section.title));
+        for (const item of section.items) {
+            const answer = items[item.id] || {};
+            const state = itemResult(item, answer) || "open";
+            const row = el("div", `admin-ck-item admin-ck-${state}`);
+            const mark = el("span", "admin-ck-mark");
+            mark.append(el("span", "material-symbols-rounded", CK_RESULTS[state].icon));
+            const main = el("div", "admin-ck-main");
+            main.append(el("div", "admin-ck-text", item.text));
+            if (item.options && answer.v) main.append(el("div", "admin-ck-value", answer.v));
+            if (answer.note) main.append(el("div", "admin-ck-note-text", answer.note));
+            const photos = Array.isArray(answer.photos) ? answer.photos : [];
+            if (photos.length) {
+                const grid = el("ul", "admin-attachment-grid admin-ck-photos");
+                main.append(grid);
+                loadAttachments(photos, grid);
+            }
+            const label = item.options && answer.v && state !== "open" ? (state === "fix" ? "Needs attention" : "Answered") : CK_RESULTS[state].label;
+            row.append(mark, main, el("span", "admin-ck-result", label));
+            sec.append(row);
+        }
+        wrap.append(sec);
+    }
+    return wrap;
+}
+
+// The form the installer fills in. Every change saves (notes after a short
+// pause), and the pending save is flushed before any reload.
+function checklistForm(c) {
+    const tpl = CHECKLISTS[c.type];
+    const items = JSON.parse(JSON.stringify(c.items || {}));
+    const ref = firestore.doc(db, "jobChecklists", c.id);
+    const form = el("div", "admin-ck admin-ck-edit");
+    const progress = checklistProgress(c);
+    const saveState = el("button", "admin-ck-save");
+    saveState.type = "button";
+    saveState.setAttribute("role", "status");
+    const topRow = el("div", "admin-ck-toprow");
+    topRow.append(progress.node, saveState);
+    form.append(
+        checklistHead(c),
+        topRow,
+        el("p", "admin-ck-intro", "Work through each item: tick it off, pick an answer, or add the photo. Add a note wherever it helps. Your answers save as you go."),
+    );
+
+    // ---- saving
+    let timer = 0;
+    let dirty = false;
+    let inflight = 0;
+    let chain = Promise.resolve();
+    const say = (text, state = "") => { saveState.textContent = text; saveState.dataset.state = state; };
+    say("Saves automatically");
+
+    function persist() {
+        clearTimeout(timer);
+        dirty = false;
+        // The entry in `data` follows along, so a re-render shows the latest.
+        Object.assign(c, checklistCounts(c.type, items), {
+            items: JSON.parse(JSON.stringify(items)),
+            updatedAt: { toDate: () => new Date() },
+            updatedBy: currentEmail,
+        });
+        progress.update(c);
+        refreshChecklistMeta(c);
+        updateSubmit();
+        inflight++;
+        say("Saving…", "busy");
+        chain = chain.then(() => firestore.updateDoc(ref, {
+            items: JSON.parse(JSON.stringify(items)),
+            ...checklistCounts(c.type, items),
+            updatedAt: firestore.serverTimestamp(),
+            updatedBy: currentEmail,
+        })).then(() => {
+            inflight--;
+            if (!inflight) say("Saved", "ok");
+        }).catch((err) => {
+            inflight--;
+            console.error("Admin: saving checklist failed", err);
+            say(err.code === "permission-denied" ? "Couldn't save: this checklist is locked." : "Couldn't save. Tap to retry.", "error");
+        });
+        return chain;
+    }
+    const persistSoon = () => {
+        dirty = true;
+        clearTimeout(timer);
+        say("Typing…", "busy");
+        timer = setTimeout(persist, CK_SAVE_DELAY_MS);
+    };
+    saveState.addEventListener("click", () => { if (saveState.dataset.state === "error") persist(); });
+    flushChecklist = async () => {
+        if (dirty) persist();
+        await chain;
+    };
+
+    // One item's answer, note and photos; empty parts are dropped.
+    function setItem(id, patch) {
+        const next = { ...(items[id] || {}), ...patch };
+        if (!next.r) delete next.r;
+        if (!next.v) delete next.v;
+        if (!next.note) delete next.note;
+        if (!next.photos || !next.photos.length) delete next.photos;
+        if (Object.keys(next).length) items[id] = next;
+        else delete items[id];
+    }
+
+    const localUrls = new Map();
+
+    function itemRow(item) {
+        const row = el("div", "admin-ck-item");
+        const main = el("div", "admin-ck-main");
+        main.append(el("div", "admin-ck-text", item.text));
+        if (item.hint) main.append(el("div", "admin-ck-hint", item.hint));
+        row.append(main);
+
+        // Pass / Needs fix / N/A
+        const choices = el("div", "admin-ck-choices");
+        choices.setAttribute("role", "group");
+        choices.setAttribute("aria-label", item.text);
+        const choiceButtons = {};
+        // Set answers for a question, N/A only for a photo, else Pass / Needs fix / N/A.
+        const keys = item.options ? item.options : item.type === "photo" ? ["na"] : ["pass", "fix", "na"];
+        if (item.options) choices.classList.add("admin-ck-options");
+        for (const key of keys) {
+            const button = el("button", `admin-ck-choice admin-ck-choice-${item.options ? (item.flagged || []).includes(key) ? "fix" : "pass" : key}`);
+            button.type = "button";
+            if (item.options) button.append(key);
+            else button.append(el("span", "material-symbols-rounded", CK_RESULTS[key].icon), item.type === "photo" ? "Can't do this (N/A)" : CK_RESULTS[key].label);
+            button.addEventListener("click", () => {
+                // Tapping the chosen one again clears it.
+                const now = items[item.id] || {};
+                if (item.options) setItem(item.id, { v: now.v === key ? "" : key });
+                else setItem(item.id, { r: now.r === key ? "" : key });
+                sync();
+                persist();
+            });
+            choiceButtons[key] = button;
+            choices.append(button);
+        }
+        if (item.type !== "photo") row.append(choices);
+
+        // Note and photos
+        const extra = el("div", "admin-ck-extra");
+        const note = el("textarea", "admin-ck-note");
+        note.rows = 2;
+        note.maxLength = 500;
+        note.setAttribute("aria-label", `Note for: ${item.text}`);
+        note.value = (items[item.id] && items[item.id].note) || "";
+        note.addEventListener("input", () => {
+            setItem(item.id, { note: note.value.trim() ? note.value : "" });
+            persistSoon();
+        });
+        const tools = el("div", "admin-ck-tools");
+        const noteButton = el("button", "admin-ck-tool");
+        noteButton.type = "button";
+        noteButton.append(el("span", "material-symbols-rounded", "edit_note"), "Note");
+        let noteOpen = Boolean(note.value);
+        noteButton.addEventListener("click", () => {
+            noteOpen = !noteOpen;
+            sync();
+            if (noteOpen) note.focus();
+        });
+        const photoButton = el("label", "admin-ck-tool");
+        photoButton.append(el("span", "material-symbols-rounded", "photo_camera"), item.type === "photo" ? "Add photo" : item.photo ? "Photo (recommended)" : "Photo");
+        const fileInput = el("input");
+        fileInput.type = "file";
+        fileInput.accept = "image/*";
+        fileInput.multiple = true;
+        fileInput.hidden = true;
+        photoButton.append(fileInput);
+        if (item.type === "photo") {
+            photoButton.classList.add("admin-ck-tool-main");
+            tools.append(photoButton, choices);
+            if (!item.notePrompt) tools.append(noteButton);
+        } else if (item.options) tools.append(noteButton);
+        else tools.append(noteButton, photoButton);
+        if (item.options) photoButton.hidden = true;
+        const photoError = el("p", "admin-ck-error");
+        const photos = el("ul", "admin-attachment-grid admin-ck-photos");
+        extra.append(note, tools, photoError, photos);
+        row.append(extra);
+
+        function photoThumb(path) {
+            const li = el("li");
+            const frame = el("span", "admin-thumb admin-ck-photo");
+            const img = el("img");
+            img.alt = "Photo";
+            img.addEventListener("error", () => frame.classList.add("admin-ck-photo-broken"));
+            const local = localUrls.get(path);
+            if (local) img.src = local;
+            else {
+                loadStorage()
+                    .then(({ storageSdk, storage }) => storageSdk.getDownloadURL(storageSdk.ref(storage, path)))
+                    .then((url) => { img.src = url; })
+                    .catch(() => frame.classList.add("admin-ck-photo-broken"));
+            }
+            frame.append(img);
+            const remove = el("button", "admin-ck-photo-remove");
+            remove.type = "button";
+            remove.setAttribute("aria-label", "Remove photo");
+            remove.append(el("span", "material-symbols-rounded", "close"));
+            remove.addEventListener("click", async () => {
+                if (!confirm("Remove this photo?")) return;
+                setItem(item.id, { photos: (items[item.id].photos || []).filter((p) => p !== path) });
+                drawPhotos();
+                persist();
+                try {
+                    const { storageSdk, storage } = await loadStorage();
+                    await storageSdk.deleteObject(storageSdk.ref(storage, path));
+                } catch (err) {
+                    console.warn("Admin: couldn't delete checklist photo", path, err);
+                }
+            });
+            li.append(frame, remove);
+            return li;
+        }
+        function drawPhotos() {
+            photos.replaceChildren(...((items[item.id] && items[item.id].photos) || []).map(photoThumb));
+        }
+
+        fileInput.addEventListener("change", async () => {
+            const files = [...fileInput.files];
+            fileInput.value = "";
+            if (!files.length) return;
+            photoError.textContent = "";
+            say("Uploading photo…", "busy");
+            try {
+                const { storageSdk, storage } = await loadStorage();
+                let n = 0;
+                for (const file of files) {
+                    if (((items[item.id] && items[item.id].photos) || []).length >= CK_MAX_PHOTOS) {
+                        photoError.textContent = `Up to ${CK_MAX_PHOTOS} photos per item.`;
+                        break;
+                    }
+                    if (!/^image\//i.test(fileType(file))) {
+                        photoError.textContent = `${file.name} isn't a photo.`;
+                        continue;
+                    }
+                    const prepared = await shrinkImage(file);
+                    if (prepared.size > MAX_FILE_BYTES) {
+                        photoError.textContent = `${file.name} is over 10 MB.`;
+                        continue;
+                    }
+                    const path = `jobChecklists/${c.id}/${item.id}-${Date.now()}-${++n}-${safeFileName(prepared.name)}`;
+                    await storageSdk.uploadBytes(storageSdk.ref(storage, path), prepared, { contentType: fileType(prepared) });
+                    localUrls.set(path, URL.createObjectURL(prepared));
+                    setItem(item.id, { r: item.type === "photo" ? "" : (items[item.id] || {}).r, photos: [...((items[item.id] && items[item.id].photos) || []), path] });
+                    drawPhotos();
+                    await persist();
+                }
+                if (!photoError.textContent) say(saveState.dataset.state === "error" ? saveState.textContent : "Saved", saveState.dataset.state === "error" ? "error" : "ok");
+            } catch (err) {
+                console.error("Admin: uploading checklist photo failed", err);
+                photoError.textContent = err.code === "storage/unauthorized"
+                    ? "Couldn't upload: publish the latest /storage.rules in the Firebase console."
+                    : "Couldn't upload that photo. Check your connection and try again.";
+                say("Photo not saved", "error");
+            }
+        });
+
+        // Shows the chosen answer, and the note field when there's something to say.
+        function sync() {
+            const answer = items[item.id] || {};
+            const r = itemResult(item, answer);
+            const picked = item.options ? answer.v : answer.r;
+            row.dataset.state = r || "open";
+            for (const [key, button] of Object.entries(choiceButtons)) button.setAttribute("aria-pressed", String(key === picked));
+            const showNote = noteOpen || r === "fix" || Boolean(note.value) || Boolean(item.notePrompt);
+            note.hidden = !showNote || (item.type === "photo" && answer.r === "na");
+            note.placeholder = item.notePrompt ? `${item.notePrompt}${item.noteRequired ? "" : " (optional)"}` : r === "fix" ? "What needs fixing?" : "Add a note (optional)";
+            noteButton.setAttribute("aria-pressed", String(showNote));
+        }
+        sync();
+        drawPhotos();
+        return row;
+    }
+
+    for (const section of tpl.sections) {
+        const sec = el("section", "admin-ck-section");
+        sec.append(el("h3", "admin-ck-section-title", section.title));
+        for (const item of section.items) sec.append(itemRow(item));
+        form.append(sec);
+    }
+
+    // ---- sign off
+    const submit = el("section", "admin-ck-section admin-ck-submit");
+    submit.append(el("h3", "admin-ck-section-title", "Sign off"));
+    const nameField = el("label", "admin-ck-field");
+    nameField.append(el("span", "", "Your name"));
+    const nameInput = el("input");
+    nameInput.type = "text";
+    nameInput.maxLength = 100;
+    nameInput.autocomplete = "name";
+    nameInput.placeholder = "Who completed this checklist?";
+    nameField.append(nameInput);
+    const submitNote = el("p", "admin-ck-submit-note");
+    const submitError = el("p", "admin-ck-error");
+    const submitButton = el("button", "admin-action admin-action-primary");
+    submitButton.type = "button";
+    submitButton.append(el("span", "material-symbols-rounded", "task_alt"), "Submit checklist");
+    submit.append(nameField, submitNote, submitError, submitButton);
+    form.append(submit);
+
+    let submitting = false;
+    function updateSubmit() {
+        const left = (c.total || 0) - (c.answered || 0);
+        submitNote.textContent = left
+            ? `${plural(left, ["item", "items"])} still to answer before you can submit.`
+            : c.fixes
+                ? `${plural(c.fixes, ["item needs", "items need"])} fixing. You can still submit; the office will see them.`
+                : "Everything is answered.";
+        submitButton.disabled = submitting || left > 0 || nameInput.value.trim().length < 2;
+    }
+    nameInput.addEventListener("input", updateSubmit);
+    updateSubmit();
+
+    submitButton.addEventListener("click", async () => {
+        if (!confirm("Submit this checklist? It locks once submitted; the office can reopen it if something needs changing.")) return;
+        submitting = true;
+        updateSubmit();
+        submitError.textContent = "";
+        try {
+            if (dirty) persist();
+            await chain;
+            await firestore.updateDoc(ref, {
+                items: JSON.parse(JSON.stringify(items)),
+                ...checklistCounts(c.type, items),
+                status: "submitted",
+                signedOffBy: nameInput.value.trim(),
+                submittedAt: firestore.serverTimestamp(),
+                updatedAt: firestore.serverTimestamp(),
+                updatedBy: currentEmail,
+            });
+            flushChecklist = null;
+            selected = { tab: c.type, id: c.id };
+            formOpen = false;
+            await loadSubmissions();
+            if (!desktop.matches) detailPane.scrollIntoView({ block: "start" });
+        } catch (err) {
+            console.error("Admin: submitting checklist failed", err);
+            submitError.textContent = err.code === "permission-denied"
+                ? "Couldn't submit it. Every item needs an answer and a name, and the latest /firestore.rules must be published."
+                : "Couldn't submit it. Check your connection and try again.";
+            submitting = false;
+            updateSubmit();
+        }
+    });
+
+    return form;
+}
+
+// ---- starting a checklist
+
+// The right-hand pane's "start a checklist" picker: the installer's home.
+function showChecklistStart(type) {
+    formOpen = true;
+    itemFormOpen = false;
+    selected = null;
+    setBackButton({ hidden: role === "installer" });
+    const tpl = CHECKLISTS[type];
+    detailPane.querySelector(".admin-detail-kind").textContent = "New checklist";
+    const main = el("div", "admin-entry-main");
+    main.append(el("span", "admin-entry-title", tpl.title), el("span", "admin-entry-meta", "Choose the job this checklist is for."));
+    detailPane.querySelector(".admin-detail-title").replaceChildren(main);
+    detailPane.querySelector(".admin-detail-body").replaceChildren(checklistStartPanel(type));
+    overview.hidden = true;
+    detailPane.hidden = false;
+    mainArea.scrollTop = 0;
+    markSelected();
+}
+
+function checklistStartPanel(type) {
+    const tpl = CHECKLISTS[type];
+    const panel = el("div", "admin-ck-start");
+    panel.append(el("p", "admin-ck-intro", "Pick the client below, or add the job by hand. Your answers save as you go."));
+
+    const search = el("input", "admin-ck-search");
+    search.type = "search";
+    search.placeholder = "Search clients by name or address";
+    search.setAttribute("aria-label", "Search clients");
+    const allLabel = el("label", "admin-ck-showall");
+    const allBox = el("input");
+    allBox.type = "checkbox";
+    allLabel.append(allBox, "Show all clients");
+    const tools = el("div", "admin-ck-start-tools");
+    tools.append(search, allLabel);
+    const note = el("p", "admin-ck-start-note");
+    const list = el("ul", "admin-ck-clients");
+    const error = el("p", "admin-ck-error");
+    error.setAttribute("role", "alert");
+
+    const stages = CK_START_STAGES[type];
+    function draw() {
+        const term = search.value.trim().toLowerCase();
+        const everyone = Boolean(term) || allBox.checked;
+        const pool = everyone ? data.visits : data.visits.filter((v) => stages.includes(stageOf("visits", v)));
+        const found = term
+            ? pool.filter((v) => [v.name, v.address, v.phone].join(" ").toLowerCase().includes(term))
+            : pool;
+        const shown = found.slice(0, 40);
+        note.textContent = everyone
+            ? `${plural(found.length, ["client", "clients"])}${found.length > shown.length ? ` (showing ${shown.length})` : ""}`
+            : `Showing clients at: ${stages.map((key) => (stageInfo("visits", key) || {}).label).filter(Boolean).join(", ")}. Search, or tick “Show all clients”, to see the rest.`;
+        list.replaceChildren(...(shown.length
+            ? shown.map((v) => clientRow(v))
+            : [el("li", "admin-empty", data.visits.length ? "No clients match." : "No clients to show yet.")]));
+    }
+
+    function clientRow(v) {
+        const existing = data[type].find((c) => c.visitId === v.id);
+        const stage = stageInfo("visits", stageOf("visits", v));
+        const li = el("li", "admin-ck-client");
+        const info = el("div", "admin-ck-client-info");
+        info.append(el("strong", "", v.name || "(no name)"), el("span", "", [v.address, stage && stage.label].filter(Boolean).join(" · ")));
+        const button = el("button", existing ? "admin-action" : "admin-action admin-action-primary");
+        button.type = "button";
+        button.append(
+            el("span", "material-symbols-rounded", existing ? "open_in_new" : "play_arrow"),
+            existing ? (existing.status === "submitted" ? "View" : "Continue") : "Start",
+        );
+        button.addEventListener("click", () => startChecklist(type, { visitId: v.id, clientName: v.name, address: v.address }, error, panel));
+        li.append(info, button);
+        return li;
+    }
+
+    search.addEventListener("input", draw);
+    allBox.addEventListener("change", draw);
+
+    // A job that isn't in the Ocular Visits list.
+    const manual = el("details", "admin-ck-manual");
+    manual.append(el("summary", "", "Job not in the list? Add it by name and address"));
+    const field = (label, attrs) => {
+        const wrap = el("label", "admin-ck-field");
+        wrap.append(el("span", "", label));
+        const input = el("input");
+        Object.assign(input, attrs);
+        wrap.append(input);
+        return { wrap, input };
+    };
+    const nameField = field("Client name", { type: "text", maxLength: 100, autocomplete: "off" });
+    const addressField = field("Address", { type: "text", maxLength: 300, autocomplete: "off" });
+    const manualButton = el("button", "admin-action admin-action-primary");
+    manualButton.type = "button";
+    manualButton.append(el("span", "material-symbols-rounded", "play_arrow"), "Start");
+    manualButton.addEventListener("click", () => {
+        const name = nameField.input.value.trim();
+        if (!name) {
+            error.textContent = "Enter the client's name.";
+            nameField.input.focus();
+            return;
+        }
+        startChecklist(type, { visitId: "", clientName: name, address: addressField.input.value.trim() }, error, panel);
+    });
+    manual.append(nameField.wrap, addressField.wrap, manualButton);
+
+    panel.append(tools, note, list, manual, error);
+    draw();
+    return panel;
+}
+
+async function startChecklist(type, job, errorText, panel) {
+    const existing = job.visitId ? data[type].find((c) => c.visitId === job.visitId) : null;
+    if (existing) {
+        showEntry(type, existing.id);
+        return;
+    }
+    checklistStartBusy = true;
+    const buttons = [...panel.querySelectorAll("button")];
+    buttons.forEach((b) => { b.disabled = true; });
+    errorText.textContent = "";
+    try {
+        const id = job.visitId ? `${type}-${job.visitId}` : firestore.doc(firestore.collection(db, "jobChecklists")).id;
+        await firestore.setDoc(firestore.doc(db, "jobChecklists", id), {
+            type,
+            visitId: job.visitId || "",
+            clientName: (job.clientName || "").slice(0, 100) || "(no name)",
+            address: (job.address || "").slice(0, 300),
+            items: {},
+            ...checklistCounts(type, {}),
+            status: "in_progress",
+            version: CHECKLIST_VERSION,
+            createdAt: firestore.serverTimestamp(),
+            createdBy: currentEmail,
+            updatedAt: firestore.serverTimestamp(),
+            updatedBy: currentEmail,
+        });
+        formOpen = false;
+        selected = { tab: type, id };
+        await loadSubmissions();
+    } catch (err) {
+        console.error("Admin: starting checklist failed", err);
+        errorText.textContent = err.code === "permission-denied"
+            ? "Couldn't start it. Publish the latest /firestore.rules in the Firebase console, then try again."
+            : "Couldn't start the checklist. Check your connection and try again.";
+        buttons.forEach((b) => { b.disabled = false; });
+    } finally {
+        checklistStartBusy = false;
+    }
+}
+
+// ---- the admin overview's "Installer checklists" box
+
+function checklistCell(c) {
+    if (!c) return el("span", "admin-ck-cell admin-ck-cell-none", "Not started");
+    const cell = el("button", "admin-ck-cell");
+    cell.type = "button";
+    const bar = el("span", "admin-ck-minibar");
+    const fill = el("i");
+    fill.style.width = `${checklistPercent(c)}%`;
+    bar.append(fill);
+    cell.append(bar, el("span", "admin-ck-cell-text", c.status === "submitted" ? "Submitted" : `${checklistPercent(c)}%`));
+    if (c.fixes) cell.append(el("span", "admin-badge admin-badge-warn", `${c.fixes} to fix`));
+    cell.title = `${c.answered || 0} of ${c.total || 0} answered`;
+    cell.addEventListener("click", () => {
+        selectTab(c.type);
+        showEntry(c.type, c.id);
+    });
+    return cell;
+}
+
+function renderChecklistOverview() {
+    const box = document.querySelector(".admin-checklists");
+    if (role !== "admin") {
+        box.hidden = true;
+        return;
+    }
+    box.hidden = false;
+    const all = [...data.inspection, ...data.installation];
+    const summary = box.querySelector(".admin-checklists-summary");
+    const alertBox = box.querySelector(".admin-checklists-alert");
+    const table = box.querySelector(".admin-checklists-table");
+
+    const submitted = all.filter((c) => c.status === "submitted").length;
+    const fixes = all.reduce((n, c) => n + (c.fixes || 0), 0);
+    const latest = all.map((c) => toDate(c.updatedAt) || toDate(c.createdAt)).filter(Boolean).sort((a, b) => b - a)[0];
+    const stat = (value, label, small) => {
+        const tile = el("div", "admin-stat");
+        tile.append(el("span", small ? "admin-stat-value admin-stat-value-small" : "admin-stat-value", String(value)), el("span", "admin-stat-label", label));
+        return tile;
+    };
+    summary.replaceChildren(
+        stat(all.length - submitted, "In progress"),
+        stat(submitted, "Submitted"),
+        stat(fixes, "Items need fixing"),
+        stat(latest ? formatDate(latest) : "—", "Last activity", true),
+    );
+
+    // Jobs being installed with no installation checklist yet.
+    const missing = data.visits.filter((v) => stageOf("visits", v) === "installing" && !data.installation.some((c) => c.visitId === v.id));
+    alertBox.hidden = !missing.length;
+    if (missing.length) {
+        alertBox.textContent = `${plural(missing.length, ["job", "jobs"])} in Installing ${missing.length === 1 ? "has" : "have"} no installation checklist yet: ${missing.slice(0, 5).map((v) => v.name).join(", ")}${missing.length > 5 ? "…" : ""}.`;
+    }
+
+    // One row per job (a client's visit request, or a job typed by hand).
+    const jobs = new Map();
+    for (const c of all) {
+        const key = c.visitId || `m:${(c.clientName || "").toLowerCase()}|${(c.address || "").toLowerCase()}`;
+        const job = jobs.get(key) || { name: c.clientName, address: c.address, inspection: null, installation: null, updated: null };
+        job[c.type] = c;
+        const when = toDate(c.updatedAt) || toDate(c.createdAt);
+        if (when && (!job.updated || when > job.updated)) job.updated = when;
+        jobs.set(key, job);
+    }
+    const rows = [...jobs.values()].sort((a, b) => (b.updated || 0) - (a.updated || 0)).slice(0, 12);
+    if (!rows.length) {
+        table.replaceChildren(el("p", "admin-empty", "No checklists started yet. Installers start them from the Installer Checklists workspace."));
+        return;
+    }
+    const head = el("div", "admin-checklists-row admin-checklists-head");
+    head.append(el("span", "", "Job"), el("span", "", CHECKLISTS.inspection.title), el("span", "", CHECKLISTS.installation.title));
+    table.replaceChildren(head, ...rows.map((job) => {
+        const row = el("div", "admin-checklists-row");
+        const name = el("span", "admin-checklists-job");
+        name.append(el("strong", "", job.name || "(no name)"), el("span", "", job.address || ""));
+        row.append(name, checklistCell(job.inspection), checklistCell(job.installation));
+        return row;
+    }));
+}
+
+
+// -------------------------------------------------------------- inventory
+
+// Stock on hand, kept by the installer account and admins on the Inventory
+// tab. One document per item in `inventory` (name, category, unit, qty, the
+// restock level `lowAt`, a note and up to INV_MAX_PHOTOS photos in Storage
+// under inventory/<item id>/). Every change to the count (Use, Add stock, Set
+// count, and the starting count) is written together with a record in
+// `inventoryLog` in one transaction, and the item points at it (`lastLogId`),
+// so the history always explains the count. Checked by isValidInventoryItem /
+// isValidInventoryLog in /firestore.rules and the inventory/ rule in
+// /storage.rules.
+const INV_MAX_PHOTOS = 6;
+const INV_MAX_QTY = 1000000;
+// The add / edit form's choices. An item saved with something else (from
+// before these lists) keeps it as an extra choice. The rules only limit length
+// (category ≤ 50, unit 1–20 characters), so changing these needs no rule change.
+const INV_CATEGORIES = ["Cables & Wiring", "Connectors", "Major Equipment", "Mounting & Racking", "Grounding Hardware"];
+const INV_UNITS = ["pcs", "mtrs"];
+const INV_REASONS = {
+    create: { label: "Added to inventory", icon: "add_box" },
+    restock: { label: "Stock added", icon: "add_circle" },
+    use: { label: "Used", icon: "remove_circle" },
+    count: { label: "Count corrected", icon: "fact_check" },
+};
+// The stock panel's three ways to change the count.
+const INV_MODES = [
+    { key: "use", label: "Use", icon: "remove" },
+    { key: "restock", label: "Add stock", icon: "add" },
+    { key: "count", label: "Set count", icon: "fact_check" },
+];
+// "Restock needed" filter on the Inventory tab.
+let lowOnly = false;
+// Category chip on the Inventory tab: "all", a category, or "" (no category).
+let activeCategory = "all";
+// True while the add / edit item form is in the detail pane.
+let itemFormOpen = false;
+
+const inventoryActions = document.querySelector(".admin-inventory-actions");
+const lowFilterButton = inventoryActions.querySelector(".admin-low-filter");
+const categoryFilter = document.querySelector(".admin-category-filter");
+
+const qtyOf = (item) => (Number.isInteger(item.qty) ? item.qty : 0);
+const unitOf = (item) => item.unit || "pcs";
+const qtyText = (item, qty = qtyOf(item)) => `${qty.toLocaleString()} ${unitOf(item)}`;
+
+// "out" (none left), "low" (at or below its restock level) or "ok".
+function stockState(item) {
+    const qty = qtyOf(item);
+    if (qty <= 0) return "out";
+    if (item.lowAt > 0 && qty <= item.lowAt) return "low";
+    return "ok";
+}
+
+const needsRestock = (item) => stockState(item) !== "ok";
+
+function stockStateText(item) {
+    const state = stockState(item);
+    if (state === "out") return "Out of stock";
+    if (state === "low") return `Restock needed · at or below ${item.lowAt.toLocaleString()}`;
+    return item.lowAt > 0 ? `In stock · restock at ${item.lowAt.toLocaleString()}` : "In stock";
+}
+
+function stockBadge(item) {
+    const state = stockState(item);
+    if (state === "ok") return null;
+    return el("span", `admin-badge ${state === "out" ? "admin-badge-stale" : "admin-badge-warn"}`, state === "out" ? "Out of stock" : "Restock");
+}
+
+// Out of stock first, then low, then the rest; by name within each.
+function byStock(a, b) {
+    const rank = { out: 0, low: 1, ok: 2 };
+    return rank[stockState(a)] - rank[stockState(b)] || (a.name || "").localeCompare(b.name || "");
+}
+
+const canDeleteItem = (item) => role === "admin" || (item.createdBy || "").toLowerCase() === currentEmail;
+
+function inventoryErrorMessage(err) {
+    if (err && err.userMessage) return err.userMessage;
+    if (err && (err.code === "permission-denied" || err.code === "storage/unauthorized")) {
+        return "Permission denied. Publish the latest /firestore.rules and /storage.rules in the Firebase console, then try again.";
+    }
+    return "Couldn't save. Check your connection and try again.";
+}
+
+// Download links for item photos, fetched once per path and shared by the
+// list thumbnails, the pane header and the gallery.
+const photoUrls = new Map();
+
+function photoUrl(path) {
+    if (!photoUrls.has(path)) {
+        const url = loadStorage().then(({ storageSdk, storage }) => storageSdk.getDownloadURL(storageSdk.ref(storage, path)));
+        url.catch(() => photoUrls.delete(path));
+        photoUrls.set(path, url);
+    }
+    return photoUrls.get(path);
+}
+
+// The square photo beside an item's name (its first photo, or a box icon).
+function itemThumb(item) {
+    const path = serialList(item.photos)[0];
+    const thumb = el("span", path ? "admin-inv-thumb" : "admin-inv-thumb admin-inv-thumb-empty");
+    thumb.setAttribute("aria-hidden", "true");
+    if (path) {
+        thumb.dataset.photo = path;
+        const img = el("img");
+        img.alt = "";
+        img.loading = "lazy";
+        thumb.append(img);
+        photoUrl(path)
+            .then((url) => { img.src = url; })
+            .catch(() => thumb.classList.add("admin-inv-thumb-broken"));
+    } else {
+        thumb.append(el("span", "material-symbols-rounded", "inventory_2"));
+    }
+    return thumb;
+}
+
+// Fills in the thumbnails under `root` (also used on the pane header, which
+// is a copy of the list row made before its photo had loaded).
+function hydrateThumbs(root) {
+    for (const thumb of root.querySelectorAll(".admin-inv-thumb[data-photo]")) {
+        const img = thumb.querySelector("img");
+        if (!img || img.getAttribute("src")) continue;
+        photoUrl(thumb.dataset.photo)
+            .then((url) => { img.src = url; })
+            .catch(() => thumb.classList.add("admin-inv-thumb-broken"));
+    }
+}
+
+// The open item's photo, shown like a social media profile: a square photo
+// (tap to view full size, with the others) beside the item's name and
+// category. No photo yet: a dashed box that opens the edit form.
+function itemGallery(item) {
+    const paths = serialList(item.photos);
+    const profile = el("figure", "admin-inv-profile");
+    const avatar = el("button", paths.length ? "admin-inv-avatar" : "admin-inv-avatar admin-inv-avatar-empty");
+    avatar.type = "button";
+    const info = el("figcaption", "admin-inv-profile-info");
+    info.append(el("strong", "admin-inv-profile-name", item.name));
+    const sub = [item.category, unitOf(item)].filter(Boolean).join(" · ");
+    if (sub) info.append(el("span", "admin-inv-profile-sub", sub));
+    profile.append(avatar, info);
+
+    if (!paths.length) {
+        avatar.setAttribute("aria-label", "Add a photo");
+        avatar.append(el("span", "material-symbols-rounded", "add_a_photo"));
+        avatar.addEventListener("click", () => showItemForm(item));
+        info.append(el("span", "admin-inv-profile-hint", "No photo yet. Tap the box to add one."));
+        return { node: profile, load: () => {} };
+    }
+
+    avatar.setAttribute("aria-label", `View photo of ${item.name} full size`);
+    const img = el("img");
+    img.alt = item.name;
+    avatar.append(img);
+    let urls = [];
+    const open = (i = 0) => {
+        const images = urls.map((url, n) => ({ url, name: `${item.name} · photo ${n + 1}` })).filter((x) => x.url);
+        if (images.length) openViewer(images, Math.min(i, images.length - 1));
+    };
+    avatar.addEventListener("click", () => open(0));
+    if (paths.length > 1) {
+        const more = el("button", "admin-inv-profile-photos");
+        more.type = "button";
+        more.append(el("span", "material-symbols-rounded", "photo_library"), `${paths.length} photos`);
+        more.addEventListener("click", () => open(0));
+        info.append(more);
+    }
+    const load = () => {
+        avatar.classList.add("loading");
+        Promise.all(paths.map((path) => photoUrl(path).catch(() => ""))).then((list) => {
+            urls = list;
+            avatar.classList.remove("loading");
+            if (urls[0]) img.src = urls[0];
+            else avatar.classList.add("broken");
+        });
+    };
+    return { node: profile, load };
+}
+
+// Quick − / + on each list row. Taps made close together are added up and
+// saved as one change QUICK_SAVE_MS after the last tap: − as "Used", + as
+// "Stock added" (no client or note; the full Use / Add stock controls in the
+// open item have those). Until it's saved the count shows the new number in
+// blue. `quick` holds, per item id, the taps not yet sent (`delta`) and those
+// being saved (`saving`).
+const QUICK_SAVE_MS = 1500;
+const quick = new Map();
+
+function quickState(item) {
+    if (!quick.has(item.id)) quick.set(item.id, { delta: 0, saving: 0, timer: 0 });
+    return quick.get(item.id);
+}
+
+// The count the row shows: saved count plus taps not saved yet.
+const quickQty = (item) => qtyOf(item) + quickState(item).saving + quickState(item).delta;
+
+function quickStepper(item) {
+    const box = el("span", "admin-inv-quick");
+    box.setAttribute("role", "group");
+    box.setAttribute("aria-label", `Quick count for ${item.name}`);
+    const minus = el("button", "admin-inv-quick-btn");
+    minus.type = "button";
+    minus.setAttribute("aria-label", `Use one ${item.name}`);
+    minus.append(el("span", "material-symbols-rounded", "remove"));
+    const count = el("span", "admin-inv-quick-count");
+    count.setAttribute("aria-live", "polite");
+    const plus = el("button", "admin-inv-quick-btn");
+    plus.type = "button";
+    plus.setAttribute("aria-label", `Add one ${item.name}`);
+    plus.append(el("span", "material-symbols-rounded", "add"));
+    box.append(minus, count, plus);
+
+    const draw = () => {
+        const st = quickState(item);
+        const shown = quickQty(item);
+        count.textContent = shown.toLocaleString();
+        box.classList.toggle("pending", Boolean(st.delta || st.saving));
+        minus.disabled = shown <= 0;
+        plus.disabled = shown >= INV_MAX_QTY;
+    };
+    const tap = (step) => (e) => {
+        // Inside the row's <summary>: don't open the item.
+        e.preventDefault();
+        e.stopPropagation();
+        const st = quickState(item);
+        const next = quickQty(item) + step;
+        if (next < 0 || next > INV_MAX_QTY) return;
+        st.delta += step;
+        draw();
+        clearTimeout(st.timer);
+        st.timer = setTimeout(() => saveQuick(item), QUICK_SAVE_MS);
+    };
+    minus.addEventListener("click", tap(-1));
+    plus.addEventListener("click", tap(1));
+    // A click between the buttons shouldn't open the item either.
+    box.addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); });
+    draw();
+    return box;
+}
+
+async function saveQuick(item) {
+    const st = quickState(item);
+    const delta = st.delta;
+    if (!delta) return;
+    st.delta = 0;
+    st.saving += delta;
+    try {
+        await changeStock(item, delta < 0 ? "use" : "restock", Math.abs(delta), "", "");
+        st.saving -= delta;
+        loadError.hidden = true;
+        // The list may have been reloaded meanwhile: update its copy too.
+        const current = data.inventory.find((i) => i.id === item.id);
+        if (current && current !== item) {
+            Object.assign(current, { qty: item.qty, lastLogId: item.lastLogId, updatedAt: item.updatedAt, updatedBy: item.updatedBy });
+        }
+    } catch (err) {
+        st.saving -= delta;
+        console.error("Admin: quick count change failed", err);
+        loadError.textContent = `Couldn't save the change to ${item.name} (${delta > 0 ? "+" : ""}${delta}). ${inventoryErrorMessage(err)}`;
+        loadError.hidden = false;
+    }
+    redrawInventory(item);
+}
+
+// Closing or reloading the page before a quick tap or a stock panel change
+// has saved would lose it:
+// save what's waiting straight away and ask the browser to confirm leaving.
+window.addEventListener("beforeunload", (e) => {
+    let waiting = false;
+    for (const [id, st] of quick) {
+        if (st.delta) {
+            clearTimeout(st.timer);
+            const item = data.inventory.find((i) => i.id === id);
+            if (item) saveQuick(item);
+        }
+        if (st.delta || st.saving) waiting = true;
+    }
+    for (const flush of [...panelFlushes]) {
+        flush();
+        waiting = true;
+    }
+    if (waiting) e.preventDefault();
+});
+
+// Re-draws after a count change (quick − / + or the item's stock panel)
+// without opening or scrolling to anything:
+// the list (keeping open rows open on phones), the counts and filter, and the
+// open item or the installer's home if they're showing.
+function redrawInventory(item) {
+    const openIds = [...document.querySelectorAll('[data-list="inventory"] .admin-entry[open]')].map((d) => d.dataset.id);
+    data.inventory.sort(byStock);
+    renderStats();
+    renderList();
+    for (const id of openIds) {
+        const node = document.querySelector(`[data-list="inventory"] [data-id="${CSS.escape(id)}"]`);
+        if (node) node.open = true;
+    }
+    if (selected && selected.tab === "inventory" && selected.id === item.id && !formOpen) showEntry("inventory", item.id);
+    else if (inventoryHomeShown()) showInventoryHome();
+}
+
+function renderInventoryItem(item) {
+    const meta = [qtyText(item), item.category].filter(Boolean).join(" · ");
+    const details = entryShell(item.name, meta, toDate(item.updatedAt) || toDate(item.createdAt));
+    details.classList.add("admin-inv-entry", `admin-inv-entry-${stockState(item)}`);
+    const summary = details.querySelector("summary");
+    // The Restock / Out of stock tag goes on its own line under the count, so
+    // the name keeps the full width.
+    const badge = stockBadge(item);
+    if (badge) {
+        const tagLine = el("span", "admin-inv-tagline");
+        tagLine.append(badge);
+        summary.querySelector(".admin-entry-main").append(tagLine);
+    }
+    summary.prepend(itemThumb(item));
+    summary.insertBefore(quickStepper(item), summary.querySelector(".admin-entry-date"));
+
+    const actions = el("div", "admin-actions admin-install-entry-actions");
+    const error = el("span", "admin-action-error");
+    const edit = el("button", "admin-action");
+    edit.type = "button";
+    edit.append(el("span", "material-symbols-rounded", "edit"), "Edit item");
+    edit.addEventListener("click", () => showItemForm(item));
+    actions.append(error, edit);
+    if (canDeleteItem(item)) {
+        const remove = el("button", "admin-action admin-action-danger");
+        remove.type = "button";
+        remove.append(el("span", "material-symbols-rounded", "delete"), "Delete");
+        remove.addEventListener("click", async () => {
+            if (!confirm(`Delete ${item.name} from the inventory? Its photos are deleted too. Its history stays on record. This can't be undone.`)) return;
+            remove.disabled = true;
+            error.textContent = "";
+            try {
+                await deleteItem(item);
+                selected = null;
+                await loadSubmissions();
+                closeEntry();
+            } catch (err) {
+                console.error("Admin: deleting inventory item failed", err);
+                error.textContent = inventoryErrorMessage(err);
+                remove.disabled = false;
+            }
+        });
+        actions.append(remove);
+    }
+
+    const body = el("div", "admin-inv");
+    const gallery = itemGallery(item);
+    body.append(gallery.node, stockPanel(item));
+
+    const list = el("dl", "admin-details");
+    list.append(
+        detailRow("Category", item.category),
+        detailRow("Unit", unitOf(item)),
+        detailRow("Restock level", item.lowAt > 0 ? `At or below ${qtyText(item, item.lowAt)}` : "No warning set"),
+        detailRow("Note", item.note, { wide: true }),
+        detailRow("Added", `${formatDate(toDate(item.createdAt))}${item.createdBy ? ` by ${item.createdBy}` : ""}`, { wide: true }),
+        detailRow("Last updated", `${formatDate(toDate(item.updatedAt))}${item.updatedBy ? ` by ${item.updatedBy}` : ""}`, { wide: true }),
+    );
+    body.append(list);
+
+    const history = el("section", "admin-inv-history");
+    const historyList = el("ol", "admin-inv-log");
+    history.append(el("h3", "admin-ck-section-title", "History"), historyList);
+    body.append(history);
+
+    details.append(actions, body);
+    // Photos and history load the first time the entry is opened.
+    let loaded = false;
+    details.addEventListener("toggle", () => {
+        if (!details.open || loaded) return;
+        loaded = true;
+        gallery.load();
+        loadItemHistory(item, historyList);
+    });
+    return details;
+}
+
+// The count and the Use / Add stock / Set count controls. There's no save
+// button: a change saves itself PANEL_SAVE_MS after the last tap or keystroke
+// (a "Saving in a moment… Cancel" line shows meanwhile). It waits while the
+// "Used for" or note field is being typed in, and saves once you leave the
+// field (or press Enter). Use and Add stock start at 0, so nothing is saved
+// until you choose an amount; Set count starts at the current count.
+const PANEL_SAVE_MS = 1500;
+// The mode each item's panel was last in, so it stays put after a save.
+const panelModes = new Map();
+// Saves waiting in open panels, run straight away if the page is closed.
+const panelFlushes = new Set();
+
+function stockPanel(item) {
+    const panel = el("section", `admin-inv-stock admin-inv-stock-${stockState(item)}`);
+    const top = el("div", "admin-inv-top");
+    const count = el("div", "admin-inv-count");
+    count.append(el("span", "admin-inv-qty", qtyOf(item).toLocaleString()), el("span", "admin-inv-unit", unitOf(item)));
+    const state = el("span", "admin-inv-state");
+    state.append(el("span", "admin-inv-state-dot"), stockStateText(item));
+    top.append(count, state);
+
+    let mode = panelModes.get(item.id) || "use";
+    const startAmount = () => (mode === "count" ? String(qtyOf(item)) : "0");
+    const modes = el("div", "admin-inv-modes");
+    modes.setAttribute("role", "group");
+    modes.setAttribute("aria-label", "Change the count");
+    const modeButtons = INV_MODES.map((m) => {
+        const button = el("button", "admin-inv-mode");
+        button.type = "button";
+        button.dataset.mode = m.key;
+        button.append(el("span", "material-symbols-rounded", m.icon), m.label);
+        button.addEventListener("click", () => {
+            if (mode === m.key) return;
+            // Switching drops a change that hasn't saved yet.
+            cancelPending();
+            mode = m.key;
+            panelModes.set(item.id, mode);
+            amount.value = startAmount();
+            update();
+        });
+        modes.append(button);
+        return button;
+    });
+
+    // − [n] +
+    const stepper = el("div", "admin-inv-stepper");
+    const minus = el("button", "admin-inv-step");
+    minus.type = "button";
+    minus.setAttribute("aria-label", "One less");
+    minus.append(el("span", "material-symbols-rounded", "remove"));
+    const amount = el("input", "admin-inv-amount");
+    amount.type = "number";
+    amount.inputMode = "numeric";
+    amount.min = "0";
+    amount.max = String(INV_MAX_QTY);
+    amount.step = "1";
+    amount.value = startAmount();
+    const plus = el("button", "admin-inv-step");
+    plus.type = "button";
+    plus.setAttribute("aria-label", "One more");
+    plus.append(el("span", "material-symbols-rounded", "add"));
+    stepper.append(minus, amount, plus);
+    const preview = el("div", "admin-inv-preview");
+    const stepRow = el("div", "admin-inv-steprow");
+    stepRow.append(stepper, preview);
+
+    // Use: which job it's for (suggests clients from Ocular Visits).
+    const jobWrap = el("label", "admin-field admin-inv-field");
+    const job = el("input");
+    job.type = "text";
+    job.maxLength = 150;
+    job.placeholder = "Client or job (optional)";
+    const jobs = el("datalist");
+    jobs.id = `inv-jobs-${item.id}`;
+    const names = [...new Set(data.visits.map((v) => v.name).filter(Boolean))].slice(0, 300);
+    jobs.append(...names.map((name) => { const o = el("option"); o.value = name; return o; }));
+    job.setAttribute("list", jobs.id);
+    jobWrap.append(el("span", "admin-label", "Used for"), job, jobs);
+
+    const noteWrap = el("label", "admin-field admin-inv-field");
+    const note = el("input");
+    note.type = "text";
+    note.maxLength = 300;
+    note.placeholder = "Note (optional)";
+    noteWrap.append(el("span", "admin-label", "Note"), note);
+
+    // "Saving in a moment… Cancel" / "Saving…" / "Saved" / an error.
+    const status = el("p", "admin-inv-autosave");
+    status.setAttribute("role", "status");
+    const statusText = el("span", "admin-inv-autosave-text");
+    const cancel = el("button", "admin-inv-autosave-cancel");
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+    status.append(statusText, cancel);
+    const say = (text, tone = "", canCancel = false) => {
+        statusText.textContent = text;
+        status.dataset.tone = tone;
+        cancel.hidden = !canCancel;
+    };
+
+    const read = () => {
+        const n = Number(amount.value);
+        return amount.value.trim() !== "" && Number.isInteger(n) ? n : NaN;
+    };
+    // What's wrong with the chosen amount, "" if it can be saved, or null if
+    // nothing has been chosen yet (0 to use or add, or the count unchanged).
+    function problemWith(n) {
+        const qty = qtyOf(item);
+        if (!Number.isInteger(n) || n < 0) return "Enter a whole number.";
+        if (mode !== "count" && n === 0) return null;
+        if (mode === "count" && n === qty) return null;
+        const next = mode === "use" ? qty - n : mode === "restock" ? qty + n : n;
+        if (mode === "use" && n > qty) return qty ? `Only ${qtyText(item)} left.` : "None left to use.";
+        if (next > INV_MAX_QTY) return "That's more than the limit.";
+        return "";
+    }
+
+    function update() {
+        const qty = qtyOf(item);
+        const n = read();
+        modeButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === mode)));
+        jobWrap.hidden = mode !== "use";
+        const problem = problemWith(n);
+        preview.replaceChildren();
+        if (problem) preview.append(el("span", "admin-inv-preview-bad", problem));
+        else if (problem === null) {
+            preview.append(el("span", "", mode === "count"
+                ? "Change the number to correct the count"
+                : mode === "use" ? "Tap + for how many were used" : "Tap + for how many were added"));
+        } else {
+            const next = mode === "use" ? qty - n : mode === "restock" ? qty + n : n;
+            preview.append(
+                el("span", "", qty.toLocaleString()),
+                el("span", "material-symbols-rounded", "arrow_forward"),
+                el("strong", "", qtyText(item, next)),
+            );
+            if (item.lowAt > 0 && next <= item.lowAt) preview.append(el("span", "admin-badge admin-badge-warn", next <= 0 ? "Out of stock" : "Restock"));
+        }
+        minus.disabled = !(n > 0);
+        plus.disabled = mode === "use" && n >= qty;
+    }
+
+    // ---- saving
+    let timer = 0;
+    let saving = false;
+    const typing = () => document.activeElement === job || document.activeElement === note;
+
+    function cancelPending() {
+        clearTimeout(timer);
+        timer = 0;
+        panelFlushes.delete(flush);
+        if (!saving) say("");
+    }
+
+    // Called after every change: saves after a pause, unless there's nothing
+    // to save or a text field is still being typed in.
+    function schedule() {
+        clearTimeout(timer);
+        timer = 0;
+        if (saving) return;
+        const problem = problemWith(read());
+        if (problem !== "") {
+            panelFlushes.delete(flush);
+            say("");
+            return;
+        }
+        panelFlushes.add(flush);
+        if (typing()) {
+            say("Saves when you finish typing", "wait", true);
+            return;
+        }
+        say("Saving in a moment…", "wait", true);
+        timer = setTimeout(flush, PANEL_SAVE_MS);
+    }
+
+    async function flush() {
+        clearTimeout(timer);
+        timer = 0;
+        panelFlushes.delete(flush);
+        const n = read();
+        if (saving || problemWith(n) !== "") return;
+        saving = true;
+        say("Saving…", "busy");
+        [amount, minus, plus, job, note, ...modeButtons].forEach((node) => { node.disabled = true; });
+        try {
+            await changeStock(item, mode, n, mode === "use" ? job.value.trim() : "", note.value.trim());
+            say("Saved", "ok");
+            // Re-draws the item (a fresh panel, in the same mode) and the list.
+            setTimeout(() => redrawInventory(item), 600);
+        } catch (err) {
+            console.error("Admin: changing stock failed", err);
+            saving = false;
+            [amount, job, note, ...modeButtons].forEach((node) => { node.disabled = false; });
+            update();
+            say(inventoryErrorMessage(err), "error");
+        }
+    }
+
+    const changed = () => { update(); schedule(); };
+    minus.addEventListener("click", () => { amount.value = String(Math.max(0, (read() || 0) - 1)); changed(); });
+    plus.addEventListener("click", () => { amount.value = String(Math.min(INV_MAX_QTY, (read() || 0) + 1)); changed(); });
+    amount.addEventListener("input", changed);
+    amount.addEventListener("focus", () => amount.select());
+    for (const field of [job, note]) {
+        field.addEventListener("input", schedule);
+        field.addEventListener("blur", () => setTimeout(schedule, 0));
+        field.addEventListener("keydown", (e) => {
+            if (e.key === "Enter") {
+                e.preventDefault();
+                field.blur();
+            }
+        });
+    }
+    cancel.addEventListener("click", () => {
+        cancelPending();
+        amount.value = startAmount();
+        update();
+        say("Cancelled — nothing was saved");
+    });
+
+    panel.append(top, modes, stepRow, jobWrap, noteWrap, status);
+    update();
+    say("");
+    return panel;
+}
+
+// Changes the count and records why, in one transaction (so two people
+// changing it at once can't lose an update).
+async function changeStock(item, reason, amount, job, note) {
+    const itemRef = firestore.doc(db, "inventory", item.id);
+    const logRef = firestore.doc(firestore.collection(db, "inventoryLog"));
+    const { after } = await firestore.runTransaction(db, async (tx) => {
+        const snap = await tx.get(itemRef);
+        if (!snap.exists()) throw userError("This item was deleted. Refresh the list.");
+        const current = snap.data();
+        const before = Number.isInteger(current.qty) ? current.qty : 0;
+        const next = reason === "use" ? before - amount : reason === "restock" ? before + amount : amount;
+        if (next < 0) throw userError(`Only ${before.toLocaleString()} ${current.unit || "pcs"} left (someone may have just used some).`);
+        if (next === before) throw userError("That's already the count.");
+        if (next > INV_MAX_QTY) throw userError("That's more than the limit.");
+        tx.update(itemRef, {
+            qty: next,
+            lastLogId: logRef.id,
+            updatedAt: firestore.serverTimestamp(),
+            updatedBy: currentEmail,
+        });
+        tx.set(logRef, {
+            itemId: item.id,
+            itemName: current.name,
+            reason,
+            change: next - before,
+            qtyBefore: before,
+            qtyAfter: next,
+            job,
+            note,
+            at: firestore.serverTimestamp(),
+            by: currentEmail,
+        });
+        return { after: next };
+    });
+    Object.assign(item, { qty: after, lastLogId: logRef.id, updatedAt: { toDate: () => new Date() }, updatedBy: currentEmail });
+}
+
+async function loadItemHistory(item, list) {
+    list.replaceChildren(el("li", "admin-empty", "Loading…"));
+    try {
+        // Filtered by item only (no orderBy), so no composite index is needed.
+        const snapshot = await firestore.getDocs(firestore.query(
+            firestore.collection(db, "inventoryLog"),
+            firestore.where("itemId", "==", item.id),
+            firestore.limit(200),
+        ));
+        const rows = snapshot.docs.map((doc) => doc.data())
+            .sort((a, b) => (toDate(b.at) || 0) - (toDate(a.at) || 0))
+            .slice(0, 30);
+        if (!rows.length) {
+            list.replaceChildren(el("li", "admin-empty", "No changes recorded yet."));
+            return;
+        }
+        list.replaceChildren(...rows.map((log) => {
+            const info = INV_REASONS[log.reason] || { label: log.reason, icon: "history" };
+            const li = el("li", `admin-inv-log-row admin-inv-log-${log.change < 0 ? "down" : "up"}`);
+            li.append(el("span", "material-symbols-rounded admin-inv-log-icon", info.icon));
+            const main = el("div", "admin-inv-log-main");
+            const line = el("div", "admin-inv-log-line");
+            line.append(el("strong", "", info.label), el("span", "", log.job ? ` for ${log.job}` : ""));
+            main.append(line);
+            main.append(el("div", "admin-inv-log-meta", [formatDate(toDate(log.at)), log.by].filter(Boolean).join(" · ")));
+            if (log.note) main.append(el("div", "admin-inv-log-note", log.note));
+            const change = el("div", "admin-inv-log-change");
+            change.append(
+                el("strong", "", `${log.change > 0 ? "+" : ""}${(log.change || 0).toLocaleString()}`),
+                el("span", "", `${(log.qtyBefore || 0).toLocaleString()} → ${(log.qtyAfter || 0).toLocaleString()}`),
+            );
+            li.append(main, change);
+            return li;
+        }));
+    } catch (err) {
+        console.error("Admin: loading inventory history failed", err);
+        list.replaceChildren(el("li", "admin-muted", err.code === "permission-denied"
+            ? "Couldn't load the history. Publish the latest /firestore.rules in the Firebase console."
+            : "Couldn't load the history."));
+    }
+}
+
+// The add / edit form in the detail pane (top of the page on phones).
+function showItemForm(item) {
+    formOpen = true;
+    itemFormOpen = true;
+    selected = item ? { tab: "inventory", id: item.id } : null;
+    setBackButton();
+    detailPane.querySelector(".admin-detail-kind").textContent = item ? "Edit item" : "New item";
+    const main = el("div", "admin-entry-main");
+    main.append(
+        el("span", "admin-entry-title", item ? item.name : "Add an item"),
+        el("span", "admin-entry-meta", item
+            ? "Change the details or photos, then save. Change the count from the item's Use / Add stock / Set count controls."
+            : "Name it, set the starting count and when to warn for a restock, and add a photo."),
+    );
+    detailPane.querySelector(".admin-detail-title").replaceChildren(main);
+    detailPane.querySelector(".admin-detail-body").replaceChildren(itemForm(item));
+    overview.hidden = true;
+    detailPane.hidden = false;
+    mainArea.scrollTop = 0;
+    if (!desktop.matches) detailPane.scrollIntoView({ block: "start" });
+    markSelected();
+}
+
+function itemForm(item) {
+    const form = el("form", "admin-install-form admin-inv-form");
+    form.noValidate = true;
+    const grid = el("div", "admin-install-grid");
+    const field = (label, input, { wide, hint } = {}) => {
+        const wrap = el("label", wide ? "admin-field admin-install-wide" : "admin-field");
+        wrap.append(el("span", "admin-label", label), input);
+        if (hint) wrap.append(el("span", "admin-serial-summary", hint));
+        grid.append(wrap);
+        return input;
+    };
+    const input = (type, value, attrs = {}) => {
+        const node = el("input");
+        node.type = type;
+        node.value = value;
+        Object.assign(node, attrs);
+        return node;
+    };
+
+    const name = field("Item name *", input("text", item ? item.name : "", { maxLength: 100, required: true, placeholder: "e.g. MC4 connector pair" }), { wide: true });
+    // Dropdowns; an older value not in the list stays selectable.
+    const select = (values, current, placeholder) => {
+        const node = el("select", "admin-select");
+        if (placeholder) {
+            const none = el("option", "", placeholder);
+            none.value = "";
+            none.disabled = true;
+            node.append(none);
+        }
+        for (const value of current && !values.includes(current) ? [...values, current] : values) {
+            const option = el("option", "", value);
+            option.value = value;
+            node.append(option);
+        }
+        node.value = current || "";
+        return node;
+    };
+    const category = field("Category *", select(INV_CATEGORIES, item ? item.category || "" : "", "Choose a category"));
+    const unit = field("Unit", select(INV_UNITS, item ? unitOf(item) : "pcs"));
+    const qty = item ? null : field("Starting count *", input("number", "0", { min: 0, max: INV_MAX_QTY, step: 1, inputMode: "numeric" }));
+    const lowAt = field("Warn to restock at or below", input("number", item && item.lowAt ? String(item.lowAt) : "", { min: 0, max: INV_MAX_QTY, step: 1, inputMode: "numeric", placeholder: "e.g. 5" }), { hint: "Leave blank for no warning (it still warns when none are left)." });
+    const note = field("Note", el("textarea"), { wide: true });
+    note.rows = 3;
+    note.maxLength = 500;
+    note.value = item ? item.note || "" : "";
+    note.placeholder = "Where it's kept, supplier, size… (optional)";
+
+    // Photos: keep / remove saved ones, add new ones (camera or library).
+    const kept = item ? [...serialList(item.photos)] : [];
+    const added = [];
+    const photoBox = el("div", "admin-field admin-install-wide");
+    const thumbs = el("ul", "admin-attachment-grid admin-ck-photos admin-inv-form-photos");
+    const picker = el("input");
+    picker.type = "file";
+    picker.accept = "image/*";
+    picker.multiple = true;
+    picker.hidden = true;
+    const addPhoto = el("button", "admin-ck-tool admin-ck-tool-main");
+    addPhoto.type = "button";
+    addPhoto.append(el("span", "material-symbols-rounded", "photo_camera"), "Add photo");
+    addPhoto.addEventListener("click", () => picker.click());
+    const photoNote = el("span", "admin-serial-summary");
+    photoBox.append(el("span", "admin-label", "Photos"), thumbs, addPhoto, photoNote, picker);
+    grid.append(photoBox);
+
+    const thumb = (src, onRemove) => {
+        const li = el("li");
+        const frame = el("span", "admin-thumb admin-ck-photo");
+        const img = el("img");
+        img.alt = "Photo";
+        img.addEventListener("error", () => frame.classList.add("admin-ck-photo-broken"));
+        if (typeof src === "string") img.src = src;
+        else src.then((url) => { img.src = url; }).catch(() => frame.classList.add("admin-ck-photo-broken"));
+        frame.append(img);
+        const x = el("button", "admin-ck-photo-remove");
+        x.type = "button";
+        x.setAttribute("aria-label", "Remove photo");
+        x.append(el("span", "material-symbols-rounded", "close"));
+        x.addEventListener("click", onRemove);
+        li.append(frame, x);
+        return li;
+    };
+    const savedUrls = new Map();
+    const savedUrl = (path) => {
+        if (!savedUrls.has(path)) {
+            savedUrls.set(path, loadStorage().then(({ storageSdk, storage }) => storageSdk.getDownloadURL(storageSdk.ref(storage, path))));
+        }
+        return savedUrls.get(path);
+    };
+    function drawPhotos() {
+        thumbs.replaceChildren(
+            ...kept.map((path, i) => thumb(savedUrl(path), () => { kept.splice(i, 1); drawPhotos(); })),
+            ...added.map((entry, i) => thumb(entry.url, () => { URL.revokeObjectURL(entry.url); added.splice(i, 1); drawPhotos(); })),
+        );
+        const total = kept.length + added.length;
+        addPhoto.hidden = total >= INV_MAX_PHOTOS;
+        photoNote.textContent = total ? `${total} of ${INV_MAX_PHOTOS} photos` : `Up to ${INV_MAX_PHOTOS} photos, so everyone knows exactly which item it is.`;
+    }
+    picker.addEventListener("change", () => {
+        for (const file of picker.files) {
+            if (kept.length + added.length >= INV_MAX_PHOTOS) break;
+            if (!/^image\//i.test(fileType(file))) continue;
+            added.push({ file, url: URL.createObjectURL(file) });
+        }
+        picker.value = "";
+        drawPhotos();
+    });
+    drawPhotos();
+
+    const actions = el("div", "admin-install-form-actions");
+    const error = el("p", "admin-error admin-install-error");
+    error.setAttribute("role", "alert");
+    const cancel = el("button", "admin-action");
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", () => {
+        if (item) showEntry("inventory", item.id);
+        else closeEntry();
+    });
+    const submit = el("button", "admin-action admin-action-primary");
+    submit.type = "submit";
+    submit.append(el("span", "material-symbols-rounded", "save"), item ? "Save changes" : "Add item");
+    // Add item (or Save changes) on the left, Cancel on the right, equal widths.
+    actions.classList.add("admin-inv-form-actions");
+    actions.append(error, submit, cancel);
+    form.append(grid, actions);
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        error.textContent = "";
+        const wholeNumber = (node, blank) => {
+            const text = node.value.trim();
+            if (!text) return blank;
+            const n = Number(text);
+            return Number.isInteger(n) && n >= 0 && n <= INV_MAX_QTY ? n : NaN;
+        };
+        const values = {
+            name: name.value.trim(),
+            category: category.value.trim(),
+            unit: unit.value.trim() || "pcs",
+            lowAt: wholeNumber(lowAt, 0),
+            note: note.value.trim(),
+        };
+        const startQty = qty ? wholeNumber(qty, 0) : null;
+        if (!values.name) { error.textContent = "Enter the item's name."; name.focus(); return; }
+        if (!values.category) { error.textContent = "Choose a category."; category.focus(); return; }
+        if (Number.isNaN(startQty)) { error.textContent = "The starting count must be a whole number."; qty.focus(); return; }
+        if (Number.isNaN(values.lowAt)) { error.textContent = "The restock level must be a whole number."; lowAt.focus(); return; }
+        const duplicate = data.inventory.find((i) => i.id !== (item && item.id) && (i.name || "").trim().toLowerCase() === values.name.toLowerCase());
+        if (duplicate && !confirm(`There's already an item called ${duplicate.name}. Add another one anyway?`)) return;
+        submit.disabled = true;
+        cancel.disabled = true;
+        try {
+            const id = await saveItem(item, values, startQty, kept, added.map((a) => a.file));
+            added.forEach((a) => URL.revokeObjectURL(a.url));
+            itemFormOpen = false;
+            formOpen = false;
+            selected = { tab: "inventory", id };
+            await loadSubmissions();
+        } catch (err) {
+            console.error("Admin: saving inventory item failed", err);
+            error.textContent = inventoryErrorMessage(err);
+            submit.disabled = false;
+            cancel.disabled = false;
+        }
+    });
+    return form;
+}
+
+// Uploads the new photos, then saves the item (and, for a new one, its
+// starting count's history record) and deletes photos that were removed.
+async function saveItem(existing, values, startQty, kept, files) {
+    const itemRef = existing
+        ? firestore.doc(db, "inventory", existing.id)
+        : firestore.doc(firestore.collection(db, "inventory"));
+    const uploaded = [];
+    if (files.length) {
+        const { storageSdk, storage } = await loadStorage();
+        let n = 0;
+        for (const file of files) {
+            const prepared = await shrinkImage(file);
+            if (prepared.size > MAX_FILE_BYTES) throw userError(`${file.name} is over 10 MB.`);
+            const path = `inventory/${itemRef.id}/${Date.now()}-${++n}-${safeFileName(prepared.name)}`;
+            await storageSdk.uploadBytes(storageSdk.ref(storage, path), prepared, { contentType: fileType(prepared) || "image/jpeg" });
+            uploaded.push(path);
+        }
+    }
+    const photos = [...kept, ...uploaded];
+    if (existing) {
+        await firestore.updateDoc(itemRef, {
+            ...values,
+            photos,
+            updatedAt: firestore.serverTimestamp(),
+            updatedBy: currentEmail,
+        });
+        const removed = serialList(existing.photos).filter((path) => !kept.includes(path));
+        if (removed.length) {
+            const { storageSdk, storage } = await loadStorage();
+            await Promise.all(removed.map((path) => storageSdk.deleteObject(storageSdk.ref(storage, path)).catch((err) => {
+                if (err.code !== "storage/object-not-found") console.warn("Admin: couldn't delete item photo", path, err);
+            })));
+        }
+    } else {
+        const logRef = firestore.doc(firestore.collection(db, "inventoryLog"));
+        const batch = firestore.writeBatch(db);
+        batch.set(itemRef, {
+            ...values,
+            qty: startQty,
+            photos,
+            lastLogId: logRef.id,
+            createdAt: firestore.serverTimestamp(),
+            createdBy: currentEmail,
+            updatedAt: firestore.serverTimestamp(),
+            updatedBy: currentEmail,
+        });
+        batch.set(logRef, {
+            itemId: itemRef.id,
+            itemName: values.name,
+            reason: "create",
+            change: startQty,
+            qtyBefore: 0,
+            qtyAfter: startQty,
+            job: "",
+            note: "",
+            at: firestore.serverTimestamp(),
+            by: currentEmail,
+        });
+        await batch.commit();
+    }
+    return itemRef.id;
+}
+
+async function deleteItem(item) {
+    await firestore.deleteDoc(firestore.doc(db, "inventory", item.id));
+    const paths = serialList(item.photos);
+    if (paths.length) {
+        const { storageSdk, storage } = await loadStorage();
+        await Promise.all(paths.map((path) => storageSdk.deleteObject(storageSdk.ref(storage, path)).catch((err) => {
+            if (err.code !== "storage/object-not-found") console.warn("Admin: couldn't delete item photo", path, err);
+        })));
+    }
+}
+
+// Stock on hand: item / running-low / out-of-stock tiles and the restock
+// list. Shown as the installer's home on the Inventory tab, and in the admin
+// overview's Inventory box. `onOpen(item)` opens a restock row's item.
+function inventorySummary(onOpen) {
+    const items = data.inventory;
+    const low = items.filter(needsRestock);
+    const home = el("div", "admin-inv-home");
+    const tiles = el("div", "admin-inv-tiles");
+    const tile = (value, label, tone) => {
+        const t = el("div", `admin-inv-tile${tone ? ` admin-inv-tile-${tone}` : ""}`);
+        t.append(el("span", "admin-inv-tile-value", String(value)), el("span", "admin-inv-tile-label", label));
+        return t;
+    };
+    tiles.append(
+        tile(items.length, "Items"),
+        tile(low.filter((i) => stockState(i) === "low").length, "Running low", low.some((i) => stockState(i) === "low") ? "low" : ""),
+        tile(low.filter((i) => stockState(i) === "out").length, "Out of stock", low.some((i) => stockState(i) === "out") ? "out" : ""),
+    );
+    // "Add item" is in the sidebar of the Inventory tab, next to "Restock needed".
+    home.append(tiles);
+
+    if (low.length) {
+        const section = el("section", "admin-inv-restock");
+        section.append(el("h3", "admin-ck-section-title", "Restock needed"));
+        const list = el("ul", "admin-inv-restock-list");
+        list.append(...low.map((item) => {
+            const li = el("li");
+            const button = el("button", `admin-inv-restock-row admin-inv-restock-${stockState(item)}`);
+            button.type = "button";
+            const info = el("span", "admin-inv-restock-info");
+            info.append(el("strong", "", item.name), el("span", "", item.lowAt > 0 ? `Restock at ${item.lowAt.toLocaleString()}` : "Restock"));
+            button.append(info, el("span", "admin-inv-restock-qty", qtyText(item)), el("span", "material-symbols-rounded", "chevron_right"));
+            button.addEventListener("click", () => onOpen(item));
+            li.append(button);
+            return li;
+        }));
+        section.append(list);
+        home.append(section);
+    } else if (items.length) {
+        home.append(el("p", "admin-ck-intro", "Everything is above its restock level. Open an item in the list to use some, add stock or correct the count."));
+    } else {
+        home.append(el("p", "admin-ck-intro", "No items yet. Add the parts and tools you keep in stock, with a photo and the count you have, and set when to warn for a restock."));
+    }
+    return home;
+}
+
+// The admin overview's Inventory box (the same summary, opening an item on
+// the Inventory tab).
+function renderInventoryOverview() {
+    const box = document.querySelector(".admin-inventory-box");
+    if (role !== "admin") {
+        box.hidden = true;
+        return;
+    }
+    box.hidden = false;
+    const low = data.inventory.filter(needsRestock).length;
+    box.querySelector(".admin-inventory-box-hint").textContent = data.inventory.length
+        ? `${plural(data.inventory.length, ["item", "items"])} · ${low ? `${low} need restocking` : "nothing to restock"}`
+        : "";
+    box.querySelector(".admin-inventory-box-body").replaceChildren(inventorySummary((item) => {
+        selectTab("inventory");
+        openInventoryItem(item.id);
+    }));
+}
+
+// True while the right-hand pane shows "Stock on hand".
+const inventoryHomeShown = () => !detailPane.hidden && Boolean(detailPane.querySelector(".admin-detail-body > .admin-inv-home"));
+
+// The installer's pane on the Inventory tab (and admins' on desktop, when no
+// item is open): totals and what needs
+// restocking.
+function showInventoryHome() {
+    formOpen = true;
+    itemFormOpen = false;
+    selected = null;
+    setBackButton({ hidden: true });
+    const items = data.inventory;
+    const low = items.filter(needsRestock);
+    detailPane.querySelector(".admin-detail-kind").textContent = "Inventory";
+    const main = el("div", "admin-entry-main");
+    main.append(
+        el("span", "admin-entry-title", "Stock on hand"),
+        el("span", "admin-entry-meta", `${plural(items.length, ["item", "items"])} · ${low.length ? `${low.length} need restocking` : "nothing to restock"}`),
+    );
+    detailPane.querySelector(".admin-detail-title").replaceChildren(main);
+
+    detailPane.querySelector(".admin-detail-body").replaceChildren(inventorySummary((item) => openInventoryItem(item.id)));
+    overview.hidden = true;
+    detailPane.hidden = false;
+    mainArea.scrollTop = 0;
+    markSelected();
+}
+
+// Opens an item: in the pane on desktop, in place in the list on phones.
+function openInventoryItem(id) {
+    if (desktop.matches) {
+        showEntry("inventory", id);
+        return;
+    }
+    const node = document.querySelector(`[data-list="inventory"] [data-id="${CSS.escape(id)}"]`);
+    if (node) {
+        node.open = true;
+        node.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+}
+
+function renderLowFilter() {
+    const low = data.inventory.filter(needsRestock).length;
+    lowFilterButton.setAttribute("aria-pressed", String(lowOnly));
+    lowFilterButton.classList.toggle("admin-low-filter-alert", low > 0);
+    lowFilterButton.querySelector(".admin-low-filter-text").textContent = `Restock needed (${low})`;
+}
+
+// The category dropdown: All categories, then INV_CATEGORIES, then any other
+// category still on an item (from before the list), and "No category" if any,
+// each with its item count.
+function renderCategoryFilter() {
+    const counts = new Map();
+    for (const item of data.inventory) counts.set(item.category || "", (counts.get(item.category || "") || 0) + 1);
+    const extra = [...counts.keys()].filter((c) => c && !INV_CATEGORIES.includes(c)).sort();
+    const keys = ["all", ...INV_CATEGORIES, ...extra, ...(counts.has("") ? [""] : [])];
+    // A chosen category that no longer exists goes back to All.
+    if (!keys.includes(activeCategory)) activeCategory = "all";
+    categoryFilter.replaceChildren(...keys.map((key) => {
+        const n = key === "all" ? data.inventory.length : counts.get(key) || 0;
+        const option = el("option", "", `${key === "all" ? "All categories" : key || "No category"} (${n})`);
+        option.value = key;
+        return option;
+    }));
+    categoryFilter.value = activeCategory;
+}
+
+// The Inventory list with all categories shown: one section per category,
+// in the dropdown's order, each under a heading with its item count (and how
+// many need restocking). Within a section the list's order holds: out of
+// stock, then running low, then the rest, by name.
+function categoryOrder(category) {
+    const i = INV_CATEGORIES.indexOf(category);
+    return i >= 0 ? i : category ? INV_CATEGORIES.length : INV_CATEGORIES.length + 1;
+}
+
+function groupedInventory(entries) {
+    const groups = new Map();
+    for (const item of entries) {
+        const key = item.category || "";
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(item);
+    }
+    const keys = [...groups.keys()].sort((a, b) => categoryOrder(a) - categoryOrder(b) || a.localeCompare(b));
+    return keys.flatMap((key) => {
+        const items = groups.get(key);
+        const low = items.filter(needsRestock).length;
+        const head = el("div", "admin-inv-group");
+        head.append(el("span", "admin-inv-group-name", key || "No category"), el("span", "admin-inv-group-count", String(items.length)));
+        if (low) head.append(el("span", "admin-inv-group-low", `${low} to restock`));
+        return [head, ...items.map((item) => renderEntry("inventory", item))];
+    });
+}
+
+categoryFilter.addEventListener("change", () => {
+    activeCategory = categoryFilter.value;
+    renderList();
+});
+
+lowFilterButton.addEventListener("click", () => {
+    lowOnly = !lowOnly;
+    renderLowFilter();
+    renderList();
+});
+
+inventoryActions.querySelector(".admin-add-item").addEventListener("click", () => showItemForm(null));
 
 
 // ------------------------------------------------------------------- tabs
@@ -3229,6 +5429,15 @@ function updateStatusFilter() {
 
 function selectTab(name) {
     activeTab = name;
+    setView("list");
+    listTitle.textContent = tabLabel(name);
+    // Desktop admins: the right-hand pane shows "Select an entry" until one is
+    // opened (the overview has its own item in the navigation).
+    if (role === "admin" && desktop.matches) {
+        if (name === "inventory" && !selected && (!formOpen || inventoryHomeShown())) showInventoryHome();
+        else if (inventoryHomeShown()) closeEntry();
+        else if (!selected && !formOpen) overview.hidden = true;
+    }
     document.querySelectorAll(".admin-tab").forEach((t) => {
         const active = t.dataset.tab === name;
         t.classList.toggle("active", active);
@@ -3237,18 +5446,36 @@ function selectTab(name) {
     document.querySelectorAll(".admin-list").forEach((list) => {
         list.hidden = list.dataset.list !== name;
     });
+    markMenuTab();
     productFilter.hidden = name !== "waitlist";
+    sourceFilter.hidden = name !== "visits";
+    categoryFilter.hidden = name !== "inventory";
     installActions.hidden = name !== "installs";
     visitActions.hidden = name !== "visits" || role !== "admin";
+    checklistActions.hidden = !CHECKLIST_TYPES.includes(name);
+    inventoryActions.hidden = name !== "inventory";
     updateStatusFilter();
     renderList();
+    // The installer's right-hand pane follows the tab: the picker for it, or
+    // the stock summary.
+    if (role === "installer" && CHECKLIST_TYPES.includes(name)) showChecklistStart(name);
+    else if (role === "installer" && name === "inventory") showInventoryHome();
 }
+
+checklistActions.querySelector(".admin-start-checklist").addEventListener("click", () => {
+    if (CHECKLIST_TYPES.includes(activeTab)) showChecklistStart(activeTab);
+});
 
 updateStatusFilter();
 
 document.querySelectorAll(".admin-tab").forEach((tab) => {
-    tab.addEventListener("click", () => selectTab(tab.dataset.tab));
+    tab.addEventListener("click", () => {
+        selectTab(tab.dataset.tab);
+        // On phones (tabs are in the menu), start the new list at the top.
+        if (!desktop.matches) window.scrollTo({ top: 0 });
+    });
 });
 
 search.addEventListener("input", renderList);
 statusFilter.addEventListener("change", renderList);
+sourceFilter.addEventListener("change", renderList);

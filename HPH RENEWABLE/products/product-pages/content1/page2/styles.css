@@ -2804,3 +2804,368 @@ body.menu-open{
         height: 34px;
     }
 }
+
+/* ===== DESKTOP DARK THEME ===== */
+/* Follows the system setting, on desktop and mobile. Same #FFFFFF -> #0C0C0C
+   surface mapping as the rest of the site. Only the battery pages (B4000 Elite,
+   B5000 Elite) have this; the head-unit and MX2250 pages stay light. The photo
+   slide keeps its light stage, because the charcoal product would disappear
+   on a dark background (the 3D slide has its own dark grey, at the end). The base nav colours are set several
+   levels deep, so those use !important (as Home's do). */
+@media (prefers-color-scheme: dark){
+    body{
+        background-color: #0C0C0C;
+    }
+
+    .desktop{
+        background-color: #0C0C0C !important;
+
+        .top-blur{
+            background-color: #0C0C0C !important;
+        }
+
+        .nav-bar{
+            .logo .img{
+                filter: invert(1) !important;
+            }
+
+            .nav-title, .nav-link{
+                color: #EBEBEB !important;
+            }
+
+            .schedule-btn{
+                background-color: #EBEBEB !important;
+                color: #0C0C0C !important;
+            }
+
+            .nav-overlay{
+                background-color: rgba(0, 0, 0, 0.4) !important;
+            }
+
+            .mega-panel{
+                background-color: rgba(12, 12, 12, 0.97) !important;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5) !important;
+
+                .mega-heading{
+                    color: #9E9E9E !important;
+                }
+
+                .mega-link{
+                    color: #EBEBEB !important;
+                }
+
+                .mega-link:hover{
+                    color: #ADADAD !important;
+                }
+            }
+        }
+    }
+}
+
+/* Desktop page content (dark): each light colour mapped to its dark
+   counterpart, using the same selectors so these win by coming later. */
+@media (prefers-color-scheme: dark){
+    .desktop{
+        .content-container{
+            .flex-box{
+                .box1{
+                    .carousel{
+                        border: 1px solid rgba(255, 255, 255, 0.14);
+                    }
+                }
+
+                .box2{
+                    .text-container-content{
+                        .title{
+                            color: #FFFFFF;
+                        }
+
+                        .sub-title{
+                            color: #4DA3FF;
+                        }
+
+                        .price{
+                            color: #EBEBEB;
+                        }
+
+                        .details{
+                            color: #9E9E9E;
+                        }
+
+                        .grid-box{
+                            .box{
+                                border: 1px solid #2A2A2A;
+
+                                .title{
+                                    color: #FFFFFF;
+                                }
+
+                                .flex, .flex2{
+                                    .box3{
+                                        .sub-title{
+                                            color: #9E9E9E;
+                                        }
+
+                                        .title{
+                                            color: #EBEBEB;
+                                        }
+                                    }
+                                }
+
+                                .flex{
+                                    .box{
+                                        background-color: #2A2A2A;
+                                    }
+                                }
+                            }
+
+                            .box:hover{
+                                border: 1px solid #9E9E9E;
+                                background-color: rgba(255, 255, 255, 0.05);
+                            }
+                        }
+                    }
+
+                    .btn-container{
+                        .btn{
+                            background-color: #EBEBEB;
+                            color: #0C0C0C;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    .unit-note{
+        background-color: #1A1A1A;
+        color: #EBEBEB;
+
+        .material-symbols-rounded{
+            color: #9E9E9E;
+        }
+
+        a{
+            color: #EBEBEB;
+        }
+    }
+}
+
+/* Mobile (dark): the content uses the --m-* tokens; the nav, menu and the
+   solid button have their own colours. */
+@media (prefers-color-scheme: dark){
+    .mobile{
+        --m-bg: #0C0C0C;
+        --m-text: #EBEBEB;
+        --m-muted: #9E9E9E;
+        --m-subtle: #9E9E9E;
+        --m-border: #2A2A2A;
+        --m-surface: #1A1A1A;
+        background-color: #0C0C0C;
+
+        .mobile-nav{
+            background-color: #0C0C0C;
+
+            .mobile-logo .img{
+                filter: none;
+            }
+
+            .menu .menu-line{
+                background-color: #EBEBEB;
+            }
+        }
+
+        body.menu-open & .mobile-nav{
+            background-color: #0C0C0C;
+
+            .mobile-logo .img{
+                filter: none;
+            }
+
+            .menu .menu-line{
+                background-color: #EBEBEB;
+            }
+        }
+
+        .dropdown{
+            background-color: #0C0C0C;
+
+            .menu-title, .menu-links .menu-link{
+                color: #EBEBEB;
+            }
+
+            .menu-title .chevron, .menu-links .menu-heading{
+                color: #9E9E9E;
+            }
+
+            .menu-cta{
+                background-color: #EBEBEB;
+                color: #0C0C0C;
+            }
+        }
+
+        .mobile-btn-solid{
+            background-color: #EBEBEB;
+            color: #0C0C0C;
+        }
+
+        /* Keeps the light product stage (see the note above). */
+        .mobile-carousel{
+            background-color: #F5F5F7;
+        }
+    }
+}
+
+/* 3D slide (dark): a darker grey stage than the photo slides, still light
+   enough for the charcoal model to stand out. */
+@media (prefers-color-scheme: dark){
+    .carousel-slide-3d, .mobile-carousel-slide-3d{
+        background-color: #1C1C1E !important;
+
+        .model-hint{
+            background-color: rgba(28, 28, 30, 0.6);
+            color: #EBEBEB;
+        }
+    }
+
+    /* The page dots sit over both the light photo and the dark 3D stage, so
+       they use mid-grey and a near-white active dot with a thin dark ring. */
+    .desktop .content-container .flex-box .box1 .carousel .carousel-dots .carousel-dot,
+    .mobile .mobile-carousel .mobile-carousel-dots .mobile-carousel-dot{
+        background-color: rgba(128, 128, 128, 0.6);
+
+        &.active{
+            background-color: #EBEBEB;
+            box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+        }
+    }
+}
+
+/* Dark mode: a transparent arrow's black icon would vanish on the dark 3D
+   slide, so it's mid-grey until hovered or tapped (which brings back the white
+   circle and the black icon). */
+@media (prefers-color-scheme: dark){
+    .desktop .content-container .flex-box .box1 .carousel .carousel-arrow:not(:hover) .material-symbols-rounded,
+    .mobile .mobile-carousel .mobile-carousel-arrow:not(:active) .material-symbols-rounded{
+        color: #8E8E93;
+    }
+}
+
+/* Dark mode for the 3D slide's controls and labels (this page has dark mode). */
+@media (prefers-color-scheme: dark){
+    .model-views{
+        background-color: rgba(118, 118, 128, 0.24);
+
+        .model-view-thumb{
+            background-color: #636366;
+            box-shadow: none;
+        }
+
+        .model-view-btn{
+            color: #EBEBEB;
+        }
+    }
+
+    .model-measure{
+        background-color: rgba(118, 118, 128, 0.24);
+        color: #EBEBEB;
+
+        &:hover{
+            background-color: rgba(118, 118, 128, 0.36);
+        }
+    }
+
+    .unit-spot{
+        color: #EBEBEB;
+        text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+
+        .unit-spot-kwh{
+            color: #9E9E9E;
+        }
+    }
+}
+
+@media (prefers-color-scheme: dark){
+    .model-ar-btn{
+        background-color: rgba(44, 44, 46, 0.9);
+        color: #EBEBEB;
+    }
+}
+
+/* Dark mode for the features tour card (this page has dark mode). */
+@media (prefers-color-scheme: dark){
+    .model-feature-btn{
+        background-color: rgba(118, 118, 128, 0.24);
+        color: #EBEBEB;
+
+        &[aria-pressed="true"]{
+            background-color: #EBEBEB;
+            color: #0C0C0C;
+        }
+    }
+
+    .model-feature-card{
+        border-color: rgba(255, 255, 255, 0.08);
+        background-color: rgba(44, 44, 46, 0.85);
+        color: #EBEBEB;
+
+        .model-feature-count, .model-feature-close{ color: #9E9E9E; }
+        .model-feature-text{ color: #C7C7CC; }
+
+        .model-feature-nav button{
+            background-color: rgba(118, 118, 128, 0.24);
+            color: #EBEBEB;
+        }
+
+        .model-feature-dots i{ background-color: rgba(235, 235, 245, 0.3); }
+        .model-feature-dots i.on{ background-color: #EBEBEB; }
+    }
+}
+
+@media (prefers-color-scheme: dark){
+    .model-reset-btn{
+        background-color: rgba(118, 118, 128, 0.24);
+        color: #EBEBEB;
+    }
+}
+
+/* Dark mode for this page's own 3D parts: the steppers, the total capsule and
+   the price line. */
+@media (prefers-color-scheme: dark){
+    .model-stack-group{
+        color: #EBEBEB;
+
+        .model-stack-caption{
+            color: #9E9E9E;
+        }
+
+        .model-stack-stepper{
+            background-color: rgba(118, 118, 128, 0.24);
+        }
+
+        .model-stack-btn{
+            color: #EBEBEB;
+
+            &:disabled{
+                color: rgba(235, 235, 245, 0.25);
+            }
+        }
+
+        .model-stack-kwh{
+            background-color: #EBEBEB;
+            color: rgba(12, 12, 12, 0.65);
+
+            .model-stack-kwh-num{
+                color: #0C0C0C;
+            }
+        }
+
+        .model-stack-price{
+            color: #9E9E9E;
+
+            strong{
+                color: #EBEBEB;
+            }
+        }
+    }
+}
