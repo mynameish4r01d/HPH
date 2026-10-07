@@ -348,6 +348,7 @@ function setView(view) {
     document.body.dataset.view = view;
     navOverview.classList.toggle("active", view === "overview");
     navOverview.setAttribute("aria-current", String(view === "overview"));
+    markMenuTab();
     if (view === "overview" && role === "admin") {
         // Close any open entry and show the overview.
         selected = null;
@@ -388,7 +389,8 @@ function buildMenu() {
     // Names as tooltips, for the icon-only navigation on narrow screens.
     for (const tab of document.querySelectorAll(".admin-nav .admin-tab")) tab.title = tabLabel(tab.dataset.tab);
     navOverview.title = "Overview";
-    const tabs = MENU_TABS[role] || [];
+    // Admins: Overview first, its own page (body[data-view="overview"]).
+    const tabs = [...(role === "admin" ? [["overview", "Overview"]] : []), ...(MENU_TABS[role] || [])];
     // The phone menu's small heading names the workspace.
     menu.querySelector(".admin-menu-title").textContent = role === "encoder" ? "Team Workspace"
         : role === "installer" ? "Installer Checklists" : "Admin Overview";
@@ -401,7 +403,12 @@ function buildMenu() {
         button.append(el("span", "admin-menu-label", label), el("span", "admin-menu-count"), el("span", "admin-menu-dot"));
         button.addEventListener("click", () => {
             setMenu(false);
-            document.querySelector(`.admin-tab[data-tab="${key}"]`).click();
+            if (key === "overview") {
+                setView("overview");
+                window.scrollTo({ top: 0 });
+            } else {
+                document.querySelector(`.admin-tab[data-tab="${key}"]`).click();
+            }
         });
         return button;
     }));
@@ -409,8 +416,9 @@ function buildMenu() {
 }
 
 function markMenuTab() {
+    const onOverview = document.body.dataset.view === "overview";
     for (const button of menuTabs.children) {
-        const active = button.dataset.tab === activeTab;
+        const active = button.dataset.tab === "overview" ? onOverview : !onOverview && button.dataset.tab === activeTab;
         button.classList.toggle("active", active);
         button.setAttribute("aria-selected", String(active));
     }
@@ -3444,9 +3452,9 @@ function closeEntry() {
     detailPane.hidden = true;
     detailPane.querySelector(".admin-detail-body").replaceChildren();
     detailPane.querySelector(".admin-detail-title").replaceChildren();
-    // Desktop list view: "Select an entry" instead of the overview, or, on the
-    // Inventory tab, "Stock on hand".
-    overview.hidden = desktop.matches && document.body.dataset.view === "list";
+    // List view: no overview (desktop shows "Select an entry" instead, or, on
+    // the Inventory tab, "Stock on hand"; phones just the list).
+    overview.hidden = document.body.dataset.view === "list";
     markSelected();
     if (role === "admin" && desktop.matches && document.body.dataset.view === "list" && activeTab === "inventory") showInventoryHome();
 }
@@ -3494,9 +3502,8 @@ detailPane.querySelector(".admin-back").addEventListener("click", closeEntry);
 // Shrinking to the phone layout: back to entries opening in place.
 desktop.addEventListener("change", () => {
     if (!desktop.matches && selected) closeEntry();
-    // Phones always show admins the overview above the list.
     else if (role === "admin" && !selected && !formOpen) {
-        overview.hidden = desktop.matches && document.body.dataset.view === "list";
+        overview.hidden = document.body.dataset.view === "list";
     }
 });
 
@@ -5433,11 +5440,14 @@ function selectTab(name) {
     listTitle.textContent = tabLabel(name);
     // Desktop admins: the right-hand pane shows "Select an entry" until one is
     // opened (the overview has its own item in the navigation).
-    if (role === "admin" && desktop.matches) {
-        if (name === "inventory" && !selected && (!formOpen || inventoryHomeShown())) showInventoryHome();
-        else if (inventoryHomeShown()) closeEntry();
+    // Admins: each section is its own page, so the overview hides (phones too).
+    if (role === "admin") {
+        if (desktop.matches && name === "inventory" && !selected && (!formOpen || inventoryHomeShown())) showInventoryHome();
+        else if (desktop.matches && inventoryHomeShown()) closeEntry();
         else if (!selected && !formOpen) overview.hidden = true;
     }
+    // Phones: start the section at the top (also when an overview link opened it).
+    if (!desktop.matches) window.scrollTo({ top: 0 });
     document.querySelectorAll(".admin-tab").forEach((t) => {
         const active = t.dataset.tab === name;
         t.classList.toggle("active", active);
@@ -5469,11 +5479,7 @@ checklistActions.querySelector(".admin-start-checklist").addEventListener("click
 updateStatusFilter();
 
 document.querySelectorAll(".admin-tab").forEach((tab) => {
-    tab.addEventListener("click", () => {
-        selectTab(tab.dataset.tab);
-        // On phones (tabs are in the menu), start the new list at the top.
-        if (!desktop.matches) window.scrollTo({ top: 0 });
-    });
+    tab.addEventListener("click", () => selectTab(tab.dataset.tab));
 });
 
 search.addEventListener("input", renderList);

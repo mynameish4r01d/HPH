@@ -5090,11 +5090,13 @@ body[data-role="installer"]{
         font-size: 24px;
     }
 
+    /* "Signed in as" and the email, centred above the Sign out button. */
     .admin-menu-foot{
         margin-top: auto;
         padding-top: 56px;
         display: grid;
         gap: 6px;
+        text-align: center;
     }
 
     .admin-menu-email{
@@ -5150,6 +5152,14 @@ body[data-role="installer"]{
     }
 }
 
+
+/* Phones, admins: Overview is its own page (no list under it), picked from
+   the burger menu; each section's page shows just its list. */
+@media only screen and (max-width:750px){
+    body[data-view="overview"] .admin-sidebar{
+        display: none;
+    }
+}
 
 /* ===== Navigation column (desktop) =====
    Like a macOS app's sidebar (e.g. Apple Music): the logo, Overview (admins),
