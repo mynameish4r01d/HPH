@@ -456,8 +456,15 @@ async function loadSubmissions() {
         const tabs = role === "encoder" ? ["visits", "waitlist", "installs", "inventory", "wishlist"]
             : role === "installer" ? ["visits", "inventory"]
             : ["visits", "waitlist", "feedback", "installs", "nda", "inventory", "wishlist"];
+        // The wishlist loads on its own, so if its rules aren't published yet
+        // the rest of the page still works (its tab just stays empty).
         const [lists, checklists] = await Promise.all([
-            Promise.all(tabs.map((tab) => fetchCollection(TABS[tab].collection))),
+            Promise.all(tabs.map((tab) => tab === "wishlist"
+                ? fetchCollection(TABS[tab].collection).catch((err) => {
+                    console.warn("Admin: couldn't load the wishlist (publish the latest /firestore.rules)", err);
+                    return [];
+                })
+                : fetchCollection(TABS[tab].collection))),
             role === "encoder" ? [] : fetchCollection("jobChecklists"),
         ]);
         data = emptyData();
