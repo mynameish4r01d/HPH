@@ -94,6 +94,16 @@ The installer workspace, the team workspace (encoder) and admins have an **Inven
 - **Installer home:** on the Inventory tab the installer's pane is "Stock on hand" (`showInventoryHome()`; also admins' on desktop when no item is open, `inventoryHomeShown()`): item, running-low and out-of-stock tiles and the restock list. "Add item" is only in the sidebar, next to "Restock needed".
 - **Testing:** the rules were checked against the Firestore emulator (38 requests: create, read, Use / Add stock / Set count including stale counts, replays and missing records, edits, deletes; installer, admin, encoder, stranger).
 
+## Wishlist (HPH RENEWABLE admin, Firebase)
+
+Admins and the team workspace (encoder) have a **Wishlist** tab (Operations group; `TABS.wishlist` and the "wishlist" section of `admin/admin.js`). It's for things the team wants bought. The installer doesn't see it.
+- **Items:** `wishlist/{id}` holds `name`, `price` (pesos each, decimals allowed), `qty` (1–1000), `link` (blank or http(s)), `note`, `status` (`open`/`completed`), `completedAt/By`, `createdAt/By` and `updatedAt/By`. The total is price × qty and isn't stored.
+- **Adding and editing:** both roles add items with "Add to wishlist" (`showWishForm()`/`wishForm()`), which is the encoder's home on this tab. An open item can be edited by admins or whoever added it.
+- **Completing:** only admins see "Mark as complete" and "Reopen" (`setWishStatus()`).
+- **Deleting:** admins delete any item. The encoder can delete only open items it added.
+- **List:** open items come first (`byWishStatus()`). The stage dropdown filters All / Open / Completed, and the sidebar shows the open items' count and total (`renderWishTotal()`). Export CSV uses `CSV_COLUMNS.wishlist`, and the overview has an "Open wishlist items" tile.
+- **Rules:** `isValidWish`, `isWishEdit` and `isWishStatusChange` in `/firestore.rules`. A status change may only touch `status`, `completedAt/By` and `updatedAt/By`.
+
 ## Join the Waitlist form (HPH RENEWABLE, Firebase)
 
 The "Join The Waitlist" buttons (desktop and mobile) on the MSU4000 Elite, MAU5000 Elite, B4000 Elite and B5000 Elite product pages link to `HPH RENEWABLE/join-waitlist/?product=<name>` in the same tab. They used to link to a Google Form. The page is built like the Feedback page (shared `<main class="visit-page">`, same `visit-*` styles).

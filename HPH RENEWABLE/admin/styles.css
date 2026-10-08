@@ -2111,6 +2111,15 @@ body[data-role="encoder"]{
     color: var(--admin-subtle);
 }
 
+/* Wishlist: what the open items add up to, under "Add to wishlist". */
+.admin-wish-total{
+    flex-basis: 100%;
+    margin: 2px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--admin-subtle);
+}
+
 /* Delete: red outline. */
 .admin-action.admin-action-danger{
     border-color: color-mix(in srgb, var(--admin-error) 45%, transparent);

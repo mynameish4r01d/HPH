@@ -174,6 +174,13 @@
                             <span class="admin-tab-label">Inventory</span>
                             <span class="admin-tab-count" data-count="inventory"></span>
                         </button>
+                        <!-- Admins and the team account: things to buy, with prices. The team
+                             adds them; admins mark them complete (the "wishlist" section of admin.js). -->
+                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="wishlist">
+                            <span class="material-symbols-rounded admin-tab-icon">shopping_cart</span>
+                            <span class="admin-tab-label">Wishlist</span>
+                            <span class="admin-tab-count" data-count="wishlist"></span>
+                        </button>
                         </div>
                     </div>
                 </div>
@@ -302,6 +309,10 @@
                         <div class="admin-stat">
                             <span class="admin-stat-value" data-stat="nda">–</span>
                             <span class="admin-stat-label">NDA agreements</span>
+                        </div>
+                        <div class="admin-stat">
+                            <span class="admin-stat-value" data-stat="wishlist">–</span>
+                            <span class="admin-stat-label">Open wishlist items</span>
                         </div>
                     </div>
 
@@ -441,6 +452,16 @@
                     </button>
                 </div>
 
+                <!-- Wishlist tab: add an item (the form opens on the right), and what the
+                     open items add up to. -->
+                <div class="admin-install-actions admin-wishlist-actions" hidden>
+                    <button type="button" class="admin-action admin-action-primary admin-add-wish">
+                        <span class="material-symbols-rounded">add</span>
+                        Add to wishlist
+                    </button>
+                    <p class="admin-wish-total" role="status"></p>
+                </div>
+
                 <!-- Ocular Visits and Waitlist, admins and the team account: add one by
                      hand (e.g. from a phone call); the form opens on the right. -->
                 <div class="admin-install-actions admin-add-entry-actions" hidden>
@@ -480,6 +501,7 @@
                     <div class="admin-list" data-list="installation" hidden></div>
                     <div class="admin-list" data-list="nda" hidden></div>
                     <div class="admin-list" data-list="inventory" hidden></div>
+                    <div class="admin-list" data-list="wishlist" hidden></div>
                 </div>
             </aside>
         </section>

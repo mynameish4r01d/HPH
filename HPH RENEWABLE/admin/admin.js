@@ -109,7 +109,7 @@ const openSolarStatus = document.querySelector(".admin-opensolar-status");
 // in styles.css. Phones open entries in place instead.
 const desktop = window.matchMedia("(min-width: 751px)");
 
-const emptyData = () => ({ visits: [], waitlist: [], feedback: [], installs: [], nda: [], inspection: [], installation: [], inventory: [] });
+const emptyData = () => ({ visits: [], waitlist: [], feedback: [], installs: [], nda: [], inspection: [], installation: [], inventory: [], wishlist: [] });
 let data = emptyData();
 // "admin" (everything) or "encoder" (installations only); null signed out.
 let role = null;
@@ -313,9 +313,9 @@ const menuTabs = menu.querySelector(".admin-menu-tabs");
 const burger = account.querySelector(".admin-burger");
 const MENU_TABS = {
     installer: [["inspection", "Site Visit"], ["installation", "Installation"], ["inventory", "Inventory"]],
-    encoder: [["visits", "Ocular Visits"], ["waitlist", "Waitlist"], ["installs", "Installs"], ["inventory", "Inventory"]],
+    encoder: [["visits", "Ocular Visits"], ["waitlist", "Waitlist"], ["installs", "Installs"], ["inventory", "Inventory"], ["wishlist", "Wishlist"]],
     admin: [["visits", "Ocular Visits"], ["waitlist", "Waitlist"], ["feedback", "Feedback"], ["installs", "Installs"],
-            ["inspection", "Inspection"], ["installation", "Commissioning"], ["inventory", "Inventory"], ["nda", "NDA"]],
+            ["inspection", "Inspection"], ["installation", "Commissioning"], ["inventory", "Inventory"], ["wishlist", "Wishlist"], ["nda", "NDA"]],
 };
 
 function setMenu(open) {
@@ -453,9 +453,9 @@ async function loadSubmissions() {
         // The encoder can't read feedback or NDA responses; the installer only
         // needs the visit requests (to pick a client), the checklists and the
         // inventory.
-        const tabs = role === "encoder" ? ["visits", "waitlist", "installs", "inventory"]
+        const tabs = role === "encoder" ? ["visits", "waitlist", "installs", "inventory", "wishlist"]
             : role === "installer" ? ["visits", "inventory"]
-            : ["visits", "waitlist", "feedback", "installs", "nda", "inventory"];
+            : ["visits", "waitlist", "feedback", "installs", "nda", "inventory", "wishlist"];
         const [lists, checklists] = await Promise.all([
             Promise.all(tabs.map((tab) => fetchCollection(TABS[tab].collection))),
             role === "encoder" ? [] : fetchCollection("jobChecklists"),
@@ -466,6 +466,7 @@ async function loadSubmissions() {
         for (const type of CHECKLIST_TYPES) data[type] = checklists.filter((c) => c.type === type);
         data.installs.sort(byInstallDate);
         data.inventory.sort(byStock);
+        data.wishlist.sort(byWishStatus);
         renderStats();
         renderList();
         fillMissingCapacities();
@@ -477,6 +478,7 @@ async function loadSubmissions() {
         // Inventory tab, the stock summary); refresh it, unless the add-item
         // form is open.
         else if ((role === "admin" || role === "encoder") && inventoryHomeShown()) showInventoryHome();
+        else if (role === "encoder" && activeTab === "wishlist" && !formOpen) showWishForm(null);
         else if (role === "installer" && formOpen && !selected && !checklistStartBusy && !itemFormOpen) {
             if (activeTab === "inventory") showInventoryHome();
             else showChecklistStart(activeTab);
@@ -587,6 +589,12 @@ const TABS = {
         collection: "inventory",
         label: "Inventory item",
         render: (entry) => renderInventoryItem(entry),
+    },
+    // Things to buy (admins and the team account). See the "wishlist" section below.
+    wishlist: {
+        collection: "wishlist",
+        label: "Wishlist item",
+        render: (entry) => renderWish(entry),
     },
 };
 
@@ -1024,6 +1032,7 @@ function renderStats() {
     set("waitlist", data.waitlist.length);
     set("feedback", data.feedback.length);
     set("nda", data.nda.filter((n) => n.response === "agree").length);
+    set("wishlist", data.wishlist.filter((w) => wishStatus(w) === "open").length);
     const rating = document.querySelector('[data-stat="rating"]');
     rating.textContent = ratings.length ? `${average} ` : "–";
     if (ratings.length) rating.append(el("span", "admin-star-filled", "★"));
@@ -1039,6 +1048,7 @@ function renderStats() {
     renderLowFilter();
     renderCategoryFilter();
     renderInventoryOverview();
+    renderWishTotal();
     renderAttention();
     updateFoldSums();
 }
@@ -1073,12 +1083,13 @@ function fromWebsite(entry) {
 
 function filteredEntries() {
     const term = search.value.trim().toLowerCase();
-    const wanted = TABS[activeTab].pipeline ? statusFilter.value : "all";
+    const wanted = TABS[activeTab].pipeline || activeTab === "wishlist" ? statusFilter.value : "all";
     const product = activeTab === "waitlist" ? activeProduct : "all";
     const source = activeTab === "visits" ? sourceFilter.value : "all";
     const entries = data[activeTab].filter((entry) => matches(entry, term)
         && (wanted === "all"
-            || (wanted === "stale" ? isStale(activeTab, entry)
+            || (activeTab === "wishlist" ? wishStatus(entry) === wanted
+                : wanted === "stale" ? isStale(activeTab, entry)
                 : wanted === "open" ? !isClosed(activeTab, entry)
                 : stageOf(activeTab, entry) === wanted))
         && (product === "all" || waitlistProducts(entry).includes(product))
@@ -1099,6 +1110,7 @@ function renderList() {
     if (!entries.length) {
         const none = activeTab === "installs" ? "No installations yet."
             : activeTab === "inventory" ? "No items yet. Add the first one with “Add item”."
+            : activeTab === "wishlist" ? "Nothing on the wishlist yet. Add the first one with “Add to wishlist”."
             : "Nothing submitted yet.";
         list.replaceChildren(el("p", "admin-empty", filtered ? "No matches." : none));
         return;
@@ -1511,6 +1523,20 @@ const CHECKLIST_CSV = [
 ];
 
 const CSV_COLUMNS = {
+    wishlist: [
+        ["Added", (w) => csvDate(toDate(w.createdAt))],
+        ["Item", (w) => w.name],
+        ["Price (PHP)", (w) => wishPrice(w)],
+        ["Quantity", (w) => wishQty(w)],
+        ["Total (PHP)", (w) => wishTotal(w)],
+        ["Link", (w) => w.link],
+        ["Note", (w) => w.note],
+        ["Status", (w) => (wishStatus(w) === "completed" ? "Completed" : "Open")],
+        ["Added by", (w) => w.createdBy],
+        ["Completed", (w) => csvDate(toDate(w.completedAt))],
+        ["Completed by", (w) => w.completedBy],
+        ["Item ID", (w) => w.id],
+    ],
     inspection: CHECKLIST_CSV,
     installation: CHECKLIST_CSV,
     inventory: [
@@ -3619,6 +3645,7 @@ function closeEntry() {
     // "Stock on hand" on the Inventory tab.
     if (role === "encoder") {
         if (activeTab === "inventory") showInventoryHome();
+        else if (activeTab === "wishlist") showWishForm(null);
         else showInstallForm(null);
         return;
     }
@@ -3649,9 +3676,11 @@ function setBackButton({ hidden = false } = {}) {
     back.hidden = hidden;
     // On the Inventory tab the installer's and encoder's home is "Stock on hand".
     const inventoryHome = (role === "installer" || role === "encoder") && activeTab === "inventory";
+    // The encoder's home on the Wishlist tab is the "Add to wishlist" form.
+    const wishHome = role === "encoder" && activeTab === "wishlist";
     back.replaceChildren(
         el("span", "material-symbols-rounded", inventoryHome ? "inventory_2" : role === "encoder" ? "add" : role === "installer" ? "add_task" : "close"),
-        inventoryHome ? "Stock on hand" : role === "encoder" ? "New installation" : role === "installer" ? "New checklist" : "Close",
+        inventoryHome ? "Stock on hand" : wishHome ? "Add to wishlist" : role === "encoder" ? "New installation" : role === "installer" ? "New checklist" : "Close",
     );
 }
 
@@ -5649,6 +5678,292 @@ lowFilterButton.addEventListener("click", () => {
 inventoryActions.querySelector(".admin-add-item").addEventListener("click", () => showItemForm(null));
 
 
+// --------------------------------------------------------------- wishlist
+//
+// Things the team wants bought (tools, supplies, equipment), with a price.
+// The team account (encoder) and admins add items; admins mark them complete
+// (or reopen them). Firestore: wishlist/{id} with name, price (pesos), qty,
+// link, note, status ("open" / "completed"), completedAt/By and
+// createdAt/By, updatedAt/By. Security rules: isValidWish() in
+// /firestore.rules. Only admins change the status; an open item can be edited
+// by admins or whoever added it, and deleted by admins (or its adder while
+// it's still open).
+
+const WISH_MAX_PRICE = 10000000;
+const WISH_MAX_QTY = 1000;
+
+const wishlistActions = document.querySelector(".admin-wishlist-actions");
+
+const wishStatus = (w) => (w.status === "completed" ? "completed" : "open");
+const wishPrice = (w) => (Number.isFinite(w.price) ? w.price : 0);
+const wishQty = (w) => (Number.isInteger(w.qty) && w.qty > 0 ? w.qty : 1);
+const wishTotal = (w) => Math.round(wishPrice(w) * wishQty(w) * 100) / 100;
+const peso = (n) => `₱${n.toLocaleString("en-PH", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
+const canEditWish = (w) => wishStatus(w) === "open" && (role === "admin" || (w.createdBy || "").toLowerCase() === currentEmail);
+const canDeleteWish = (w) => role === "admin" || (wishStatus(w) === "open" && (w.createdBy || "").toLowerCase() === currentEmail);
+
+// Open items first, then newest first (the list arrives newest first).
+function byWishStatus(a, b) {
+    return (wishStatus(a) === "completed") - (wishStatus(b) === "completed");
+}
+
+// True while the encoder's "Add to wishlist" form (its home on this tab) is shown.
+const wishHomeShown = () => !detailPane.hidden && !selected && Boolean(detailPane.querySelector(".admin-detail-body > .admin-wish-form"));
+
+function wishErrorMessage(err) {
+    if (err && err.userMessage) return err.userMessage;
+    return err && err.code === "permission-denied"
+        ? "Permission denied. Publish the latest /firestore.rules in the Firebase console."
+        : "Couldn't save. Check your connection and try again.";
+}
+
+// The sidebar line under "Add to wishlist": what the open items add up to.
+function renderWishTotal() {
+    const open = data.wishlist.filter((w) => wishStatus(w) === "open");
+    const total = open.reduce((sum, w) => sum + wishTotal(w), 0);
+    wishlistActions.querySelector(".admin-wish-total").textContent = open.length
+        ? `${plural(open.length, ["open item", "open items"])} · ${peso(Math.round(total * 100) / 100)} in all`
+        : "Nothing open on the wishlist.";
+}
+
+function renderWish(w) {
+    const done = wishStatus(w) === "completed";
+    const qty = wishQty(w);
+    const priceText = qty > 1 ? `${qty} × ${peso(wishPrice(w))} = ${peso(wishTotal(w))}` : peso(wishPrice(w));
+    const badge = el("span", `admin-badge ${done ? "admin-badge-active" : "admin-badge-stage"}`, done ? "Completed" : "Open");
+    const meta = [priceText, w.createdBy && `Added by ${w.createdBy}`].filter(Boolean).join(" · ");
+    const details = entryShell(w.name, meta, toDate(w.createdAt), { badge, dim: done });
+
+    const actions = el("div", "admin-actions admin-install-entry-actions");
+    const error = el("span", "admin-action-error");
+    actions.append(error);
+    if (canDeleteWish(w)) {
+        const remove = el("button", "admin-action admin-action-danger");
+        remove.type = "button";
+        remove.append(el("span", "material-symbols-rounded", "delete"), "Delete");
+        remove.addEventListener("click", async () => {
+            if (!confirm(`Delete ${w.name} from the wishlist? This can't be undone.`)) return;
+            remove.disabled = true;
+            error.textContent = "";
+            try {
+                await firestore.deleteDoc(firestore.doc(db, "wishlist", w.id));
+                selected = null;
+                await loadSubmissions();
+                closeEntry();
+            } catch (err) {
+                console.error("Admin: deleting wishlist item failed", err);
+                error.textContent = wishErrorMessage(err);
+                remove.disabled = false;
+            }
+        });
+        actions.append(remove);
+    }
+    if (canEditWish(w)) {
+        const edit = el("button", "admin-action");
+        edit.type = "button";
+        edit.append(el("span", "material-symbols-rounded", "edit"), "Edit item");
+        edit.addEventListener("click", () => showWishForm(w));
+        actions.append(edit);
+    }
+    // Admins: Mark as complete, or Reopen a completed one.
+    if (role === "admin") {
+        const toggle = el("button", done ? "admin-action" : "admin-action admin-action-primary");
+        toggle.type = "button";
+        toggle.append(el("span", "material-symbols-rounded", done ? "undo" : "check_circle"), done ? "Reopen" : "Mark as complete");
+        toggle.addEventListener("click", async () => {
+            actions.querySelectorAll("button").forEach((b) => { b.disabled = true; });
+            error.textContent = "";
+            try {
+                await setWishStatus(w, done ? "open" : "completed");
+                // Desktop: the pane re-shows it. Phones: it stays open in the list.
+                if (desktop.matches) selected = { tab: "wishlist", id: w.id };
+                await loadSubmissions();
+                if (!desktop.matches) {
+                    const node = document.querySelector(`[data-list="wishlist"] [data-id="${CSS.escape(w.id)}"]`);
+                    if (node) node.open = true;
+                }
+            } catch (err) {
+                console.error("Admin: wishlist status change failed", err);
+                error.textContent = wishErrorMessage(err);
+                actions.querySelectorAll("button").forEach((b) => { b.disabled = false; });
+            }
+        });
+        actions.append(toggle);
+    }
+
+    const list = el("dl", "admin-details");
+    list.append(
+        detailRow("Price", peso(wishPrice(w))),
+        detailRow("Quantity", String(qty)),
+        detailRow("Total", peso(wishTotal(w))),
+        detailRow("Status", done ? "Completed" : "Open"),
+        detailRow("Link", w.link, { href: w.link, wide: true }),
+        detailRow("Note", w.note, { wide: true }),
+        detailRow("Added", `${formatDate(toDate(w.createdAt))}${w.createdBy ? ` by ${w.createdBy}` : ""}`, { wide: true }),
+    );
+    const link = list.querySelector("a[href^='http']");
+    if (link) {
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+    }
+    if (w.updatedAt && w.updatedBy && String(toDate(w.updatedAt)) !== String(toDate(w.createdAt))) {
+        list.append(detailRow("Last updated", `${formatDate(toDate(w.updatedAt))} by ${w.updatedBy}`, { wide: true }));
+    }
+    if (done) list.append(detailRow("Completed", `${formatDate(toDate(w.completedAt))}${w.completedBy ? ` by ${w.completedBy}` : ""}`, { wide: true }));
+    details.append(actions, ticket("wishlist", w, list));
+    return details;
+}
+
+// Only status, completedAt/By and updatedAt/By change (see the rules).
+async function setWishStatus(w, status) {
+    const completed = status === "completed";
+    await firestore.updateDoc(firestore.doc(db, "wishlist", w.id), {
+        status,
+        completedAt: completed ? firestore.serverTimestamp() : null,
+        completedBy: completed ? currentEmail : "",
+        updatedAt: firestore.serverTimestamp(),
+        updatedBy: currentEmail,
+    });
+}
+
+// The add / edit form, in the detail pane (top of the page on phones).
+function showWishForm(w) {
+    formOpen = true;
+    itemFormOpen = false;
+    selected = w ? { tab: "wishlist", id: w.id } : null;
+    // The encoder's new-item form is its home on this tab: no back button.
+    setBackButton({ hidden: !w && role === "encoder" });
+    detailPane.querySelector(".admin-detail-kind").textContent = w ? "Edit wishlist item" : "New wishlist item";
+    const main = el("div", "admin-entry-main");
+    main.append(
+        el("span", "admin-entry-title", w ? w.name : "Add to the wishlist"),
+        el("span", "admin-entry-meta", w
+            ? "Change the details, then save."
+            : "Something the team needs bought: what it is, its price, and where to get it. An admin marks it complete once it's bought."),
+    );
+    detailPane.querySelector(".admin-detail-title").replaceChildren(main);
+    detailPane.querySelector(".admin-detail-body").replaceChildren(wishForm(w));
+    overview.hidden = true;
+    detailPane.hidden = false;
+    mainArea.scrollTop = 0;
+    if (!desktop.matches && w) detailPane.scrollIntoView({ block: "start" });
+    markSelected();
+}
+
+function wishForm(w) {
+    const form = el("form", "admin-install-form admin-wish-form");
+    form.noValidate = true;
+    const grid = el("div", "admin-install-grid");
+    const field = (label, input, { wide, hint } = {}) => {
+        const wrap = el("label", wide ? "admin-field admin-install-wide" : "admin-field");
+        wrap.append(el("span", "admin-label", label), input);
+        if (hint) wrap.append(el("span", "admin-serial-summary", hint));
+        grid.append(wrap);
+        return input;
+    };
+    const input = (type, value, attrs = {}) => {
+        const node = el("input");
+        node.type = type;
+        node.value = value;
+        Object.assign(node, attrs);
+        return node;
+    };
+
+    const name = field("Item *", input("text", w ? w.name : "", { maxLength: 100, placeholder: "e.g. Crimping tool for MC4" }), { wide: true });
+    const price = field("Price each (₱) *", input("number", w ? String(wishPrice(w)) : "", { min: 0, max: WISH_MAX_PRICE, step: 0.01, inputMode: "decimal", placeholder: "e.g. 1500" }));
+    const qty = field("Quantity *", input("number", w ? String(wishQty(w)) : "1", { min: 1, max: WISH_MAX_QTY, step: 1, inputMode: "numeric" }));
+    const totalLine = el("p", "admin-serial-summary admin-install-wide");
+    grid.append(totalLine);
+    const link = field("Link (where to buy)", input("url", w ? w.link || "" : "", { maxLength: 500, placeholder: "https://…" }), { wide: true });
+    const note = field("Note", el("textarea"), { wide: true });
+    note.rows = 3;
+    note.maxLength = 1000;
+    note.value = w ? w.note || "" : "";
+    note.placeholder = "What it's for, which supplier, size or model… (optional)";
+
+    const parsePrice = () => {
+        const text = price.value.trim();
+        const n = Number(text);
+        return text && Number.isFinite(n) && n >= 0 && n <= WISH_MAX_PRICE ? Math.round(n * 100) / 100 : NaN;
+    };
+    const parseQty = () => {
+        const n = Number(qty.value.trim());
+        return Number.isInteger(n) && n >= 1 && n <= WISH_MAX_QTY ? n : NaN;
+    };
+    const showTotal = () => {
+        const p = parsePrice();
+        const q = parseQty();
+        totalLine.textContent = Number.isNaN(p) || Number.isNaN(q) ? "" : `Total: ${peso(Math.round(p * q * 100) / 100)}`;
+    };
+    price.addEventListener("input", showTotal);
+    qty.addEventListener("input", showTotal);
+    showTotal();
+
+    const actions = el("div", "admin-install-form-actions admin-inv-form-actions");
+    const error = el("p", "admin-error admin-install-error");
+    error.setAttribute("role", "alert");
+    const submit = el("button", "admin-action admin-action-primary");
+    submit.type = "submit";
+    submit.append(el("span", "material-symbols-rounded", "save"), w ? "Save changes" : "Add to wishlist");
+    const cancel = el("button", "admin-action");
+    cancel.type = "button";
+    cancel.textContent = w ? "Cancel" : "Clear";
+    cancel.addEventListener("click", () => {
+        if (w) showEntry("wishlist", w.id);
+        else if (role === "encoder") showWishForm(null);
+        else closeEntry();
+    });
+    actions.append(error, submit, cancel);
+    form.append(grid, actions);
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        error.textContent = "";
+        const values = {
+            name: name.value.trim(),
+            price: parsePrice(),
+            qty: parseQty(),
+            link: link.value.trim(),
+            note: note.value.trim(),
+        };
+        if (!values.name) { error.textContent = "Enter what the item is."; name.focus(); return; }
+        if (Number.isNaN(values.price)) { error.textContent = "Enter the price in pesos (0 or more)."; price.focus(); return; }
+        if (Number.isNaN(values.qty)) { error.textContent = `The quantity must be a whole number from 1 to ${WISH_MAX_QTY}.`; qty.focus(); return; }
+        if (values.link && !/^https?:\/\/\S+$/i.test(values.link)) { error.textContent = "The link must start with https:// (or leave it blank)."; link.focus(); return; }
+        submit.disabled = true;
+        cancel.disabled = true;
+        try {
+            const ref = w ? firestore.doc(db, "wishlist", w.id) : firestore.doc(firestore.collection(db, "wishlist"));
+            if (w) {
+                await firestore.updateDoc(ref, { ...values, updatedAt: firestore.serverTimestamp(), updatedBy: currentEmail });
+            } else {
+                await firestore.setDoc(ref, {
+                    ...values,
+                    status: "open",
+                    completedAt: null,
+                    completedBy: "",
+                    createdAt: firestore.serverTimestamp(),
+                    createdBy: currentEmail,
+                    updatedAt: firestore.serverTimestamp(),
+                    updatedBy: currentEmail,
+                });
+            }
+            formOpen = false;
+            selected = { tab: "wishlist", id: ref.id };
+            await loadSubmissions();
+        } catch (err) {
+            console.error("Admin: saving wishlist item failed", err);
+            error.textContent = wishErrorMessage(err);
+            submit.disabled = false;
+            cancel.disabled = false;
+        }
+    });
+    return form;
+}
+
+wishlistActions.querySelector(".admin-add-wish").addEventListener("click", () => showWishForm(null));
+
+
 setupCollapsibles();
 
 
@@ -5658,14 +5973,21 @@ setupCollapsibles();
 // without a pipeline). Keeps the choice when the new tab has it.
 function updateStatusFilter() {
     const pipeline = TABS[activeTab].pipeline;
-    statusFilter.hidden = !pipeline;
-    if (!pipeline) return;
+    const wishlist = activeTab === "wishlist";
+    statusFilter.hidden = !pipeline && !wishlist;
+    if (!pipeline && !wishlist) return;
     const previous = statusFilter.value;
     const option = (value, label) => {
         const node = el("option", "", label);
         node.value = value;
         return node;
     };
+    // The wishlist: open or completed.
+    if (wishlist) {
+        statusFilter.replaceChildren(option("all", "All items"), option("open", "Open"), option("completed", "Completed"));
+        statusFilter.value = [...statusFilter.options].some((o) => o.value === previous) ? previous : "all";
+        return;
+    }
     statusFilter.replaceChildren(
         option("all", pipeline.all),
         option("open", "Open (not closed)"),
@@ -5691,7 +6013,8 @@ function selectTab(name) {
     // to its home, the "Add installation" form.
     if (role === "encoder") {
         if (name === "inventory" && (!selected || inventoryHomeShown())) showInventoryHome();
-        else if (inventoryHomeShown()) closeEntry();
+        else if (name === "wishlist" && (!selected || inventoryHomeShown())) showWishForm(null);
+        else if (inventoryHomeShown() || (name !== "wishlist" && wishHomeShown())) closeEntry();
     }
     // Phones: start the section at the top (also when an overview link opened it).
     if (!desktop.matches) window.scrollTo({ top: 0 });
@@ -5713,6 +6036,7 @@ function selectTab(name) {
     addEntryActions.hidden = !["visits", "waitlist"].includes(name) || !(role === "admin" || role === "encoder");
     addEntryActions.querySelector(".admin-add-entry-text").textContent = name === "waitlist" ? "Add sign-up" : "Add visit request";
     inventoryActions.hidden = name !== "inventory";
+    wishlistActions.hidden = name !== "wishlist";
     updateStatusFilter();
     renderList();
     // The installer's right-hand pane follows the tab: the picker for it, or

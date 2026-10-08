@@ -95,6 +95,33 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // Wishlist (HPH RENEWABLE/admin/, Wishlist tab): things the team wants
+    // bought, with a price. Admins and the encoder (team account) read and add
+    // items. An open item can be edited by admins or whoever added it. Only
+    // admins mark an item complete or reopen it, which changes just status,
+    // completedAt/By and updatedAt/By. Admins delete any item; the encoder only
+    // open items it added.
+    match /wishlist/{wishId} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && isValidWish(request.resource.data)
+        && request.resource.data.status == 'open'
+        && request.resource.data.completedAt == null
+        && request.resource.data.completedBy == ''
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.createdBy == request.auth.token.email
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.token.email;
+      allow update: if isStaff()
+        && isValidWish(request.resource.data)
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.token.email
+        && (isWishEdit() || (isAdmin() && isWishStatusChange()));
+      allow delete: if isAdmin()
+        || (isEncoder() && resource.data.status == 'open'
+            && resource.data.createdBy == request.auth.token.email);
+    }
+
     // Confidentiality Agreement (NDA) responses from
     // HPH RENEWABLE/legal-policies/confidentiality-agreement/ (nda-form.js).
     // Anyone may submit a response; only admins can read or delete them, and
@@ -267,6 +294,47 @@ service cloud.firestore {
     // warning), note, up to 6 photo paths (inventory/<id>/ in Storage) and the
     // history record of its latest count change. Limits match admin.js
     // (INV_MAX_QTY, INV_MAX_PHOTOS).
+    // A wishlist item (see /wishlist above). price is in pesos (decimals
+    // allowed), qty a whole number, link blank or an http(s) address.
+    function isValidWish(data) {
+      let fields = ['name', 'price', 'qty', 'link', 'note', 'status', 'completedAt', 'completedBy',
+                    'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && isText(data.name, 1, 100)
+        && data.price is number && data.price >= 0 && data.price <= 10000000
+        && data.qty is int && data.qty >= 1 && data.qty <= 1000
+        && isText(data.link, 0, 500)
+        && (data.link == '' || data.link.matches('https?://[^\\s]+'))
+        && isText(data.note, 0, 1000)
+        && data.status in ['open', 'completed']
+        && (data.completedAt == null || data.completedAt is timestamp)
+        && isText(data.completedBy, 0, 200)
+        && isText(data.createdBy, 0, 200)
+        && isText(data.updatedBy, 0, 200);
+    }
+
+    // Editing an open item's details (admins, or whoever added it).
+    function isWishEdit() {
+      return resource.data.status == 'open'
+        && (isAdmin() || resource.data.createdBy == request.auth.token.email)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['name', 'price', 'qty', 'link', 'note', 'updatedAt', 'updatedBy']);
+    }
+
+    // Marking an item complete, or reopening it (admins).
+    function isWishStatusChange() {
+      let data = request.resource.data;
+      return data.diff(resource.data).affectedKeys()
+               .hasOnly(['status', 'completedAt', 'completedBy', 'updatedAt', 'updatedBy'])
+        && ((data.status == 'completed'
+             && data.completedAt == request.time
+             && data.completedBy == request.auth.token.email)
+            || (data.status == 'open'
+                && data.completedAt == null
+                && data.completedBy == ''));
+    }
+
     function isValidInventoryItem(data) {
       let fields = ['name', 'category', 'unit', 'qty', 'lowAt', 'note', 'photos', 'lastLogId',
                     'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
