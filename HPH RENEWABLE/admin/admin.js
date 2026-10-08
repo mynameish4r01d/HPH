@@ -3073,7 +3073,7 @@ const TYPE_BY_EXTENSION = {
 const EDIT_FIELDS = {
     visits: [
         { name: "name", label: "Name", required: true, max: 100 },
-        { name: "phone", label: "Phone", type: "tel", required: true, min: 7, max: 30 },
+        { name: "phone", label: "Phone", type: "tel", min: 7, max: 30 },
         { name: "email", label: "Email", type: "email", max: 200 },
         { name: "propertyType", label: "Property type", required: true, options: ["Residential", "Commercial", "Industrial"] },
         { name: "address", label: "Address", required: true, min: 3, max: 300, wide: true },

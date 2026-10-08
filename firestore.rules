@@ -365,7 +365,7 @@ service cloud.firestore {
                          'monthlyBill', 'preferredDate', 'preferredTime', 'referralCode',
                          'message', 'attachments', 'editedAt', 'editedBy'])
         && isText(data.name, 1, 100)
-        && isText(data.phone, 7, 30)
+        && (data.phone == '' || isText(data.phone, 7, 30))
         && isText(data.email, 0, 200)
         && isText(data.address, 3, 300)
         && data.propertyType in ['Residential', 'Commercial', 'Industrial']
@@ -540,7 +540,7 @@ service cloud.firestore {
         && data.keys().hasAll(fields)
         && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
         && isText(data.name, 1, 100)
-        && isText(data.phone, 7, 30)
+        && (data.phone == '' || isText(data.phone, 7, 30))
         && isText(data.email, 0, 200)
         && isText(data.address, 3, 300)
         && data.propertyType in ['Residential', 'Commercial', 'Industrial']
@@ -571,7 +571,7 @@ service cloud.firestore {
         && data.keys().hasAll(fields)
         && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
         && isText(data.name, 1, 100)
-        && isText(data.phone, 7, 30)
+        && (data.phone == '' || isText(data.phone, 7, 30))
         && isText(data.email, 0, 200)
         && isText(data.address, 3, 300)
         && data.propertyType in ['Residential', 'Commercial', 'Industrial']
