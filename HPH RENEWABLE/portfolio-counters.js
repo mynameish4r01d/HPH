@@ -264,17 +264,20 @@
     }
 
     // Totals from the public `installCounts` collection; null while it's
-    // empty (not imported yet), so the sheet is used instead.
+    // empty (not imported yet), so the sheet is used instead. One sum per
+    // query: summing two fields in one query needs a composite index, and
+    // without it Firestore refuses the query and the sheet was used instead.
     async function firebaseCounts() {
         const firebase = await loadFirebase();
         if (!firebase) return null;
         const { fs, db } = firebase;
-        const totals = await fs.getAggregateFromServer(fs.collection(db, "installCounts"), {
-            inverters: fs.sum("inverters"),
-            panels: fs.sum("panels"),
-            installs: fs.count(),
-        });
-        const { inverters, panels, installs } = totals.data();
+        const counts = fs.collection(db, "installCounts");
+        const [inv, pan] = await Promise.all([
+            fs.getAggregateFromServer(counts, { total: fs.sum("inverters"), installs: fs.count() }),
+            fs.getAggregateFromServer(counts, { total: fs.sum("panels") }),
+        ]);
+        const { total: inverters, installs } = inv.data();
+        const { total: panels } = pan.data();
         return installs > 0 ? { inverters: inverters || 0, panels: panels || 0 } : null;
     }
 
