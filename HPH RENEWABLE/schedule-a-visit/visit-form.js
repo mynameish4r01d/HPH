@@ -9,6 +9,8 @@
 // only downloaded when someone submits.
 
 import { firebaseConfig } from "../firebase-config.js";
+import { tidyName, tidyAddress, tidyOnBlur } from "../text-format.js";
+import { findReferrer } from "../referral-codes.js";
 
 const FIREBASE_VERSION = "12.3.0";
 const COLLECTION = "visitRequests";
@@ -52,18 +54,54 @@ let chosenFiles = [];
 let sourceKeys = [];
 const sourceKey = (f) => `${f.name}|${f.size}|${f.lastModified}`;
 
-// Dates from today onward (local time).
-const today = new Date();
-form.querySelector('[name="preferredDate"]').min =
-    new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-
 const product = new URLSearchParams(window.location.search).get("product");
 const interest = INTEREST_BY_PRODUCT[product];
 if (interest) form.querySelector(`[name="interest"][value="${interest}"]`).checked = true;
 
-// Referral links can carry ?ref=<code>; pre-fill it.
+// Names (and addresses) typed in ALL CAPS or all lowercase are tidied when
+// the visitor leaves the field, e.g. "harold t. hermosa" → "Harold T. Hermosa".
+tidyOnBlur(form.querySelector('[name="name"]'), tidyName);
+tidyOnBlur(form.querySelector('[name="address"]'), tidyAddress);
+
+// Referral code (optional): if one is typed it must be a sales team code
+// (../referral-codes.js). A valid one shows whose it is. Referral links can
+// carry ?ref=<code>; pre-fill and check it.
+const referralInput = form.querySelector('[name="referralCode"]');
+
+function checkReferral() {
+    const field = referralInput.closest(".visit-field");
+    const hint = field.querySelector(".visit-hint");
+    const text = referralInput.value.trim();
+    const person = text ? findReferrer(text) : null;
+    hint.classList.toggle("visit-hint-ok", Boolean(person));
+    if (!text) return setFieldError(field, "");
+    if (person) {
+        field.classList.remove("visit-invalid");
+        hint.textContent = `✓ Referred by ${person.name}`;
+        return true;
+    }
+    return setFieldError(field, "That referral code doesn't exist. Please check it, or leave it blank.");
+}
+
 const referral = new URLSearchParams(window.location.search).get("ref");
-if (referral) form.querySelector('[name="referralCode"]').value = referral.trim().slice(0, 50);
+if (referral) {
+    referralInput.value = referral.trim().slice(0, 50);
+    checkReferral();
+}
+// Show the name as soon as a valid code is typed; say it's wrong once the
+// visitor leaves the field (not on every keystroke).
+referralInput.addEventListener("input", () => {
+    const field = referralInput.closest(".visit-field");
+    if (findReferrer(referralInput.value) || !referralInput.value.trim() || field.classList.contains("visit-invalid")) {
+        checkReferral();
+    } else {
+        // Mid-typing: drop an earlier "✓ Referred by …" without an error yet.
+        const hint = field.querySelector(".visit-hint");
+        hint.textContent = "";
+        hint.classList.remove("visit-hint-ok");
+    }
+});
+referralInput.addEventListener("blur", checkReferral);
 
 
 // -------------------------------------------------------------- validation
@@ -128,6 +166,7 @@ function validateField(input) {
     if (!field) return input.checkValidity();
 
     if (input === fileInput) return setFieldError(field, fileProblem(chosenFiles));
+    if (input === referralInput) return checkReferral();
 
     let message = "";
     if (input.validity.valueMissing) {
@@ -330,21 +369,25 @@ form.addEventListener("submit", async (e) => {
             }
 
             await firestore.setDoc(requestRef, {
-                name: value("name"),
+                name: tidyName(value("name")),
                 phone: value("phone"),
                 email: value("email"),
-                address: value("address"),
+                address: tidyAddress(value("address")),
                 propertyType: value("propertyType"),
                 // Saved in the `product` field (see /firestore.rules):
                 // "Micro Inverter", "Battery", "Micro Inverter + Battery",
                 // or "Not sure yet" when neither is ticked.
                 product: data.getAll("interest").join(" + ") || "Not sure yet",
                 monthlyBill: value("monthlyBill"),
-                preferredDate: value("preferredDate"),
+                // No date field any more: HPH arranges the visit date with the
+                // client. Kept blank so /firestore.rules stays unchanged.
+                preferredDate: "",
                 preferredTime: value("preferredTime"),
                 message: value("message"),
                 // Upper-cased so "juan01" and "JUAN01" group together in the admin page.
-                referralCode: value("referralCode").toUpperCase().slice(0, 50),
+                // The official spelling (e.g. "hph mpm01" → "HPH-MPM01"); the
+                // form only submits blank or a valid code.
+                referralCode: value("referralCode") ? findReferrer(value("referralCode")).code : "",
                 attachments,
                 consent: true,
                 sourcePage: decodeURIComponent(window.location.pathname).slice(0, 300),

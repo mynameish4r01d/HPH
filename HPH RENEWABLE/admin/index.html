@@ -183,6 +183,18 @@
                         </button>
                         </div>
                     </div>
+
+                    <!-- Admins only: who can use this page, and with which role. -->
+                    <div class="admin-nav-group" data-group="settings">
+                        <div class="admin-nav-heading">Settings</div>
+                        <div class="admin-tabs" role="tablist" aria-label="Settings">
+                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="accounts">
+                            <span class="material-symbols-rounded admin-tab-icon">manage_accounts</span>
+                            <span class="admin-tab-label">Accounts</span>
+                            <span class="admin-tab-count" data-count="accounts"></span>
+                        </button>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="admin-nav-account">
@@ -314,6 +326,11 @@
                             <span class="admin-stat-value" data-stat="wishlist">–</span>
                             <span class="admin-stat-label">Open wishlist items</span>
                         </div>
+                        <!-- Opens the Accounts section. -->
+                        <button type="button" class="admin-stat admin-stat-link" data-open-tab="accounts">
+                            <span class="admin-stat-value" data-stat="accounts">–</span>
+                            <span class="admin-stat-label">Staff accounts <span class="material-symbols-rounded" aria-hidden="true">chevron_right</span></span>
+                        </button>
                     </div>
 
                     <!-- Stale alert: open visit requests / waitlist sign-ups with no
@@ -452,6 +469,14 @@
                     </button>
                 </div>
 
+                <!-- Accounts (admins): add an account (the form opens on the right). -->
+                <div class="admin-install-actions admin-accounts-actions" hidden>
+                    <button type="button" class="admin-action admin-action-primary admin-add-account">
+                        <span class="material-symbols-rounded">person_add</span>
+                        Add account
+                    </button>
+                </div>
+
                 <!-- Wishlist tab: add an item (the form opens on the right), and what the
                      open items add up to. -->
                 <div class="admin-install-actions admin-wishlist-actions" hidden>
@@ -502,6 +527,7 @@
                     <div class="admin-list" data-list="nda" hidden></div>
                     <div class="admin-list" data-list="inventory" hidden></div>
                     <div class="admin-list" data-list="wishlist" hidden></div>
+                    <div class="admin-list" data-list="accounts" hidden></div>
                 </div>
             </aside>
         </section>

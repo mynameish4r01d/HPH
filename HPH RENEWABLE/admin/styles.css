@@ -2080,13 +2080,10 @@ a:link{
 
 /* ===== INSTALLS (installations / serial numbers) ===== */
 
-/* The encoder account: no overview dashboard, no Feedback tab, no sheet
-   import (admin.js sets body[data-role]). Its three tabs sit in one row. */
-body[data-role="encoder"]{
-    .admin-overview, .admin-tab[data-tab="feedback"], .admin-tab[data-tab="nda"],
-    .admin-tab[data-tab="inspection"], .admin-tab[data-tab="installation"]{
-        display: none !important;
-    }
+/* Users (body[data-role="user"]) have no overview dashboard; admin.js hides
+   the pages they can't use (applyAccess()). */
+body[data-role="user"] .admin-overview{
+    display: none !important;
 }
 
 /* Sidebar: "Add installation", and for admins "Import from Google Sheet". */
@@ -2109,6 +2106,101 @@ body[data-role="encoder"]{
     font-size: 12px;
     line-height: 1.5;
     color: var(--admin-subtle);
+}
+
+/* Accounts (admins only): the Settings group, its tab and the overview tile. */
+body:not([data-role="admin"]){
+    .admin-nav-group[data-group="settings"], .admin-tab[data-tab="accounts"], .admin-stat-link{
+        display: none !important;
+    }
+}
+
+/* Accounts: one row per page with Off / View / Edit / Edit + delete. */
+.admin-access{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 20px;
+    margin: 0;
+    padding: 0;
+    border: none;
+
+    legend{
+        margin-bottom: 8px;
+        padding: 0;
+        font-size: 12px;
+        color: var(--admin-subtle);
+    }
+
+    .admin-serial-summary{
+        grid-column: 1 / -1;
+        margin: 0;
+    }
+
+    @media (max-width: 750px){
+        grid-template-columns: 1fr;
+    }
+}
+
+.admin-access-row{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 14px;
+    color: var(--admin-subtle);
+
+    .admin-select{
+        width: 150px;
+        flex: 0 0 auto;
+        min-height: 38px;
+        font-size: 14px;
+    }
+
+    /* A page that's on reads in full colour. */
+    &.admin-access-on{
+        color: var(--admin-text);
+        font-weight: 500;
+    }
+}
+
+/* The overview's "Staff accounts" tile opens the Accounts section. */
+.admin-stat.admin-stat-link{
+    border: none;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    .admin-stat-label{
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+    }
+
+    .material-symbols-rounded{
+        font-size: 16px;
+    }
+
+    &:hover{
+        box-shadow: inset 0 0 0 1px var(--admin-border);
+    }
+}
+
+/* An account's name and pages, above its ticket. */
+.admin-account-editor{
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px 20px;
+    margin: 4px 0 8px;
+
+    .admin-actions{
+        grid-column: 1 / -1;
+        margin: 0 0 16px;
+    }
+
+    @media (max-width: 750px){
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Wishlist: what the open items add up to, under "Add to wishlist". */
@@ -2390,7 +2482,7 @@ body[data-role="encoder"]{
     color: var(--admin-subtle);
 }
 
-body[data-role="encoder"] .admin-visit-actions{
+body[data-role="user"] .admin-visit-actions{
     display: none !important;
 }
 
@@ -2773,20 +2865,12 @@ body[data-role="encoder"] .admin-visit-actions{
     }
 }
 
-/* Inspection / Commissioning tabs: short names for admins, full names for the installer. */
+/* Inspection / Commissioning tabs: the short names are shown (the full ones,
+   Site Visit / Installation, are kept in the markup but hidden). */
 .admin-tab-full{
     display: none;
 }
 
-body[data-role="installer"]{
-    .admin-tab-short{
-        display: none;
-    }
-
-    .admin-tab-full{
-        display: inline;
-    }
-}
 
 
 /* ===== Installer checklists =====
@@ -2799,20 +2883,6 @@ body[data-role="installer"]{
     display: none;
 }
 
-body[data-role="installer"]{
-    .admin-tab-full{
-        display: inline;
-    }
-
-    .admin-tab-short{
-        display: none;
-    }
-
-    .admin-tab:not([data-tab="inspection"]):not([data-tab="installation"]):not([data-tab="inventory"]),
-    .admin-overview{
-        display: none !important;
-    }
-}
 
 /* Progress: a small bar in list rows, a larger one in an open checklist. */
 .admin-ck-meta{
@@ -4701,8 +4771,9 @@ body[data-role="installer"]{
         font-size: 15px;
     }
 
-    .admin-ck-tool-main{
-        justify-self: start;
+    /* "Add photo": a standard outlined button, under the thumbnails. */
+    .admin-inv-add-photo{
+        align-self: flex-start;
     }
 }
 
@@ -5317,8 +5388,7 @@ body[data-role="installer"]{
     }
 
     /* Overview is for admins; the installer has no Clients tabs. */
-    body:not([data-role="admin"]) .admin-nav-overview,
-    body[data-role="installer"] .admin-nav-group[data-group="clients"]{
+    body:not([data-role="admin"]) .admin-nav-overview{
         display: none;
     }
 

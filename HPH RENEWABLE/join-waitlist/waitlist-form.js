@@ -14,6 +14,7 @@
 // only downloaded when someone submits.
 
 import { firebaseConfig } from "../firebase-config.js";
+import { tidyName, tidyAddress, tidyOnBlur } from "../text-format.js";
 
 const FIREBASE_VERSION = "12.3.0";
 const COLLECTION = "waitlist";
@@ -31,6 +32,10 @@ const BATTERIES_PER_UNIT = 4;
 const isConfigured = Boolean(firebaseConfig && firebaseConfig.projectId && !firebaseConfig.projectId.startsWith("YOUR_"));
 
 const form = document.querySelector(".visit-form");
+// Names and addresses typed in ALL CAPS or all lowercase are tidied when the visitor
+// leaves the field, e.g. "harold t. hermosa" → "Harold T. Hermosa".
+tidyOnBlur(form.querySelector('[name="name"]'), tidyName);
+tidyOnBlur(form.querySelector('[name="address"]'), tidyAddress);
 const success = document.querySelector(".visit-success");
 const error = form.querySelector(".visit-error");
 const button = form.querySelector(".visit-submit");
@@ -288,10 +293,10 @@ form.addEventListener("submit", async (e) => {
             quantities: quantities(),
             // What the visitor was shown (starting prices), not a quotation.
             estimatedTotal: estimate(),
-            name: value("name"),
+            name: tidyName(value("name")),
             phone: value("phone"),
             email: value("email"),
-            address: value("address"),
+            address: tidyAddress(value("address")),
             message: value("message"),
             consent: true,
             sourcePage: decodeURIComponent(window.location.pathname).slice(0, 300),

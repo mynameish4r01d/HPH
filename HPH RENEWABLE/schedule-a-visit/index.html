@@ -300,14 +300,15 @@
                     <span class="visit-hint"></span>
                 </label>
 
-                <!-- Pick one or both; none ticked is saved as "Not sure yet". -->
+                <!-- Pick one or both; none ticked is saved as "Not sure yet". The first chip
+                     reads "Solar" (plainer for visitors) but is still saved as "Micro Inverter". -->
                 <div class="visit-field" role="group" aria-labelledby="visit-interest-label">
                     <span class="visit-label" id="visit-interest-label">Interested in <span class="visit-optional">(pick one or both)</span></span>
                     <div class="visit-interest">
                         <label class="visit-chip">
                             <input type="checkbox" name="interest" value="Micro Inverter">
                             <span class="material-symbols-rounded" aria-hidden="true">solar_power</span>
-                            <span>Micro Inverter</span>
+                            <span>Solar</span>
                         </label>
                         <label class="visit-chip">
                             <input type="checkbox" name="interest" value="Battery">
@@ -331,12 +332,6 @@
                 </label>
 
                 <label class="visit-field">
-                    <span class="visit-label">Preferred visit date <span class="visit-optional">(optional)</span></span>
-                    <input type="date" name="preferredDate">
-                    <span class="visit-hint"></span>
-                </label>
-
-                <label class="visit-field">
                     <span class="visit-label">Preferred time</span>
                     <select name="preferredTime">
                         <option value="Any time">Any time</option>
@@ -348,7 +343,7 @@
 
                 <label class="visit-field visit-span">
                     <span class="visit-label">Referral code <span class="visit-optional">(optional)</span></span>
-                    <input type="text" name="referralCode" autocomplete="off" maxlength="50" placeholder="Code or name of the person who referred you">
+                    <input type="text" name="referralCode" autocomplete="off" maxlength="50" placeholder="e.g. HPH-ABC01, from the person who referred you">
                     <span class="visit-hint"></span>
                 </label>
 

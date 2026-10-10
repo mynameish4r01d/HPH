@@ -8,6 +8,7 @@
 // only downloaded when someone submits.
 
 import { firebaseConfig } from "../firebase-config.js";
+import { tidyName, tidyOnBlur } from "../text-format.js";
 
 const FIREBASE_VERSION = "12.3.0";
 const COLLECTION = "feedback";
@@ -16,6 +17,9 @@ const SUBMIT_TIMEOUT_MS = 20000;
 const isConfigured = Boolean(firebaseConfig && firebaseConfig.projectId && !firebaseConfig.projectId.startsWith("YOUR_"));
 
 const form = document.querySelector(".visit-form");
+// Names typed in ALL CAPS or all lowercase are tidied when the visitor
+// leaves the field, e.g. "harold t. hermosa" → "Harold T. Hermosa".
+tidyOnBlur(form.querySelector('[name="name"]'), tidyName);
 const success = document.querySelector(".visit-success");
 const error = form.querySelector(".visit-error");
 const button = form.querySelector(".visit-submit");
@@ -126,7 +130,7 @@ form.addEventListener("submit", async (e) => {
         const write = firestore.addDoc(firestore.collection(db, COLLECTION), {
             rating: Number(value("rating")),
             message: value("message"),
-            name: value("name"),
+            name: tidyName(value("name")),
             contact: value("contact"),
             allowPublish: data.get("allowPublish") === "on",
             sourcePage: decodeURIComponent(window.location.pathname).slice(0, 300),

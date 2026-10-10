@@ -5,41 +5,54 @@
 // Sign-in uses Firebase Authentication: email + password, or "Sign in with
 // Google". Passwords are never stored in this repo — password accounts are
 // created in the Firebase console → Authentication → Users → Add user; Google
-// needs no account setup. Either way, only emails in ADMIN_EMAILS get in.
+// needs no account setup.
 //
-// Who counts as an admin is hardcoded in three places; keep them in step:
-//   - ADMIN_EMAILS below (decides what this page shows)
-//   - isAdmin() in /firestore.rules (lets admins read submissions)
-//   - isAdmin() in /storage.rules (lets admins open attachments)
-// The encoder account (ENCODER_EMAILS) has no overview dashboard and no
-// feedback. It opens on the "Add installation" form, manages installations
-// (editing or deleting only its own), and can view, edit and move visit
-// requests and waitlist sign-ups through the pipeline, but not delete them.
-// Keep it in step with isEncoder() in /firestore.rules and /storage.rules.
-// The installer account (INSTALLER_EMAILS) opens on a workspace with just the
-// two checklist tabs (Site visit inspection, Installation and commissioning)
-// and Inventory: it can read visit requests, to pick a client, start and fill
-// in checklists, and keep the inventory, but nothing else. Keep it in step with isInstaller() in
-// /firestore.rules and /storage.rules. See the "installer checklists" section
-// below and checklist-templates.js (the checklist content).
-// The rules are what actually protect the data; these lists only affect
-// what the page displays.
+// Who gets in, and with which role:
+//   - Owners (OWNER_EMAILS below, isOwner() in /firestore.rules and
+//     /storage.rules; keep the three in step) are always admins.
+//   - Everyone else is a user with a level per page (View, Edit, or Edit +
+//     delete) in Firestore staffRoles/{email}, set by the owners in the
+//     Accounts section (`access`, can()). See the "accounts" section below.
+//   - The original Team Workspace and installer emails (LEGACY_ACCESS) keep
+//     their old access until they're given an entry.
+// Users have no overview; each page they can edit may start on its own pane
+// (userHome(): "Add installation", the "start a checklist" picker, "Stock on
+// hand", "Add to wishlist"). Owner-only: the overview, Accounts, OpenSolar
+// import, reopening checklists and completing wishlist items.
+// The rules are what actually protect the data; the page only decides what
+// it displays.
 
 import { firebaseConfig } from "../firebase-config.js";
 import { CHECKLISTS, CHECKLIST_VERSION } from "./checklist-templates.js";
+import { findReferrer } from "../referral-codes.js";
+import { tidyName, tidyAddress } from "../text-format.js";
 
 const FIREBASE_VERSION = "12.3.0";
-const ADMIN_EMAILS = [
+// Owners: permanent admins, fixed in code so nobody can be locked out. Keep
+// in step with isOwner() in /firestore.rules and /storage.rules. Everyone
+// else's role is set in the Accounts section (Firestore staffRoles/{email}).
+const OWNER_EMAILS = [
     "harold.t.hermosa@gmail.com",
     "jeff.hermosa@hphtechsolutions.com",
     "lerin.hermosa@hphtechsolutions.com",
 ];
-const ENCODER_EMAILS = [
-    "inquiries@hphtechsolutions.com",
+// Every other account is a user with a level per page, chosen by an owner in
+// the Accounts section: "view", "edit" or "delete" (edit + delete); a page
+// that isn't listed is off. Keep the page keys in step with can() in
+// /firestore.rules and /storage.rules.
+const ACCESS_PAGES = [
+    ["visits", "Ocular Visits"], ["waitlist", "Waitlist"], ["feedback", "Feedback"], ["nda", "NDA"],
+    ["installs", "Installs"], ["inspection", "Inspection"], ["installation", "Commissioning"],
+    ["inventory", "Inventory"], ["wishlist", "Wishlist"],
 ];
-const INSTALLER_EMAILS = [
-    "hphrenewable@gmail.com",
-];
+const ACCESS_LEVELS = ["view", "edit", "delete"];
+const LEVEL_LABELS = { off: "Off", view: "View", edit: "Edit", delete: "Edit + delete" };
+// The original Team Workspace and installer accounts keep this access until
+// they're given an entry in the Accounts section (the rules do the same).
+const LEGACY_ACCESS = {
+    "inquiries@hphtechsolutions.com": { visits: "edit", waitlist: "edit", installs: "edit", inventory: "edit", wishlist: "edit" },
+    "hphrenewable@gmail.com": { inspection: "edit", installation: "edit", inventory: "edit" },
+};
 const MAX_ROWS = 500;
 
 // Serial number formats (same as portfolio-counters.js and the rules'
@@ -109,10 +122,13 @@ const openSolarStatus = document.querySelector(".admin-opensolar-status");
 // in styles.css. Phones open entries in place instead.
 const desktop = window.matchMedia("(min-width: 751px)");
 
-const emptyData = () => ({ visits: [], waitlist: [], feedback: [], installs: [], nda: [], inspection: [], installation: [], inventory: [], wishlist: [] });
+const emptyData = () => ({ visits: [], waitlist: [], feedback: [], installs: [], nda: [], inspection: [], installation: [], inventory: [], wishlist: [], accounts: [] });
 let data = emptyData();
-// "admin" (everything) or "encoder" (installations only); null signed out.
+// "admin" (an owner: everything) or "user" (the pages in `access`); null
+// signed out.
 let role = null;
+// A user's level per page, e.g. { visits: "edit", nda: "view" }.
+let access = {};
 let currentEmail = "";
 let activeTab = "visits";
 let activeProduct = "all";
@@ -126,6 +142,9 @@ let formOpen = false;
 const CHECKLIST_TYPES = ["inspection", "installation"];
 let flushChecklist = null;
 let checklistStartBusy = false;
+// True when the saved accounts (staffRoles) couldn't be read, e.g. before
+// the rules that allow it are published.
+let accountsUnavailable = false;
 
 
 // ---------------------------------------------------------------- helpers
@@ -148,17 +167,28 @@ function formatDate(date) {
     });
 }
 
-function isAdminEmail(email) {
-    return Boolean(email) && ADMIN_EMAILS.includes(email.toLowerCase());
+// Whose referral a code is: "Mike P. Medina (HPH-MPM01)", or the code with
+// "Unknown code" if it isn't on the sales team list (../referral-codes.js),
+// e.g. from before codes were checked.
+function referrerLabel(code) {
+    const person = findReferrer(code);
+    return person ? `${person.name} (${person.code})` : `${code} (Unknown code)`;
 }
 
-function isEncoderEmail(email) {
-    return Boolean(email) && ENCODER_EMAILS.includes(email.toLowerCase());
+function isOwnerEmail(email) {
+    return Boolean(email) && OWNER_EMAILS.includes(email.toLowerCase());
 }
 
-function isInstallerEmail(email) {
-    return Boolean(email) && INSTALLER_EMAILS.includes(email.toLowerCase());
+// Whether the signed-in account may use `page` at `level` ("view", "edit" or
+// "delete"). Owners may do everything.
+function can(page, level = "view") {
+    if (role === "admin") return true;
+    const have = ACCESS_LEVELS.indexOf(access[page]);
+    return have >= 0 && have >= ACCESS_LEVELS.indexOf(level);
 }
+
+// The pages a user can see at all.
+const visiblePages = (map = access) => ACCESS_PAGES.map(([key]) => key).filter((key) => ACCESS_LEVELS.includes(map[key]));
 
 function show(section) {
     status.hidden = section !== status;
@@ -174,6 +204,7 @@ authSdk.onAuthStateChanged(auth, async (user) => {
         account.hidden = true;
         data = emptyData();
         role = null;
+        access = {};
         currentEmail = "";
         delete document.body.dataset.role;
         delete document.body.dataset.view;
@@ -183,7 +214,9 @@ authSdk.onAuthStateChanged(auth, async (user) => {
         return;
     }
 
-    role = isAdminEmail(user.email) ? "admin" : isEncoderEmail(user.email) ? "encoder" : isInstallerEmail(user.email) ? "installer" : null;
+    const who = await accessFor(user.email);
+    role = who ? who.role : null;
+    access = who ? who.access : {};
     if (!role) {
         const email = user.email;
         await authSdk.signOut(auth);
@@ -193,17 +226,15 @@ authSdk.onAuthStateChanged(auth, async (user) => {
 
     loginError.hidden = true;
     currentEmail = user.email.toLowerCase();
-    // CSS hides the overview and the other tabs for the encoder and installer.
+    // Users: CSS hides the overview; applyAccess() hides the pages they can't see.
     document.body.dataset.role = role;
+    applyAccess();
     account.querySelector(".admin-account-email").textContent = user.email;
     account.hidden = false;
     buildMenu();
     show(dashboard);
-    if (role === "encoder") {
-        selectTab("installs");
-        showInstallForm(null);
-    } else if (role === "installer") {
-        selectTab("inspection"); // shows the "start a checklist" picker
+    if (role === "user") {
+        selectTab(visiblePages()[0]);
     } else {
         selectTab(activeTab);
         // Admins start on the overview (desktop: the list column hides).
@@ -211,6 +242,35 @@ authSdk.onAuthStateChanged(auth, async (user) => {
     }
     loadSubmissions();
 });
+
+// What the account may use: owners are admins ({ role: "admin" }); anyone
+// else is a user with the pages in their staffRoles entry (Accounts
+// section), or for the original Team Workspace and installer emails, their
+// built-in access. null: no access.
+async function accessFor(email) {
+    if (!email) return null;
+    if (isOwnerEmail(email)) return { role: "admin", access: {} };
+    let pages = LEGACY_ACCESS[email.toLowerCase()] || null;
+    try {
+        const snap = await firestore.getDoc(firestore.doc(db, "staffRoles", email.toLowerCase()));
+        if (snap.exists()) pages = snap.data().access || {};
+    } catch (err) {
+        // e.g. the rules with staffRoles aren't published yet.
+        console.warn("Admin: couldn't read this account's access", err);
+    }
+    return pages && visiblePages(pages).length ? { role: "user", access: pages } : null;
+}
+
+// Shows only the pages this account can use, and hides a navigation group
+// with none left.
+function applyAccess() {
+    for (const tab of document.querySelectorAll(".admin-nav .admin-tab")) {
+        tab.hidden = tab.dataset.tab === "accounts" ? role !== "admin" : !can(tab.dataset.tab);
+    }
+    for (const group of document.querySelectorAll(".admin-nav-group")) {
+        group.hidden = ![...group.querySelectorAll(".admin-tab")].some((tab) => !tab.hidden);
+    }
+}
 
 function showLoginError(message) {
     loginError.textContent = message;
@@ -227,11 +287,6 @@ loginForm.addEventListener("submit", async (e) => {
         showLoginError("Enter your email and password.");
         return;
     }
-    if (!isAdminEmail(email) && !isEncoderEmail(email) && !isInstallerEmail(email)) {
-        showLoginError("This account doesn't have admin access.");
-        return;
-    }
-
     loginButton.disabled = true;
     loginButton.textContent = "Signing in…";
     try {
@@ -312,10 +367,9 @@ const menu = document.querySelector(".admin-menu");
 const menuTabs = menu.querySelector(".admin-menu-tabs");
 const burger = account.querySelector(".admin-burger");
 const MENU_TABS = {
-    installer: [["inspection", "Site Visit"], ["installation", "Installation"], ["inventory", "Inventory"]],
-    encoder: [["visits", "Ocular Visits"], ["waitlist", "Waitlist"], ["installs", "Installs"], ["inventory", "Inventory"], ["wishlist", "Wishlist"]],
     admin: [["visits", "Ocular Visits"], ["waitlist", "Waitlist"], ["feedback", "Feedback"], ["installs", "Installs"],
-            ["inspection", "Inspection"], ["installation", "Commissioning"], ["inventory", "Inventory"], ["wishlist", "Wishlist"], ["nda", "NDA"]],
+            ["inspection", "Inspection"], ["installation", "Commissioning"], ["inventory", "Inventory"], ["wishlist", "Wishlist"], ["nda", "NDA"],
+            ["accounts", "Accounts"]],
 };
 
 function setMenu(open) {
@@ -367,8 +421,7 @@ function fillNavAccount() {
     const parts = local.split(/[._-]+/).filter(Boolean);
     const initials = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : local.slice(0, 2);
     document.querySelector(".admin-nav-avatar").textContent = initials.toUpperCase();
-    document.querySelector(".admin-nav-role").textContent = role === "encoder" ? "Team Workspace"
-        : role === "installer" ? "Installer" : "Admin";
+    document.querySelector(".admin-nav-role").textContent = role === "admin" ? "Main admin" : "User";
     document.querySelector(".admin-nav-email").textContent = currentEmail;
 }
 
@@ -386,10 +439,9 @@ function buildMenu() {
     for (const tab of document.querySelectorAll(".admin-nav .admin-tab")) tab.title = tabLabel(tab.dataset.tab);
     navOverview.title = "Overview";
     // Admins: Overview first, its own page (body[data-view="overview"]).
-    const tabs = [...(role === "admin" ? [["overview", "Overview"]] : []), ...(MENU_TABS[role] || [])];
+    const tabs = role === "admin" ? [["overview", "Overview"], ...MENU_TABS.admin] : MENU_TABS.admin.filter(([key]) => can(key));
     // The phone menu's small heading names the workspace.
-    menu.querySelector(".admin-menu-title").textContent = role === "encoder" ? "Team Workspace"
-        : role === "installer" ? "Installer Checklists" : "Admin Overview";
+    menu.querySelector(".admin-menu-title").textContent = role === "admin" ? "Admin Overview" : "Workspace";
     menu.querySelector(".admin-menu-email").textContent = currentEmail;
     menuTabs.replaceChildren(...tabs.map(([key, label]) => {
         const button = el("button", "admin-menu-tab");
@@ -439,6 +491,19 @@ async function fetchCollection(name) {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
+// A user's checklists of one type. No orderBy, so no composite index is
+// needed; sorted newest first here.
+async function fetchChecklistsOfType(type) {
+    const q = firestore.query(
+        firestore.collection(db, "jobChecklists"),
+        firestore.where("type", "==", type),
+        firestore.limit(MAX_ROWS),
+    );
+    const snapshot = await firestore.getDocs(q);
+    return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+        .sort((a, b) => (toDate(b.createdAt) || 0) - (toDate(a.createdAt) || 0));
+}
+
 async function loadSubmissions() {
     loadError.hidden = true;
     refreshButton.disabled = true;
@@ -450,46 +515,54 @@ async function loadSubmissions() {
         // Let a checklist being filled in save what's pending first, so the
         // reload below doesn't lose it.
         if (flushChecklist) await flushChecklist();
-        // The encoder can't read feedback or NDA responses; the installer only
-        // needs the visit requests (to pick a client), the checklists and the
-        // inventory.
-        const tabs = role === "encoder" ? ["visits", "waitlist", "installs", "inventory", "wishlist"]
-            : role === "installer" ? ["visits", "inventory"]
-            : ["visits", "waitlist", "feedback", "installs", "nda", "inventory", "wishlist"];
-        // The wishlist loads on its own, so if its rules aren't published yet
-        // the rest of the page still works (its tab just stays empty).
+        accountsUnavailable = false;
+        // Users load only their pages, plus the visit requests if they fill in
+        // checklists (to pick a client; the Ocular Visits tab stays hidden).
+        const tabs = role === "admin"
+            ? ["visits", "waitlist", "feedback", "installs", "nda", "inventory", "wishlist", "accounts"]
+            : ["visits", "waitlist", "feedback", "installs", "nda", "inventory", "wishlist"].filter((tab) => can(tab));
+        if (role === "user" && !tabs.includes("visits") && CHECKLIST_TYPES.some((type) => can(type, "edit"))) tabs.unshift("visits");
+        // The wishlist and accounts load on their own, so if their rules aren't
+        // published yet the rest of the page still works (that tab just stays
+        // empty, or for accounts shows only the owners and built-in accounts).
         const [lists, checklists] = await Promise.all([
-            Promise.all(tabs.map((tab) => tab === "wishlist"
+            Promise.all(tabs.map((tab) => tab === "wishlist" || tab === "accounts"
                 ? fetchCollection(TABS[tab].collection).catch((err) => {
-                    console.warn("Admin: couldn't load the wishlist (publish the latest /firestore.rules)", err);
+                    console.warn(`Admin: couldn't load ${tab} (publish the latest /firestore.rules)`, err);
+                    if (tab === "accounts") accountsUnavailable = true;
                     return [];
                 })
                 : fetchCollection(TABS[tab].collection))),
-            role === "encoder" ? [] : fetchCollection("jobChecklists"),
+            // Users: one query per checklist type they can see (the rules only
+            // let them read those types).
+            role === "admin" ? fetchCollection("jobChecklists")
+                : Promise.all(CHECKLIST_TYPES.filter((type) => can(type)).map((type) => fetchChecklistsOfType(type).catch((err) => {
+                    console.warn(`Admin: couldn't load ${type} checklists`, err);
+                    return [];
+                }))).then((lists) => lists.flat()),
         ]);
         data = emptyData();
         tabs.forEach((tab, i) => { data[tab] = lists[i]; });
+        if (role === "admin") data.accounts = buildAccounts(data.accounts);
         // The checklists tabs are one collection split by type.
         for (const type of CHECKLIST_TYPES) data[type] = checklists.filter((c) => c.type === type);
+        tidyLoadedText();
         data.installs.sort(byInstallDate);
         data.inventory.sort(byStock);
         data.wishlist.sort(byWishStatus);
         renderStats();
         renderList();
         fillMissingCapacities();
+        shrinkOldPhotos();
         syncInstallsToVisits();
         // Re-show the open entry with the fresh data (or close it if it's
-        // gone), unless the install form is open.
+        // gone), unless a form is open.
         if (selected && !formOpen) showEntry(selected.tab, selected.id);
-        // The installer's home is the "start a checklist" picker (or, on the
-        // Inventory tab, the stock summary); refresh it, unless the add-item
-        // form is open.
-        else if ((role === "admin" || role === "encoder") && inventoryHomeShown()) showInventoryHome();
-        else if (role === "encoder" && activeTab === "wishlist" && !formOpen) showWishForm(null);
-        else if (role === "installer" && formOpen && !selected && !checklistStartBusy && !itemFormOpen) {
-            if (activeTab === "inventory") showInventoryHome();
-            else showChecklistStart(activeTab);
-        }
+        // Refresh "Stock on hand", or a user's "start a checklist" picker
+        // (unless a checklist is being created).
+        else if (inventoryHomeShown()) showInventoryHome();
+        else if (role === "user" && CHECKLIST_TYPES.includes(activeTab) && checklistStartShown() && !checklistStartBusy) showChecklistStart(activeTab);
+        else if (role === "user" && !formOpen && !selected) showUserHome();
     } catch (err) {
         console.error("Admin: loading submissions failed", err);
         loadError.textContent = err.code === "permission-denied"
@@ -503,6 +576,29 @@ async function loadSubmissions() {
 }
 
 refreshButton.addEventListener("click", loadSubmissions);
+
+// Names and addresses typed in ALL CAPS or all lowercase (mostly from before
+// the website forms tidied them) are shown tidied, e.g. "JUAN DELA CRUZ" →
+// "Juan Dela Cruz" (../text-format.js). Only the copy on this page changes;
+// a saved entry is updated only if someone saves an edit to it. Checklists
+// keep their client details as saved (the rules don't let those change).
+const TIDY_FIELDS = {
+    visits: { name: tidyName, address: tidyAddress },
+    waitlist: { name: tidyName, address: tidyAddress },
+    feedback: { name: tidyName },
+    nda: { fullName: tidyName },
+    installs: { clientName: tidyName, address: tidyAddress },
+};
+
+function tidyLoadedText() {
+    for (const [tab, fields] of Object.entries(TIDY_FIELDS)) {
+        for (const entry of data[tab]) {
+            for (const [field, tidy] of Object.entries(fields)) {
+                if (typeof entry[field] === "string" && entry[field]) entry[field] = tidy(entry[field]);
+            }
+        }
+    }
+}
 
 
 // ---------------------------------------------------------------- display
@@ -596,6 +692,12 @@ const TABS = {
         collection: "inventory",
         label: "Inventory item",
         render: (entry) => renderInventoryItem(entry),
+    },
+    // Who can use this page (admins only). See the "accounts" section below.
+    accounts: {
+        collection: "staffRoles",
+        label: "Account",
+        render: (entry) => renderAccount(entry),
     },
     // Things to buy (admins and the team account). See the "wishlist" section below.
     wishlist: {
@@ -778,8 +880,10 @@ function renderPipeline() {
 function renderReferrals() {
     const groups = new Map();
     for (const v of data.visits) {
-        const code = (v.referralCode || "").trim().toUpperCase();
-        if (!code) continue;
+        const typed = (v.referralCode || "").trim().toUpperCase();
+        if (!typed) continue;
+        const person = findReferrer(typed);
+        const code = person ? person.code : typed;
         if (!groups.has(code)) groups.set(code, []);
         groups.get(code).push(v);
     }
@@ -800,9 +904,10 @@ function renderReferrals() {
         const row = el("div", "admin-referral");
         const rank = el("span", i < 3 && wins ? `admin-referral-rank admin-referral-top` : "admin-referral-rank", String(i + 1));
         rank.setAttribute("aria-label", `Rank ${i + 1}`);
-        const codeButton = el("button", "admin-referral-code", code);
+        const person = findReferrer(code);
+        const codeButton = el("button", "admin-referral-code", person ? `${person.name} · ${code}` : `${code} · Unknown code`);
         codeButton.type = "button";
-        codeButton.title = `Show visit requests referred by ${code}`;
+        codeButton.title = `Show visit requests referred by ${person ? person.name : code}`;
         codeButton.addEventListener("click", () => {
             search.value = code;
             showStage("visits", "all");
@@ -1040,6 +1145,7 @@ function renderStats() {
     set("feedback", data.feedback.length);
     set("nda", data.nda.filter((n) => n.response === "agree").length);
     set("wishlist", data.wishlist.filter((w) => wishStatus(w) === "open").length);
+    set("accounts", data.accounts.filter(hasAccess).length);
     const rating = document.querySelector('[data-stat="rating"]');
     rating.textContent = ratings.length ? `${average} ` : "–";
     if (ratings.length) rating.append(el("span", "admin-star-filled", "★"));
@@ -1073,7 +1179,10 @@ function searchableText(value) {
 
 function matches(entry, term) {
     if (!term) return true;
-    return Object.values(entry).flatMap(searchableText).some((text) => text.toLowerCase().includes(term));
+    // A referred visit is also found by its salesperson's name.
+    const referrer = entry.referralCode ? findReferrer(entry.referralCode) : null;
+    return [...Object.values(entry).flatMap(searchableText), ...(referrer ? [referrer.name] : [])]
+        .some((text) => text.toLowerCase().includes(term));
 }
 
 // The active tab's entries that match the search, stage filter and (waitlist)
@@ -1118,6 +1227,7 @@ function renderList() {
         const none = activeTab === "installs" ? "No installations yet."
             : activeTab === "inventory" ? "No items yet. Add the first one with “Add item”."
             : activeTab === "wishlist" ? "Nothing on the wishlist yet. Add the first one with “Add to wishlist”."
+            : activeTab === "accounts" ? "No accounts."
             : "Nothing submitted yet.";
         list.replaceChildren(el("p", "admin-empty", filtered ? "No matches." : none));
         return;
@@ -1125,6 +1235,9 @@ function renderList() {
     list.replaceChildren(...(activeTab === "inventory" && activeCategory === "all"
         ? groupedInventory(entries)
         : entries.map((entry) => renderEntry(activeTab, entry))));
+    if (activeTab === "accounts" && accountsUnavailable) {
+        list.prepend(el("p", "admin-error", "Couldn't load the saved accounts, so only the owners and built-in accounts are listed. Publish the latest /firestore.rules in the Firebase console, then refresh."));
+    }
     markSelected();
 }
 
@@ -1227,7 +1340,8 @@ function entryShell(title, meta, date, { dim, badge, stale, dateText } = {}) {
 
 function renderVisit(v) {
     const referral = (v.referralCode || "").trim();
-    const meta = [v.product, v.propertyType, v.phone, referral && `Referred by ${referral}`].filter(Boolean).join(" · ");
+    const referrer = referral ? findReferrer(referral) : null;
+    const meta = [v.product, v.propertyType, v.phone, referral && `Referred by ${referrer ? referrer.name : `${referral} (Unknown code)`}`].filter(Boolean).join(" · ");
     const paths = Array.isArray(v.attachments) ? v.attachments : [];
     const details = entryShell(v.name, meta, toDate(v.createdAt), {
         dim: isClosed("visits", v), badge: stageBadge("visits", v), stale: staleBadge("visits", v),
@@ -1250,7 +1364,7 @@ function renderVisit(v) {
         detailRow("Monthly bill", v.monthlyBill),
         detailRow("Preferred date", v.preferredDate),
         detailRow("Preferred time", v.preferredTime),
-        detailRow("Referral code", referral),
+        detailRow("Referred by", referral ? referrerLabel(referral) : ""),
         detailRow("Message", v.message, { wide: true }),
         detailRow("Submitted", formatDate(toDate(v.createdAt))),
         detailRow("Request ID", v.id),
@@ -1413,6 +1527,11 @@ function appendStage(tab, entry, list, details) {
         const by = entry.completedBy ? ` by ${entry.completedBy}` : "";
         list.append(detailRow(pipeline.legacyMarked, `${formatDate(toDate(entry.completedAt))}${by}`, { wide: true }));
     }
+    // View only: no stepper or buttons (the stage tag shows where it is).
+    if (!can(tab, "edit")) {
+        details.append(ticket(tab, entry, list));
+        return;
+    }
     const actions = el("div", "admin-actions admin-stage-actions");
     const error = el("span", "admin-action-error");
     const save = (key) => setStage(tab, entry, key, details, actions, error);
@@ -1530,6 +1649,16 @@ const CHECKLIST_CSV = [
 ];
 
 const CSV_COLUMNS = {
+    accounts: [
+        ["Email", (a) => a.email],
+        ["Name", (a) => a.name],
+        ["Account", (a) => accountRoleLabel(a)],
+        ...ACCESS_PAGES.map(([key, label]) => [label, (a) => (a.source === "owner" ? "Everything" : LEVEL_LABELS[a.access[key]] || "Off")]),
+        ["Added", (a) => csvDate(toDate(a.createdAt))],
+        ["Added by", (a) => a.createdBy],
+        ["Last changed", (a) => csvDate(toDate(a.updatedAt))],
+        ["Changed by", (a) => a.updatedBy],
+    ],
     wishlist: [
         ["Added", (w) => csvDate(toDate(w.createdAt))],
         ["Item", (w) => w.name],
@@ -1571,6 +1700,7 @@ const CSV_COLUMNS = {
         ["Preferred date", (v) => v.preferredDate],
         ["Preferred time", (v) => v.preferredTime],
         ["Referral code", (v) => (v.referralCode || "").trim().toUpperCase()],
+        ["Referred by", (v) => { const p = findReferrer(v.referralCode); return p ? p.name : (v.referralCode || "").trim() ? "Unknown code" : ""; }],
         ["Message", (v) => v.message],
         ["Stage", (v) => stageInfo("visits", stageOf("visits", v)).label],
         ["Stage updated", (v) => csvDate(toDate(v.stageUpdatedAt || v.completedAt))],
@@ -1896,12 +2026,12 @@ function panelCountOf(install) {
 // Admins and the encoder can edit any install; admins can delete any, the
 // encoder only the ones it added (see /firestore.rules).
 function canEditInstall() {
-    return role === "admin" || role === "encoder";
+    return can("installs", "edit");
 }
 
 function canDeleteInstall(install) {
-    return role === "admin"
-        || (role === "encoder" && (install.createdBy || "").toLowerCase() === currentEmail);
+    return can("installs", "delete")
+        || (can("installs", "edit") && (install.createdBy || "").toLowerCase() === currentEmail);
 }
 
 function renderInstall(i) {
@@ -1985,7 +2115,7 @@ function showInstallForm(install) {
     formOpen = true;
     selected = install ? { tab: "installs", id: install.id } : null;
     // The encoder's new-install form is its home page: no back button there.
-    setBackButton({ hidden: role === "encoder" && !install });
+    setBackButton({ hidden: role === "user" && !install });
     detailPane.querySelector(".admin-detail-kind").textContent = install ? "Edit installation" : "New installation";
     const main = el("div", "admin-entry-main");
     main.append(
@@ -2578,7 +2708,8 @@ function installVisit(install, installId, stage) {
 // so one that already exists (another admin got there first) is just skipped.
 let syncingInstalls = false;
 async function syncInstallsToVisits() {
-    if (!role || role === "installer" || syncingInstalls) return;
+    // Needs to see the visit requests (to avoid duplicates) and edit installs.
+    if (!role || !can("visits") || !can("installs", "edit") || syncingInstalls) return;
     const missing = data.installs.filter((install) => !installHasVisit(install));
     if (!missing.length) return;
     syncingInstalls = true;
@@ -3147,17 +3278,7 @@ function formatSize(bytes) {
 async function shrinkImage(file) {
     if (!SHRINKABLE_TYPE.test(fileType(file)) || file.size <= SHRINK_OVER_BYTES) return file;
     try {
-        const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-        const scale = Math.min(1, SHRINK_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
-        const canvas = document.createElement("canvas");
-        canvas.width = Math.round(bitmap.width * scale);
-        canvas.height = Math.round(bitmap.height * scale);
-        const context = canvas.getContext("2d");
-        context.fillStyle = "#FFFFFF";
-        context.fillRect(0, 0, canvas.width, canvas.height);
-        context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-        bitmap.close();
-        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+        const blob = await resizeToJpeg(file, SHRINK_MAX_EDGE, 0.85);
         if (!blob || blob.size >= file.size) return file;
         return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg", lastModified: file.lastModified });
     } catch (err) {
@@ -3166,13 +3287,29 @@ async function shrinkImage(file) {
     }
 }
 
+// An image as a JPEG whose long edge is at most `maxEdge` px (on white, for
+// transparent PNGs). Throws if the browser can't decode it (e.g. HEIC).
+async function resizeToJpeg(blob, maxEdge, quality) {
+    const bitmap = await createImageBitmap(blob, { imageOrientation: "from-image" });
+    const scale = Math.min(1, maxEdge / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const context = canvas.getContext("2d");
+    context.fillStyle = "#FFFFFF";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    return new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+}
+
 // "Edit details" and "Delete" for an entry, next to its stage buttons (or
 // above the ticket for feedback). Feedback can only be deleted, and only
 // admins can delete.
 function entryTools(tab, entry, errorText) {
     const tools = [];
-    if (role === "admin") tools.push(deleteButton(tab, entry, errorText));
-    if (EDIT_FIELDS[tab]) {
+    if (can(tab, "delete")) tools.push(deleteButton(tab, entry, errorText));
+    if (EDIT_FIELDS[tab] && can(tab, "edit")) {
         const edit = el("button", "admin-action");
         edit.type = "button";
         edit.append(el("span", "material-symbols-rounded", "edit"), "Edit details");
@@ -3433,11 +3570,24 @@ function editForm(tab, entry) {
                 inputs[spec.name].focus();
                 return;
             }
-            if (spec.name === "phone" && !/^[0-9+()\-\s]{7,30}$/.test(value)) {
+            if (spec.name === "phone" && value && !/^[0-9+()\-\s]{7,30}$/.test(value)) {
                 error.textContent = "Enter a valid phone number.";
                 inputs.phone.focus();
                 return;
             }
+            // A referral code must be a sales team code (saved in its official
+            // spelling); an older unknown code left unchanged is kept.
+            if (spec.name === "referralCode" && value) {
+                const person = findReferrer(value);
+                if (person) value = person.code;
+                else if (value !== (entry ? (entry.referralCode || "").trim().toUpperCase() : "")) {
+                    error.textContent = "That referral code doesn't exist. Check it against the sales team's codes, or leave it blank.";
+                    inputs.referralCode.focus();
+                    return;
+                }
+            }
+            if (spec.name === "name") value = tidyName(value);
+            if (spec.name === "address") value = tidyAddress(value);
             values[spec.name] = value;
         }
         if (tab === "visits" && !values.product) values.product = "Not sure yet";
@@ -3647,20 +3797,31 @@ function showEntry(tab, id) {
     markSelected();
 }
 
+// A user's right-hand pane when nothing is open, if the page has one: the add
+// form or summary it starts on. [icon, back button label, show it], or null
+// ("Select an entry" on desktop, just the list on phones).
+function userHome(tab) {
+    if (tab === "installs" && can("installs", "edit")) return ["add", "New installation", () => showInstallForm(null)];
+    if (CHECKLIST_TYPES.includes(tab) && can(tab, "edit")) return ["add_task", "New checklist", () => showChecklistStart(tab)];
+    if (tab === "inventory") return ["inventory_2", "Stock on hand", showInventoryHome];
+    if (tab === "wishlist" && can("wishlist", "edit")) return ["add", "Add to wishlist", () => showWishForm(null)];
+    return null;
+}
+
+function showUserHome() {
+    const home = userHome(activeTab);
+    if (home) home[2]();
+    else closeEntry();
+}
+
+// True while the "start a checklist" picker is in the pane.
+const checklistStartShown = () => !detailPane.hidden && !selected && Boolean(detailPane.querySelector(".admin-detail-body > .admin-ck-start"));
+
 function closeEntry() {
-    // The encoder has no overview: its home is the "Add installation" form, or
-    // "Stock on hand" on the Inventory tab.
-    if (role === "encoder") {
-        if (activeTab === "inventory") showInventoryHome();
-        else if (activeTab === "wishlist") showWishForm(null);
-        else showInstallForm(null);
-        return;
-    }
-    // The installer's home is the "start a checklist" picker, or the stock
-    // summary on the Inventory tab.
-    if (role === "installer") {
-        if (activeTab === "inventory") showInventoryHome();
-        else showChecklistStart(CHECKLIST_TYPES.includes(activeTab) ? activeTab : "inspection");
+    // A user's page may start on its own pane (e.g. "Add installation").
+    const home = role === "user" ? userHome(activeTab) : null;
+    if (home) {
+        home[2]();
         return;
     }
     selected = null;
@@ -3676,19 +3837,13 @@ function closeEntry() {
     if (role === "admin" && desktop.matches && document.body.dataset.view === "list" && activeTab === "inventory") showInventoryHome();
 }
 
-// The pane's back button: back to the overview for admins, to a new
-// "Add installation" form for the encoder (and hidden on that form).
+// The pane's back button: "Close" (back to the list), or for a user on a page
+// with its own home pane, back to it (and hidden on that pane).
 function setBackButton({ hidden = false } = {}) {
     const back = detailPane.querySelector(".admin-back");
     back.hidden = hidden;
-    // On the Inventory tab the installer's and encoder's home is "Stock on hand".
-    const inventoryHome = (role === "installer" || role === "encoder") && activeTab === "inventory";
-    // The encoder's home on the Wishlist tab is the "Add to wishlist" form.
-    const wishHome = role === "encoder" && activeTab === "wishlist";
-    back.replaceChildren(
-        el("span", "material-symbols-rounded", inventoryHome ? "inventory_2" : role === "encoder" ? "add" : role === "installer" ? "add_task" : "close"),
-        inventoryHome ? "Stock on hand" : wishHome ? "Add to wishlist" : role === "encoder" ? "New installation" : role === "installer" ? "New checklist" : "Close",
-    );
+    const home = role === "user" ? userHome(activeTab) : null;
+    back.replaceChildren(el("span", "material-symbols-rounded", home ? home[0] : "close"), home ? home[1] : "Close");
 }
 
 // Highlights the open entry in the sidebar list.
@@ -3875,13 +4030,14 @@ function renderChecklist(c) {
     const badge = el("span", `admin-badge ${submitted ? "" : "admin-badge-stage"}`.trim(), submitted ? "Submitted" : "In progress");
     const details = entryShell(c.clientName, checklistMeta(c), toDate(c.updatedAt) || toDate(c.createdAt), { badge });
     const mine = (c.createdBy || "").toLowerCase() === currentEmail;
-    const editable = !submitted && mine && (role === "installer" || role === "admin");
+    const editable = !submitted && mine && can(c.type, "edit");
 
-    if (role === "admin") {
+    // Main admins: Reopen and Delete; users with Edit + delete: Delete.
+    if (role === "admin" || can(c.type, "delete")) {
         const actions = el("div", "admin-actions admin-install-entry-actions");
         const error = el("span", "admin-action-error");
         actions.append(error);
-        if (submitted) actions.append(reopenButton(c, error));
+        if (submitted && role === "admin") actions.append(reopenButton(c, error));
         actions.append(...entryTools(c.type, c, error));
         details.append(actions);
     }
@@ -4334,7 +4490,7 @@ function showChecklistStart(type) {
     formOpen = true;
     itemFormOpen = false;
     selected = null;
-    setBackButton({ hidden: role === "installer" });
+    setBackButton({ hidden: role === "user" });
     const tpl = CHECKLISTS[type];
     detailPane.querySelector(".admin-detail-kind").textContent = "New checklist";
     const main = el("div", "admin-entry-main");
@@ -4634,7 +4790,8 @@ function byStock(a, b) {
     return rank[stockState(a)] - rank[stockState(b)] || (a.name || "").localeCompare(b.name || "");
 }
 
-const canDeleteItem = (item) => role === "admin" || (item.createdBy || "").toLowerCase() === currentEmail;
+const canDeleteItem = (item) => can("inventory", "delete")
+    || (can("inventory", "edit") && (item.createdBy || "").toLowerCase() === currentEmail);
 
 function inventoryErrorMessage(err) {
     if (err && err.userMessage) return err.userMessage;
@@ -4657,6 +4814,174 @@ function photoUrl(path) {
     return photoUrls.get(path);
 }
 
+// Each photo also has a small JPEG copy beside it, "thumb-<name>" (long edge
+// INV_THUMB_EDGE px, a few tens of KB instead of up to a few MB). The list,
+// the pane header, the profile photo and the edit form show that; only the
+// full-size viewer downloads the photo itself. Paths are never reused, so
+// both are uploaded with a year-long browser cache (INV_CACHE).
+const INV_THUMB_EDGE = 320;
+const INV_CACHE = "private, max-age=31536000, immutable";
+
+function thumbPath(path) {
+    return path.replace(/[^/]+$/, (name) => `thumb-${name}`);
+}
+
+async function uploadThumb(storageSdk, storage, image, path) {
+    const thumb = await resizeToJpeg(image, INV_THUMB_EDGE, 0.8);
+    if (!thumb) throw new Error("Couldn't make a thumbnail");
+    await storageSdk.uploadBytes(storageSdk.ref(storage, thumbPath(path)), thumb, { contentType: "image/jpeg", cacheControl: INV_CACHE });
+}
+
+// The thumbnail's link, or the full photo's for a photo without one (added
+// before thumbnails, or one the browser couldn't shrink).
+const thumbUrls = new Map();
+
+function thumbUrl(path) {
+    if (!thumbUrls.has(path)) {
+        const url = loadStorage()
+            .then(({ storageSdk, storage }) => storageSdk.getDownloadURL(storageSdk.ref(storage, thumbPath(path))))
+            .catch((err) => {
+                if (err.code !== "storage/object-not-found") throw err;
+                backfillThumb(path);
+                return photoUrl(path);
+            });
+        url.catch(() => thumbUrls.delete(path));
+        thumbUrls.set(path, url);
+    }
+    return thumbUrls.get(path);
+}
+
+// Older photos get their thumbnail the first time someone who can edit the
+// inventory sees them, one at a time so the visible photos load first. This
+// downloads the photo with getBlob, which needs CORS on the Storage bucket;
+// if that fails, it stops trying until the page is reloaded.
+const thumbsQueued = new Set();
+let thumbQueue = Promise.resolve();
+let thumbBackfillOff = false;
+
+function backfillThumb(path) {
+    if (thumbBackfillOff || thumbsQueued.has(path) || !can("inventory", "edit")) return;
+    thumbsQueued.add(path);
+    thumbQueue = thumbQueue.then(async () => {
+        if (thumbBackfillOff) return;
+        try {
+            const { storageSdk, storage } = await loadStorage();
+            const blob = await storageSdk.getBlob(storageSdk.ref(storage, path));
+            await uploadThumb(storageSdk, storage, blob, path);
+        } catch (err) {
+            if (err.code !== "storage/object-not-found") thumbBackfillOff = true;
+            console.warn("Admin: couldn't add a thumbnail for", path, err);
+        }
+    });
+}
+
+// Item photos are saved as a JPEG with a long edge of at most INV_PHOTO_EDGE
+// px, whatever their size (enough to tell items apart, and a few hundred KB).
+// GIFs, and photos the browser can't open, are kept as they are.
+const INV_PHOTO_EDGE = 1600;
+const INV_PHOTO_QUALITY = 0.82;
+
+async function shrinkItemPhoto(file) {
+    if (!/^image\//i.test(fileType(file)) || /gif$/i.test(fileType(file))) return file;
+    try {
+        const blob = await resizeToJpeg(file, INV_PHOTO_EDGE, INV_PHOTO_QUALITY);
+        if (!blob || blob.size >= file.size) return file;
+        return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg", lastModified: file.lastModified });
+    } catch (err) {
+        console.warn("Admin: couldn't shrink item photo, uploading as is", err);
+        return file;
+    }
+}
+
+// Photos added before that (up to 2400px, or full size under 2 MB) are
+// swapped for a smaller copy the first time an owner opens the page, one at a
+// time in the background. Storage files can't be replaced, so each copy is a
+// new file; the item then points at it (in a transaction, skipped if the
+// photo was removed meanwhile) and the old photo and its thumbnail are
+// deleted. Photos already checked are remembered in localStorage
+// (PHOTOS_CHECKED_KEY) so they aren't checked again.
+const INV_REDO_OVER_BYTES = 500 * 1024;
+const PHOTOS_CHECKED_KEY = "hph-admin-photos-checked";
+let shrinkingOldPhotos = false;
+
+async function shrinkOldPhotos() {
+    if (role !== "admin" || shrinkingOldPhotos) return;
+    let checked;
+    try { checked = new Set(JSON.parse(localStorage.getItem(PHOTOS_CHECKED_KEY) || "[]")); } catch { checked = new Set(); }
+    const remember = (path) => {
+        checked.add(path);
+        try { localStorage.setItem(PHOTOS_CHECKED_KEY, JSON.stringify([...checked])); } catch { /* not saved, checked again next time */ }
+    };
+    const todo = data.inventory.flatMap((item) => serialList(item.photos)
+        .filter((path) => !checked.has(path))
+        .map((path) => ({ id: item.id, path })));
+    if (!todo.length) return;
+    shrinkingOldPhotos = true;
+    let swappedAny = false;
+    try {
+        const { storageSdk, storage } = await loadStorage();
+        for (const { id, path } of todo) {
+            // Leave a photo alone while its item's edit form is open here.
+            if (formOpen && selected && selected.tab === "inventory" && selected.id === id) continue;
+            try {
+                const photoRef = storageSdk.ref(storage, path);
+                const { size } = await storageSdk.getMetadata(photoRef);
+                const small = size > INV_REDO_OVER_BYTES
+                    ? await resizeToJpeg(await storageSdk.getBlob(photoRef), INV_PHOTO_EDGE, INV_PHOTO_QUALITY).catch(() => null)
+                    : null;
+                if (!small || small.size > size * 0.8) { remember(path); continue; }
+                const name = path.split("/").pop().replace(/^\d+-\d+-/, "").replace(/\.[^.]+$/, "");
+                const newPath = `inventory/${id}/${Date.now()}-1-${safeFileName(name)}.jpg`;
+                await storageSdk.uploadBytes(storageSdk.ref(storage, newPath), small, { contentType: "image/jpeg", cacheControl: INV_CACHE });
+                await uploadThumb(storageSdk, storage, small, newPath)
+                    .catch((err) => console.warn("Admin: couldn't add a thumbnail for", newPath, err));
+                const itemRef = firestore.doc(db, "inventory", id);
+                const photos = await firestore.runTransaction(db, async (tx) => {
+                    const snap = await tx.get(itemRef);
+                    const current = snap.exists() ? serialList(snap.data().photos) : [];
+                    if (!current.includes(path)) return null;
+                    const next = current.map((p) => (p === path ? newPath : p));
+                    tx.update(itemRef, { photos: next, updatedAt: firestore.serverTimestamp(), updatedBy: currentEmail });
+                    return next;
+                });
+                if (photos) {
+                    await deletePhotos([path]);
+                    const local = data.inventory.find((i) => i.id === id);
+                    if (local) {
+                        local.photos = photos;
+                        local.updatedAt = firestore.Timestamp.now();
+                        local.updatedBy = currentEmail;
+                    }
+                    swappedAny = true;
+                } else {
+                    await deletePhotos([newPath]);
+                }
+                remember(path);
+                remember(newPath);
+            } catch (err) {
+                if (err.code === "storage/object-not-found") { remember(path); continue; }
+                // Offline, or the rules aren't published: try again next time.
+                console.warn("Admin: couldn't shrink older item photo", path, err);
+                break;
+            }
+        }
+    } finally {
+        shrinkingOldPhotos = false;
+        // Only the list: re-showing an open item could drop a stock change
+        // that's waiting to save. It picks up the new photo when reopened.
+        if (swappedAny) renderList();
+    }
+}
+
+// Deletes item photos and their thumbnails (missing ones are fine).
+async function deletePhotos(paths) {
+    if (!paths.length) return;
+    const { storageSdk, storage } = await loadStorage();
+    await Promise.all(paths.flatMap((path) => [path, thumbPath(path)]).map((path) => storageSdk.deleteObject(storageSdk.ref(storage, path)).catch((err) => {
+        if (err.code !== "storage/object-not-found") console.warn("Admin: couldn't delete item photo", path, err);
+    })));
+}
+
 // The square photo beside an item's name (its first photo, or a box icon).
 function itemThumb(item) {
     const path = serialList(item.photos)[0];
@@ -4667,8 +4992,9 @@ function itemThumb(item) {
         const img = el("img");
         img.alt = "";
         img.loading = "lazy";
+        img.decoding = "async";
         thumb.append(img);
-        photoUrl(path)
+        thumbUrl(path)
             .then((url) => { img.src = url; })
             .catch(() => thumb.classList.add("admin-inv-thumb-broken"));
     } else {
@@ -4683,7 +5009,7 @@ function hydrateThumbs(root) {
     for (const thumb of root.querySelectorAll(".admin-inv-thumb[data-photo]")) {
         const img = thumb.querySelector("img");
         if (!img || img.getAttribute("src")) continue;
-        photoUrl(thumb.dataset.photo)
+        thumbUrl(thumb.dataset.photo)
             .then((url) => { img.src = url; })
             .catch(() => thumb.classList.add("admin-inv-thumb-broken"));
     }
@@ -4728,14 +5054,15 @@ function itemGallery(item) {
         more.addEventListener("click", () => open(0));
         info.append(more);
     }
+    // The profile photo is the first photo's thumbnail; the viewer gets the
+    // full photos.
     const load = () => {
         avatar.classList.add("loading");
-        Promise.all(paths.map((path) => photoUrl(path).catch(() => ""))).then((list) => {
-            urls = list;
-            avatar.classList.remove("loading");
-            if (urls[0]) img.src = urls[0];
-            else avatar.classList.add("broken");
-        });
+        thumbUrl(paths[0])
+            .then((url) => { img.src = url; })
+            .catch(() => avatar.classList.add("broken"))
+            .finally(() => avatar.classList.remove("loading"));
+        Promise.all(paths.map((path) => photoUrl(path).catch(() => ""))).then((list) => { urls = list; });
     };
     return { node: profile, load };
 }
@@ -4876,15 +5203,18 @@ function renderInventoryItem(item) {
         summary.querySelector(".admin-entry-main").append(tagLine);
     }
     summary.prepend(itemThumb(item));
-    summary.insertBefore(quickStepper(item), summary.querySelector(".admin-entry-date"));
+    if (can("inventory", "edit")) summary.insertBefore(quickStepper(item), summary.querySelector(".admin-entry-date"));
 
     const actions = el("div", "admin-actions admin-install-entry-actions");
     const error = el("span", "admin-action-error");
-    const edit = el("button", "admin-action");
-    edit.type = "button";
-    edit.append(el("span", "material-symbols-rounded", "edit"), "Edit item");
-    edit.addEventListener("click", () => showItemForm(item));
-    actions.append(error, edit);
+    actions.append(error);
+    if (can("inventory", "edit")) {
+        const edit = el("button", "admin-action");
+        edit.type = "button";
+        edit.append(el("span", "material-symbols-rounded", "edit"), "Edit item");
+        edit.addEventListener("click", () => showItemForm(item));
+        actions.append(edit);
+    }
     if (canDeleteItem(item)) {
         const remove = el("button", "admin-action admin-action-danger");
         remove.type = "button";
@@ -4909,7 +5239,8 @@ function renderInventoryItem(item) {
 
     const body = el("div", "admin-inv");
     const gallery = itemGallery(item);
-    body.append(gallery.node, stockPanel(item));
+    body.append(gallery.node);
+    if (can("inventory", "edit")) body.append(stockPanel(item));
 
     const list = el("dl", "admin-details");
     list.append(
@@ -5306,7 +5637,9 @@ function itemForm(item) {
     };
     const category = field("Category *", select(INV_CATEGORIES, item ? item.category || "" : "", "Choose a category"));
     const unit = field("Unit", select(INV_UNITS, item ? unitOf(item) : "pcs"));
-    const qty = item ? null : field("Starting count *", input("number", "0", { min: 0, max: INV_MAX_QTY, step: 1, inputMode: "numeric" }));
+    // Starts empty (a grey "0" placeholder) so the count can be typed straight
+    // in; left blank, it's saved as 0.
+    const qty = item ? null : field("Starting count *", input("number", "", { min: 0, max: INV_MAX_QTY, step: 1, inputMode: "numeric", placeholder: "0" }));
     const lowAt = field("Warn to restock at or below", input("number", item && item.lowAt ? String(item.lowAt) : "", { min: 0, max: INV_MAX_QTY, step: 1, inputMode: "numeric", placeholder: "e.g. 5" }), { hint: "Leave blank for no warning (it still warns when none are left)." });
     const note = field("Note", el("textarea"), { wide: true });
     note.rows = 3;
@@ -5324,7 +5657,8 @@ function itemForm(item) {
     picker.accept = "image/*";
     picker.multiple = true;
     picker.hidden = true;
-    const addPhoto = el("button", "admin-ck-tool admin-ck-tool-main");
+    // A standard outlined button, like the form's others (Cancel, Add files).
+    const addPhoto = el("button", "admin-action admin-inv-add-photo");
     addPhoto.type = "button";
     addPhoto.append(el("span", "material-symbols-rounded", "photo_camera"), "Add photo");
     addPhoto.addEventListener("click", () => picker.click());
@@ -5352,7 +5686,7 @@ function itemForm(item) {
     const savedUrls = new Map();
     const savedUrl = (path) => {
         if (!savedUrls.has(path)) {
-            savedUrls.set(path, loadStorage().then(({ storageSdk, storage }) => storageSdk.getDownloadURL(storageSdk.ref(storage, path))));
+            savedUrls.set(path, thumbUrl(path));
         }
         return savedUrls.get(path);
     };
@@ -5447,10 +5781,13 @@ async function saveItem(existing, values, startQty, kept, files) {
         const { storageSdk, storage } = await loadStorage();
         let n = 0;
         for (const file of files) {
-            const prepared = await shrinkImage(file);
+            const prepared = await shrinkItemPhoto(file);
             if (prepared.size > MAX_FILE_BYTES) throw userError(`${file.name} is over 10 MB.`);
             const path = `inventory/${itemRef.id}/${Date.now()}-${++n}-${safeFileName(prepared.name)}`;
-            await storageSdk.uploadBytes(storageSdk.ref(storage, path), prepared, { contentType: fileType(prepared) || "image/jpeg" });
+            await storageSdk.uploadBytes(storageSdk.ref(storage, path), prepared, { contentType: fileType(prepared) || "image/jpeg", cacheControl: INV_CACHE });
+            // Without a thumbnail the photo still shows, just full size.
+            await uploadThumb(storageSdk, storage, prepared, path)
+                .catch((err) => console.warn("Admin: couldn't add a thumbnail for", path, err));
             uploaded.push(path);
         }
     }
@@ -5462,13 +5799,7 @@ async function saveItem(existing, values, startQty, kept, files) {
             updatedAt: firestore.serverTimestamp(),
             updatedBy: currentEmail,
         });
-        const removed = serialList(existing.photos).filter((path) => !kept.includes(path));
-        if (removed.length) {
-            const { storageSdk, storage } = await loadStorage();
-            await Promise.all(removed.map((path) => storageSdk.deleteObject(storageSdk.ref(storage, path)).catch((err) => {
-                if (err.code !== "storage/object-not-found") console.warn("Admin: couldn't delete item photo", path, err);
-            })));
-        }
+        await deletePhotos(serialList(existing.photos).filter((path) => !kept.includes(path)));
     } else {
         const logRef = firestore.doc(firestore.collection(db, "inventoryLog"));
         const batch = firestore.writeBatch(db);
@@ -5501,13 +5832,7 @@ async function saveItem(existing, values, startQty, kept, files) {
 
 async function deleteItem(item) {
     await firestore.deleteDoc(firestore.doc(db, "inventory", item.id));
-    const paths = serialList(item.photos);
-    if (paths.length) {
-        const { storageSdk, storage } = await loadStorage();
-        await Promise.all(paths.map((path) => storageSdk.deleteObject(storageSdk.ref(storage, path)).catch((err) => {
-            if (err.code !== "storage/object-not-found") console.warn("Admin: couldn't delete item photo", path, err);
-        })));
-    }
+    await deletePhotos(serialList(item.photos));
 }
 
 // Stock on hand: item / running-low / out-of-stock tiles and the restock
@@ -5685,6 +6010,277 @@ lowFilterButton.addEventListener("click", () => {
 inventoryActions.querySelector(".admin-add-item").addEventListener("click", () => showItemForm(null));
 
 
+// --------------------------------------------------------------- accounts
+//
+// Who can use this page, and which pages (Main admins only). Owners
+// (OWNER_EMAILS) are the Main admins: they see everything and can't be
+// changed here. Everyone else is a user with a Firestore staffRoles/{email}
+// entry (the ID is the email in lower case): `access`, a level per page
+// ("view", "edit" or "delete" = edit + delete; a page left out is off), an
+// optional `name`, and who added and last changed it. Removing access turns
+// every page off; the entry stays as a record. The original Team Workspace and
+// installer emails show as built-in accounts (LEGACY_ACCESS) until they're
+// given an entry. The rules (can() and the staffRoles match in
+// /firestore.rules and /storage.rules) are what enforce all this. A change
+// applies in Firebase at once; the person's page shows it after they reload.
+
+const accountsActions = document.querySelector(".admin-accounts-actions");
+
+const LEVEL_HELP = "View: see the page. Edit: also add and change entries (and delete their own installs, inventory items and wishlist items). Edit + delete: also delete anyone's entries.";
+const SIGN_IN_HELP = "They can use “Sign in with Google” with this email straight away. For a password instead, create it in the Firebase console → Authentication → Users → Add user, with this email.";
+const EMAIL_PATTERN = /^[^@\s/]+@[^@\s/]+\.[^@\s/]+$/;
+
+// Every account: owners, then users by email.
+function buildAccounts(docs) {
+    const saved = new Map(docs.filter((d) => !isOwnerEmail(d.id))
+        .map((d) => [d.id, { ...d, email: d.id, name: d.name || "", access: d.access || {}, source: "page" }]));
+    const list = OWNER_EMAILS.map((email) => ({ id: email, email, name: "", access: {}, source: "owner" }));
+    for (const [email, pages] of Object.entries(LEGACY_ACCESS)) {
+        if (!saved.has(email)) list.push({ id: email, email, name: "", access: pages, source: "built-in" });
+    }
+    const users = [...list.filter((a) => a.source !== "owner"), ...saved.values()]
+        .sort((a, b) => hasAccess(b) - hasAccess(a) || a.email.localeCompare(b.email));
+    return [...list.filter((a) => a.source === "owner"), ...users];
+}
+
+const hasAccess = (a) => a.source === "owner" || visiblePages(a.access).length > 0;
+const accountRoleLabel = (a) => (a.source === "owner" ? "Main admin" : hasAccess(a) ? "User" : "No access");
+const canEditAccount = (a) => role === "admin" && a.source !== "owner";
+
+// "Ocular Visits (Edit), NDA (View)".
+function accessSummary(a) {
+    if (a.source === "owner") return "Everything";
+    const pages = ACCESS_PAGES.filter(([key]) => ACCESS_LEVELS.includes(a.access[key]))
+        .map(([key, label]) => `${label} (${LEVEL_LABELS[a.access[key]]})`);
+    return pages.length ? pages.join(", ") : "No pages";
+}
+
+function accountBadge(a) {
+    const kind = a.source === "owner" ? "" : hasAccess(a) ? "admin-badge-stage" : "admin-badge-off";
+    return el("span", `admin-badge ${kind}`.trim(), accountRoleLabel(a));
+}
+
+function accountErrorMessage(err) {
+    if (err && err.userMessage) return err.userMessage;
+    return err && err.code === "permission-denied"
+        ? "Permission denied. Publish the latest /firestore.rules in the Firebase console."
+        : "Couldn't save. Check your connection and try again.";
+}
+
+// One row per page with Off / View / Edit / Edit + delete. Returns the
+// element and a function reading the chosen levels ({ page: level }).
+function accessPicker(current) {
+    const box = el("fieldset", "admin-access");
+    box.append(el("legend", "admin-label", "Pages they can use"));
+    const selects = {};
+    for (const [key, label] of ACCESS_PAGES) {
+        const row = el("label", "admin-access-row");
+        const select = el("select", "admin-select");
+        for (const level of ["off", ...ACCESS_LEVELS]) {
+            const option = el("option", "", LEVEL_LABELS[level]);
+            option.value = level;
+            select.append(option);
+        }
+        select.value = ACCESS_LEVELS.includes(current[key]) ? current[key] : "off";
+        const sync = () => row.classList.toggle("admin-access-on", select.value !== "off");
+        select.addEventListener("change", sync);
+        sync();
+        row.append(el("span", "admin-access-name", label), select);
+        box.append(row);
+        selects[key] = select;
+    }
+    box.append(el("p", "admin-serial-summary", LEVEL_HELP));
+    box.append(el("p", "admin-serial-summary", "Anyone who can edit a checklist page can also see the clients' names, phones and addresses, to pick the job."));
+    const read = () => Object.fromEntries(Object.entries(selects)
+        .filter(([, select]) => select.value !== "off").map(([key, select]) => [key, select.value]));
+    const set = (map) => { for (const [key, select] of Object.entries(selects)) { select.value = map[key] || "off"; select.dispatchEvent(new Event("change")); } };
+    return { node: box, read, set };
+}
+
+// Saves an account's name and pages: a new entry, or a change to one.
+async function saveAccount(existing, email, values) {
+    const by = auth.currentUser ? auth.currentUser.email : currentEmail;
+    const ref = firestore.doc(db, "staffRoles", email);
+    const stamp = { updatedAt: firestore.serverTimestamp(), updatedBy: by };
+    if (existing && existing.source === "page") {
+        await firestore.updateDoc(ref, { ...values, ...stamp });
+    } else {
+        await firestore.setDoc(ref, { ...values, createdAt: firestore.serverTimestamp(), createdBy: by, ...stamp });
+    }
+}
+
+function renderAccount(a) {
+    const meta = [a.name ? a.email : "", accessSummary(a)].filter(Boolean).join(" · ");
+    const details = entryShell(a.name || a.email, meta, toDate(a.updatedAt) || toDate(a.createdAt), {
+        badge: accountBadge(a), dim: !hasAccess(a), dateText: a.createdAt ? undefined : " ",
+    });
+
+    // The editor (not for Main admins).
+    if (canEditAccount(a)) {
+        const form = el("form", "admin-account-editor");
+        form.noValidate = true;
+        const nameField = el("label", "admin-field");
+        const nameInput = el("input");
+        nameInput.type = "text";
+        nameInput.maxLength = 100;
+        nameInput.value = a.name || "";
+        nameInput.placeholder = "e.g. Juan Dela Cruz (optional)";
+        nameField.append(el("span", "admin-label", "Name"), nameInput);
+        const picker = accessPicker(a.access);
+
+        const actions = el("div", "admin-actions admin-install-entry-actions");
+        const error = el("span", "admin-action-error");
+        const save = el("button", "admin-action admin-action-primary");
+        save.type = "submit";
+        save.append(el("span", "material-symbols-rounded", "check_circle"), "Save changes");
+        actions.append(error);
+        if (hasAccess(a)) {
+            const remove = el("button", "admin-action admin-action-danger");
+            remove.type = "button";
+            remove.append(el("span", "material-symbols-rounded", "person_remove"), "Remove access");
+            remove.addEventListener("click", () => {
+                if (!confirm(`Remove ${a.email}'s access to every page? You can give it back later.`)) return;
+                picker.set({});
+                form.requestSubmit();
+            });
+            actions.append(remove);
+        }
+        actions.append(save);
+        form.append(nameField, picker.node, actions);
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            error.textContent = "";
+            form.querySelectorAll("button").forEach((b) => { b.disabled = true; });
+            try {
+                await saveAccount(a, a.email, { name: tidyName(nameInput.value), access: picker.read() });
+                if (desktop.matches) selected = { tab: "accounts", id: a.email };
+                await loadSubmissions();
+            } catch (err) {
+                console.error("Admin: saving account failed", err);
+                error.textContent = accountErrorMessage(err);
+                form.querySelectorAll("button").forEach((b) => { b.disabled = false; });
+            }
+        });
+        details.append(form);
+    }
+
+    const list = el("dl", "admin-details");
+    list.append(
+        detailRow("Email", a.email),
+        detailRow("Account", accountRoleLabel(a)),
+        detailRow("Pages", a.source === "owner"
+            ? "Everything, including the overview and this Accounts section. Main admins are set in the page's code, so they can't be changed here."
+            : ACCESS_PAGES.filter(([key]) => ACCESS_LEVELS.includes(a.access[key])).map(([key, label]) => `${label}: ${LEVEL_LABELS[a.access[key]]}`).join("\n") || "None", { wide: true }),
+    );
+    if (a.name) list.append(detailRow("Name", a.name));
+    if (a.source === "built-in") {
+        list.append(detailRow("Note", "One of the original accounts. Its pages come from the page's code until you save a change here.", { wide: true }));
+    }
+    if (a.createdAt) list.append(detailRow("Added", `${formatDate(toDate(a.createdAt))}${a.createdBy ? ` by ${a.createdBy}` : ""}`, { wide: true }));
+    if (a.updatedAt && String(toDate(a.updatedAt)) !== String(toDate(a.createdAt))) {
+        list.append(detailRow("Last changed", `${formatDate(toDate(a.updatedAt))}${a.updatedBy ? ` by ${a.updatedBy}` : ""}`, { wide: true }));
+    }
+    if (hasAccess(a) && a.source !== "owner") list.append(detailRow("Signing in", SIGN_IN_HELP, { wide: true }));
+    details.append(ticket("accounts", { ...a, id: "" }, list));
+    return details;
+}
+
+// The add form, in the detail pane (top of the page on phones).
+function showAccountForm() {
+    formOpen = true;
+    itemFormOpen = false;
+    selected = null;
+    setBackButton();
+    detailPane.querySelector(".admin-detail-kind").textContent = "New user";
+    const main = el("div", "admin-entry-main");
+    main.append(
+        el("span", "admin-entry-title", "Add a user"),
+        el("span", "admin-entry-meta", "Give someone access to this page, and choose which pages they can use."),
+    );
+    detailPane.querySelector(".admin-detail-title").replaceChildren(main);
+    detailPane.querySelector(".admin-detail-body").replaceChildren(accountForm());
+    overview.hidden = true;
+    detailPane.hidden = false;
+    mainArea.scrollTop = 0;
+    if (!desktop.matches) detailPane.scrollIntoView({ block: "start" });
+    markSelected();
+}
+
+function accountForm() {
+    const form = el("form", "admin-install-form admin-account-form");
+    form.noValidate = true;
+    const grid = el("div", "admin-install-grid");
+    const field = (label, input, { wide, hint } = {}) => {
+        const wrap = el("label", wide ? "admin-field admin-install-wide" : "admin-field");
+        wrap.append(el("span", "admin-label", label), input);
+        if (hint) wrap.append(hint);
+        grid.append(wrap);
+        return input;
+    };
+    const email = el("input");
+    email.type = "email";
+    email.maxLength = 200;
+    email.placeholder = "name@example.com";
+    email.autocomplete = "off";
+    field("Email *", email, { hint: el("span", "admin-serial-summary", SIGN_IN_HELP) });
+    const name = el("input");
+    name.type = "text";
+    name.maxLength = 100;
+    name.placeholder = "e.g. Juan Dela Cruz (optional)";
+    field("Name", name);
+    const picker = accessPicker({});
+    picker.node.classList.add("admin-install-wide");
+    grid.append(picker.node);
+
+    const actions = el("div", "admin-install-form-actions admin-inv-form-actions");
+    const error = el("p", "admin-error admin-install-error");
+    error.setAttribute("role", "alert");
+    const submit = el("button", "admin-action admin-action-primary");
+    submit.type = "submit";
+    submit.append(el("span", "material-symbols-rounded", "person_add"), "Add user");
+    const cancel = el("button", "admin-action");
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+    cancel.addEventListener("click", closeEntry);
+    actions.append(error, submit, cancel);
+    form.append(grid, actions);
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        error.textContent = "";
+        const address = email.value.trim().toLowerCase();
+        const pages = picker.read();
+        if (!EMAIL_PATTERN.test(address)) { error.textContent = "Enter a valid email address."; email.focus(); return; }
+        if (isOwnerEmail(address)) { error.textContent = "That's a Main admin account. It always has every page."; email.focus(); return; }
+        if (!Object.keys(pages).length) { error.textContent = "Choose at least one page they can use."; return; }
+        const existing = data.accounts.find((a) => a.email === address);
+        if (existing && hasAccess(existing) && !confirm(`${address} already has access (${accessSummary(existing)}). Replace it with what you've chosen?`)) return;
+        submit.disabled = true;
+        cancel.disabled = true;
+        try {
+            await saveAccount(existing, address, { name: tidyName(name.value), access: pages });
+            formOpen = false;
+            selected = { tab: "accounts", id: address };
+            await loadSubmissions();
+        } catch (err) {
+            console.error("Admin: adding account failed", err);
+            error.textContent = accountErrorMessage(err);
+            submit.disabled = false;
+            cancel.disabled = false;
+        }
+    });
+    return form;
+}
+
+accountsActions.querySelector(".admin-add-account").addEventListener("click", showAccountForm);
+
+// The overview's "Staff accounts" tile opens the Accounts section.
+document.querySelectorAll("[data-open-tab]").forEach((tile) => {
+    tile.addEventListener("click", () => selectTab(tile.dataset.openTab));
+});
+
+
 // --------------------------------------------------------------- wishlist
 //
 // Things the team wants bought (tools, supplies, equipment), with a price.
@@ -5706,16 +6302,16 @@ const wishPrice = (w) => (Number.isFinite(w.price) ? w.price : 0);
 const wishQty = (w) => (Number.isInteger(w.qty) && w.qty > 0 ? w.qty : 1);
 const wishTotal = (w) => Math.round(wishPrice(w) * wishQty(w) * 100) / 100;
 const peso = (n) => `₱${n.toLocaleString("en-PH", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
-const canEditWish = (w) => wishStatus(w) === "open" && (role === "admin" || (w.createdBy || "").toLowerCase() === currentEmail);
-const canDeleteWish = (w) => role === "admin" || (wishStatus(w) === "open" && (w.createdBy || "").toLowerCase() === currentEmail);
+const canEditWish = (w) => wishStatus(w) === "open"
+    && (can("wishlist", "delete") || (can("wishlist", "edit") && (w.createdBy || "").toLowerCase() === currentEmail));
+const canDeleteWish = (w) => can("wishlist", "delete")
+    || (can("wishlist", "edit") && wishStatus(w) === "open" && (w.createdBy || "").toLowerCase() === currentEmail);
 
 // Open items first, then newest first (the list arrives newest first).
 function byWishStatus(a, b) {
     return (wishStatus(a) === "completed") - (wishStatus(b) === "completed");
 }
 
-// True while the encoder's "Add to wishlist" form (its home on this tab) is shown.
-const wishHomeShown = () => !detailPane.hidden && !selected && Boolean(detailPane.querySelector(".admin-detail-body > .admin-wish-form"));
 
 function wishErrorMessage(err) {
     if (err && err.userMessage) return err.userMessage;
@@ -5839,7 +6435,7 @@ function showWishForm(w) {
     itemFormOpen = false;
     selected = w ? { tab: "wishlist", id: w.id } : null;
     // The encoder's new-item form is its home on this tab: no back button.
-    setBackButton({ hidden: !w && role === "encoder" });
+    setBackButton({ hidden: !w && role === "user" });
     detailPane.querySelector(".admin-detail-kind").textContent = w ? "Edit wishlist item" : "New wishlist item";
     const main = el("div", "admin-entry-main");
     main.append(
@@ -5917,7 +6513,7 @@ function wishForm(w) {
     cancel.textContent = w ? "Cancel" : "Clear";
     cancel.addEventListener("click", () => {
         if (w) showEntry("wishlist", w.id);
-        else if (role === "encoder") showWishForm(null);
+        else if (role === "user") showWishForm(null);
         else closeEntry();
     });
     actions.append(error, submit, cancel);
@@ -6016,13 +6612,6 @@ function selectTab(name) {
         else if (desktop.matches && inventoryHomeShown()) closeEntry();
         else if (!selected && !formOpen) overview.hidden = true;
     }
-    // The encoder: "Stock on hand" on the Inventory tab; leaving it goes back
-    // to its home, the "Add installation" form.
-    if (role === "encoder") {
-        if (name === "inventory" && (!selected || inventoryHomeShown())) showInventoryHome();
-        else if (name === "wishlist" && (!selected || inventoryHomeShown())) showWishForm(null);
-        else if (inventoryHomeShown() || (name !== "wishlist" && wishHomeShown())) closeEntry();
-    }
     // Phones: start the section at the top (also when an overview link opened it).
     if (!desktop.matches) window.scrollTo({ top: 0 });
     document.querySelectorAll(".admin-tab").forEach((t) => {
@@ -6037,19 +6626,22 @@ function selectTab(name) {
     productFilter.hidden = name !== "waitlist";
     sourceFilter.hidden = name !== "visits";
     categoryFilter.hidden = name !== "inventory";
-    installActions.hidden = name !== "installs";
+    // Add buttons only where this account can edit.
+    installActions.hidden = name !== "installs" || !can("installs", "edit");
     visitActions.hidden = name !== "visits" || role !== "admin";
-    checklistActions.hidden = !CHECKLIST_TYPES.includes(name);
-    addEntryActions.hidden = !["visits", "waitlist"].includes(name) || !(role === "admin" || role === "encoder");
+    checklistActions.hidden = !CHECKLIST_TYPES.includes(name) || !can(name, "edit");
+    addEntryActions.hidden = !["visits", "waitlist"].includes(name) || !can(name, "edit");
     addEntryActions.querySelector(".admin-add-entry-text").textContent = name === "waitlist" ? "Add sign-up" : "Add visit request";
     inventoryActions.hidden = name !== "inventory";
+    inventoryActions.querySelector(".admin-add-item").hidden = !can("inventory", "edit");
     wishlistActions.hidden = name !== "wishlist";
+    wishlistActions.querySelector(".admin-add-wish").hidden = !can("wishlist", "edit");
+    accountsActions.hidden = name !== "accounts" || role !== "admin";
     updateStatusFilter();
     renderList();
-    // The installer's right-hand pane follows the tab: the picker for it, or
-    // the stock summary.
-    if (role === "installer" && CHECKLIST_TYPES.includes(name)) showChecklistStart(name);
-    else if (role === "installer" && name === "inventory") showInventoryHome();
+    // A user's right-hand pane follows the page: its home pane (e.g. the
+    // "start a checklist" picker), unless an entry is open.
+    if (role === "user" && !selected) showUserHome();
 }
 
 addEntryActions.querySelector(".admin-add-entry").addEventListener("click", () => {

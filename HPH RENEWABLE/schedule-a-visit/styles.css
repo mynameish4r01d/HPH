@@ -423,6 +423,7 @@ body.menu-open{
     --visit-accent: #1A1A1A;
     --visit-on-accent: rgb(255, 255, 255);
     --visit-error: #E0483E;
+    --visit-ok: #1E8E3E;
 
     width: min(720px, 90%);
     margin: 0 auto;
@@ -531,6 +532,11 @@ body.menu-open{
 
         &:empty{
             display: none;
+        }
+
+        /* A valid referral code: "✓ Referred by <name>". */
+        &.visit-hint-ok{
+            color: var(--visit-ok);
         }
     }
 
@@ -857,6 +863,7 @@ body.menu-open{
             --visit-surface: #1A1A1A;
             --visit-accent: #EBEBEB;
             --visit-on-accent: #0C0C0C;
+            --visit-ok: #4CC26B;
             color-scheme: dark;
             background-color: #0C0C0C;
         }
@@ -1438,6 +1445,7 @@ body.menu-open{
         --visit-surface: #1A1A1A;
         --visit-accent: #EBEBEB;
         --visit-on-accent: #0C0C0C;
+        --visit-ok: #4CC26B;
         color-scheme: dark;
         background-color: #0C0C0C;
     }
