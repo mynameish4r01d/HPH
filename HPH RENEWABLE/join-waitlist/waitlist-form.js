@@ -1,8 +1,10 @@
 // "Join the Waitlist" form.
 //
 // Saves each sign-up to Firestore (collection: waitlist) in the same
-// Firebase project as the Schedule a Visit form. Sign-ups show on the admin
-// page (../admin/). Security rules: /firestore.rules.
+// Firebase project as the Schedule a Visit form, and an optional electricity
+// bill (up to 3 images/PDFs, handled as on that form) to Cloud Storage under
+// waitlist/<sign-up id>/. Sign-ups show on the admin page (../admin/).
+// Security rules: /firestore.rules and /storage.rules.
 //
 // There are two systems, each a unit plus its own extension battery (see
 // SYSTEMS). People choose how many of each product in one system. Product
@@ -18,7 +20,19 @@ import { tidyName, tidyAddress, tidyOnBlur } from "../text-format.js";
 
 const FIREBASE_VERSION = "12.3.0";
 const COLLECTION = "waitlist";
-const SUBMIT_TIMEOUT_MS = 20000;
+// Longer than a plain sign-up needs, for uploading bills on a slow connection.
+const SUBMIT_TIMEOUT_MS = 90000;
+
+// Uploads, as on the Schedule a Visit form: keep in step with /storage.rules
+// and /firestore.rules.
+const MAX_FILES = 3;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const ACCEPTED_TYPE = /^(image\/.+|application\/pdf)$/;
+// Photos bigger than this (JPEG/PNG/WebP) are shrunk in the browser before
+// upload. Bills stay readable at 2400px on the long edge.
+const SHRINK_OVER_BYTES = 2 * 1024 * 1024;
+const SHRINK_MAX_EDGE = 2400;
+const SHRINKABLE_TYPE = /^image\/(jpeg|png|webp)$/;
 
 // Keep in step with index.html and isValidWaitlist() in /firestore.rules.
 // Batteries per unit comes from the TSUN data sheets (max. 4 expansion packs).
@@ -44,6 +58,16 @@ const systemField = form.querySelector(".visit-system-field");
 const qtyField = form.querySelector(".visit-qty-field");
 const estimateLines = qtyField.querySelector(".visit-estimate-lines");
 const estimateAmount = qtyField.querySelector(".visit-estimate-amount");
+const fileInput = form.querySelector('[name="files"]');
+const fileList = form.querySelector(".visit-file-list");
+
+// Files chosen so far. Each pick adds to this list (a file input on its own
+// replaces the previous pick), so bills can be added one at a time.
+// `sourceKeys` remembers each original file (name, size, date) so picking the
+// same one twice is ignored even after it was shrunk and renamed.
+let chosenFiles = [];
+let sourceKeys = [];
+const sourceKey = (f) => `${f.name}|${f.size}|${f.lastModified}`;
 
 
 // ------------------------------------------------------ system + quantities
@@ -158,6 +182,154 @@ if (linkedSystem) {
 }
 
 
+// ------------------------------------------------------- electricity bill
+
+function formatSize(bytes) {
+    return bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+// Some browsers leave file.type empty (e.g. iPhone HEIC photos on Windows),
+// so fall back to the file extension.
+const TYPE_BY_EXTENSION = {
+    jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif",
+    heic: "image/heic", heif: "image/heif", pdf: "application/pdf",
+};
+
+function fileType(file) {
+    if (file.type) return file.type;
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    return TYPE_BY_EXTENSION[ext] || "";
+}
+
+// Large JPEG/PNG/WebP photos -> JPEG at most SHRINK_MAX_EDGE px. Anything
+// else, or anything that fails to shrink, is returned unchanged.
+async function shrinkImage(file) {
+    if (!SHRINKABLE_TYPE.test(fileType(file)) || file.size <= SHRINK_OVER_BYTES) return file;
+    try {
+        const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
+        const scale = Math.min(1, SHRINK_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(bitmap.width * scale);
+        canvas.height = Math.round(bitmap.height * scale);
+        const context = canvas.getContext("2d");
+        context.fillStyle = "#FFFFFF"; // transparent PNG areas -> white, not black
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        bitmap.close();
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+        if (!blob || blob.size >= file.size) return file;
+        const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
+        return new File([blob], name, { type: "image/jpeg", lastModified: file.lastModified });
+    } catch (err) {
+        console.warn("Waitlist: couldn't shrink image, uploading as is", err);
+        return file;
+    }
+}
+
+function fileProblem(files) {
+    if (files.length > MAX_FILES) return `Please choose up to ${MAX_FILES} files.`;
+    if (files.some((f) => !ACCEPTED_TYPE.test(fileType(f)))) return "Only images or PDF files can be uploaded.";
+    if (files.some((f) => f.size > MAX_FILE_BYTES)) return "Each file must be 10 MB or smaller.";
+    return "";
+}
+
+function renderFileList() {
+    fileList.replaceChildren(...chosenFiles.map((file, index) => {
+        const item = document.createElement("li");
+        const name = document.createElement("span");
+        name.className = "visit-file-name";
+        name.textContent = file.name;
+        const size = document.createElement("span");
+        size.className = "visit-file-size";
+        size.textContent = formatSize(file.size);
+        const remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "visit-file-remove";
+        remove.setAttribute("aria-label", `Remove ${file.name}`);
+        remove.innerHTML = '<span class="material-symbols-rounded">close</span>';
+        remove.addEventListener("click", () => {
+            chosenFiles.splice(index, 1);
+            sourceKeys.splice(index, 1);
+            renderFileList();
+            validateField(fileInput);
+        });
+        item.append(name, size, remove);
+        return item;
+    }));
+    fileInput.closest(".visit-upload").hidden = chosenFiles.length >= MAX_FILES;
+}
+
+// Adds picked or dropped files (up to MAX_FILES in total), shrinking large photos.
+async function addFiles(picked) {
+    if (!picked.length) return;
+
+    const room = MAX_FILES - chosenFiles.length;
+    const fresh = picked.filter((f) => !sourceKeys.includes(sourceKey(f)));
+    const adding = fresh.slice(0, room);
+
+    const uploadField = fileInput.closest(".visit-field");
+    const sub = uploadField.querySelector(".visit-upload-sub");
+    const subText = sub.textContent;
+    sub.textContent = "Preparing photos…";
+    const prepared = await Promise.all(adding.map(shrinkImage));
+    sub.textContent = subText;
+
+    chosenFiles = chosenFiles.concat(prepared);
+    sourceKeys = sourceKeys.concat(adding.map(sourceKey));
+    renderFileList();
+
+    if (fresh.length > room) {
+        setFieldError(uploadField, `You can add up to ${MAX_FILES} files. Remove one to add another.`);
+    } else {
+        validateField(fileInput);
+    }
+}
+
+fileInput.addEventListener("change", () => {
+    const picked = Array.from(fileInput.files);
+    // Clear the input so the same file can be picked again after removing it.
+    fileInput.value = "";
+    addFiles(picked);
+});
+
+// Drag and drop onto the upload box. dragDepth counts enter/leave pairs,
+// since moving over the box's own children fires them too.
+const dropZone = fileInput.closest(".visit-upload");
+let dragDepth = 0;
+const hasFiles = (e) => Array.from((e.dataTransfer && e.dataTransfer.types) || []).includes("Files");
+
+dropZone.addEventListener("dragenter", (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth++;
+    dropZone.classList.add("visit-upload-dragover");
+});
+
+dropZone.addEventListener("dragover", (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+});
+
+dropZone.addEventListener("dragleave", () => {
+    dragDepth = Math.max(0, dragDepth - 1);
+    if (!dragDepth) dropZone.classList.remove("visit-upload-dragover");
+});
+
+dropZone.addEventListener("drop", (e) => {
+    if (!hasFiles(e)) return;
+    e.preventDefault();
+    dragDepth = 0;
+    dropZone.classList.remove("visit-upload-dragover");
+    addFiles(Array.from(e.dataTransfer.files));
+});
+
+// A file dropped just outside the box would otherwise make the browser leave
+// the page to open it (losing the form), so ignore drops elsewhere.
+window.addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
+window.addEventListener("drop", (e) => { if (hasFiles(e)) e.preventDefault(); });
+
+
 // -------------------------------------------------------------- validation
 
 function setFieldError(field, message) {
@@ -190,6 +362,7 @@ function validateQuantities() {
 function validateField(input) {
     const field = input.closest(".visit-field");
     if (!field) return input.checkValidity();
+    if (input === fileInput) return setFieldError(field, fileProblem(chosenFiles));
 
     let message = "";
     if (input.validity.valueMissing) {
@@ -247,15 +420,20 @@ function loadFirebase() {
         firebasePromise = Promise.all([
             import(`${base}/firebase-app.js`),
             import(`${base}/firebase-firestore.js`),
-        ]).then(([appSdk, firestore]) => {
+            import(`${base}/firebase-storage.js`),
+        ]).then(([appSdk, firestore, storage]) => {
             const app = appSdk.initializeApp(firebaseConfig);
-            return { firestore, db: firestore.getFirestore(app) };
+            return { firestore, storage, db: firestore.getFirestore(app), bucket: storage.getStorage(app) };
         }).catch((err) => {
             firebasePromise = null;
             throw err;
         });
     }
     return firebasePromise;
+}
+
+function safeFileName(name) {
+    return name.replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(-80) || "file";
 }
 
 function showError(message) {
@@ -283,26 +461,40 @@ form.addEventListener("submit", async (e) => {
         return;
     }
 
+    const files = chosenFiles;
     button.disabled = true;
-    button.textContent = "Sending…";
+    button.textContent = files.length ? "Uploading…" : "Sending…";
 
     try {
-        const { firestore, db } = await loadFirebase();
-        const write = firestore.addDoc(firestore.collection(db, COLLECTION), {
-            system: chosenSystem(),
-            quantities: quantities(),
-            // What the visitor was shown (starting prices), not a quotation.
-            estimatedTotal: estimate(),
-            name: tidyName(value("name")),
-            phone: value("phone"),
-            email: value("email"),
-            address: tidyAddress(value("address")),
-            message: value("message"),
-            consent: true,
-            sourcePage: decodeURIComponent(window.location.pathname).slice(0, 300),
-            status: "new",
-            createdAt: firestore.serverTimestamp(),
-        });
+        const { firestore, storage, db, bucket } = await loadFirebase();
+        const signupRef = firestore.doc(firestore.collection(db, COLLECTION));
+        const write = (async () => {
+            const attachments = [];
+            for (const [i, file] of files.entries()) {
+                const path = `${COLLECTION}/${signupRef.id}/${i + 1}-${safeFileName(file.name)}`;
+                await storage.uploadBytes(storage.ref(bucket, path), file, { contentType: fileType(file) });
+                attachments.push(path);
+            }
+            await firestore.setDoc(signupRef, {
+                system: chosenSystem(),
+                quantities: quantities(),
+                // What the visitor was shown (starting prices), not a quotation.
+                estimatedTotal: estimate(),
+                name: tidyName(value("name")),
+                phone: value("phone"),
+                email: value("email"),
+                address: tidyAddress(value("address")),
+                message: value("message"),
+                // Cloud Storage paths of the uploaded bill (see /storage.rules).
+                // Left out when there's none, so sign-ups without a bill don't
+                // depend on the newer rule that allows this field.
+                ...(attachments.length ? { attachments } : {}),
+                consent: true,
+                sourcePage: decodeURIComponent(window.location.pathname).slice(0, 300),
+                status: "new",
+                createdAt: firestore.serverTimestamp(),
+            });
+        })();
         const timeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), SUBMIT_TIMEOUT_MS));
         await Promise.race([write, timeout]);
         showSuccess();

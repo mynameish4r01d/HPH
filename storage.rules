@@ -23,6 +23,21 @@ service firebase.storage {
       allow list, update: if false;
     }
 
+    // Electricity bills attached to "Join the Waitlist" sign-ups
+    // (HPH RENEWABLE/join-waitlist/, waitlist/<sign-up id>/). Same as visit
+    // requests: anyone may upload a new image or PDF of up to 10 MB (staff
+    // too, when adding a bill on the admin page); admins and the encoder
+    // account can view them and delete them (removing one while editing, or
+    // an admin deleting the sign-up); nobody can replace files.
+    match /waitlist/{signupId}/{fileName} {
+      allow create: if resource == null
+                    && request.resource.size <= 10 * 1024 * 1024
+                    && (request.resource.contentType.matches('image/.*')
+                        || request.resource.contentType == 'application/pdf');
+      allow get, delete: if isAdmin() || isEncoder();
+      allow list, update: if false;
+    }
+
     // Photos on installer checklist items (HPH RENEWABLE/admin/, jobChecklists/
     // <checklist id>/). The installer account and admins can add an image of up
     // to 10 MB, view them and remove them; nobody can replace a file.

@@ -91,6 +91,37 @@ const db = firestore.getFirestore(app);
 // Signed out when the browser tab is closed.
 await authSdk.setPersistence(auth, authSdk.browserSessionPersistence);
 
+// Signed out after this long away from the page (see "auto sign-out" near
+// the end). Coming back more than that after leaving it signed in signs out
+// before anything shows.
+const AWAY_SIGNOUT_MS = 10000;
+const LEFT_AT_KEY = "hph-admin-left-at";
+let leftAt = 0;
+let awayTimer = 0;
+let pickingFile = false;
+let signedOutAway = false;
+let awayOnArrival = false;
+
+function forgetLeaving() {
+    leftAt = 0;
+    clearTimeout(awayTimer);
+    try { sessionStorage.removeItem(LEFT_AT_KEY); } catch { /* nothing kept */ }
+}
+
+try {
+    const left = Number(sessionStorage.getItem(LEFT_AT_KEY));
+    sessionStorage.removeItem(LEFT_AT_KEY);
+    if (left && Date.now() - left >= AWAY_SIGNOUT_MS) {
+        await auth.authStateReady();
+        if (auth.currentUser) {
+            await authSdk.signOut(auth);
+            awayOnArrival = true;
+        }
+    }
+} catch (err) {
+    console.warn("Admin: couldn't check time away", err);
+}
+
 const loginSection = document.querySelector(".admin-login");
 const loginForm = document.querySelector(".admin-login-form");
 const loginError = loginForm.querySelector(".admin-error");
@@ -211,6 +242,10 @@ authSdk.onAuthStateChanged(auth, async (user) => {
         setMenu(false);
         closeEntry();
         show(loginSection);
+        if (signedOutAway || awayOnArrival) {
+            signedOutAway = awayOnArrival = false;
+            forgetLeaving();
+        }
         return;
     }
 
@@ -1346,13 +1381,7 @@ function renderVisit(v) {
     const details = entryShell(v.name, meta, toDate(v.createdAt), {
         dim: isClosed("visits", v), badge: stageBadge("visits", v), stale: staleBadge("visits", v),
     });
-    if (paths.length) {
-        // Paperclip + count on the collapsed entry, so bills are easy to spot.
-        const clip = el("span", "admin-entry-files");
-        clip.title = `${paths.length} attachment${paths.length === 1 ? "" : "s"}`;
-        clip.append(el("span", "material-symbols-rounded", "attach_file"), String(paths.length));
-        details.querySelector(".admin-entry-heading").append(clip);
-    }
+    addFileClip(details, paths);
 
     const list = el("dl", "admin-details");
     list.append(
@@ -1381,20 +1410,31 @@ function renderVisit(v) {
     }
     if (v.editedAt) list.append(editedRow(v));
     appendStage("visits", v, list, details);
-
-    if (paths.length) {
-        const files = el("div", "admin-attachments");
-        files.append(el("span", "admin-attachments-label", `Attachments (${paths.length})`));
-        const fileList = el("ul", "admin-attachment-grid");
-        files.append(fileList);
-        details.append(files);
-
-        // Files are only fetched the first time the entry is opened.
-        details.addEventListener("toggle", () => {
-            if (details.open && !fileList.childElementCount) loadAttachments(paths, fileList);
-        });
-    }
+    addAttachments(details, paths);
     return details;
+}
+
+// Paperclip + count on the collapsed entry, so bills are easy to spot.
+function addFileClip(details, paths) {
+    if (!paths.length) return;
+    const clip = el("span", "admin-entry-files");
+    clip.title = `${paths.length} attachment${paths.length === 1 ? "" : "s"}`;
+    clip.append(el("span", "material-symbols-rounded", "attach_file"), String(paths.length));
+    details.querySelector(".admin-entry-heading").append(clip);
+}
+
+// The entry's files (visit requests; waitlist sign-ups' electricity bills),
+// fetched the first time the entry is opened.
+function addAttachments(details, paths) {
+    if (!paths.length) return;
+    const files = el("div", "admin-attachments");
+    files.append(el("span", "admin-attachments-label", `Attachments (${paths.length})`));
+    const fileList = el("ul", "admin-attachment-grid");
+    files.append(fileList);
+    details.append(files);
+    details.addEventListener("toggle", () => {
+        if (details.open && !fileList.childElementCount) loadAttachments(paths, fileList);
+    });
 }
 
 function renderFeedback(f) {
@@ -1475,6 +1515,8 @@ function renderWaitlist(w) {
     const details = entryShell(w.name, meta, toDate(w.createdAt), {
         dim: isClosed("waitlist", w), badge: stageBadge("waitlist", w), stale: staleBadge("waitlist", w),
     });
+    const paths = serialList(w.attachments);
+    addFileClip(details, paths);
 
     const list = el("dl", "admin-details");
     list.append(
@@ -1491,6 +1533,7 @@ function renderWaitlist(w) {
     if (w.source === "admin") list.append(detailRow("Source", `Added on the admin page${w.createdBy ? ` by ${w.createdBy}` : ""}`, { wide: true }));
     if (w.editedAt) list.append(editedRow(w));
     appendStage("waitlist", w, list, details);
+    addAttachments(details, paths);
     return details;
 }
 
@@ -1718,6 +1761,7 @@ const CSV_COLUMNS = {
         ["Order", (w) => waitlistItems(w).join("; ")],
         ["Estimated total (PHP)", (w) => (Number.isFinite(w.estimatedTotal) ? w.estimatedTotal : "")],
         ["Note", (w) => w.message],
+        ["Attachments", (w) => serialList(w.attachments).length],
         ["Stage", (w) => stageInfo("waitlist", stageOf("waitlist", w)).label],
         ["Stage updated", (w) => csvDate(toDate(w.stageUpdatedAt || w.completedAt))],
         ["Updated by", (w) => w.stageUpdatedBy || w.completedBy],
@@ -2156,11 +2200,15 @@ function usualSerialPrefix(type) {
     return best;
 }
 
-// Turns a serial box (`box` from installForm's field()) into rows: each row
-// is either the shared batch prefix + its last 4 characters, or a full serial
-// (one from another batch). The rows write their serials into the box, which
+// Turns a serial box (`box` from installForm's field()) into batches: each
+// batch has its own prefix (everything but the last 4 characters, editable)
+// and rows where only the last 4 are typed. "Add another prefix" starts a
+// batch for units from a different batch (its prefix starts as a copy of the
+// one above, to edit). Serials that don't fit a batch (an unusual length) are
+// listed as full serials. The rows write their serials into the box, which
 // stays the form's source of truth; "Paste full serials" shows the box for
-// pasting, and what's pasted becomes rows again.
+// pasting, and what's pasted is sorted into batches again (a serial of the
+// usual length from a new batch starts one by itself).
 function serialPicker(box, type, { add, addMany = 0, startWith = 0 }) {
     const textarea = box.input;
     // The field's <label> would send clicks anywhere in it to its first
@@ -2169,26 +2217,33 @@ function serialPicker(box, type, { add, addMany = 0, startWith = 0 }) {
     wrap.append(...box.wrap.childNodes);
     box.wrap.replaceWith(wrap);
     box.wrap = wrap;
-    let prefix = usualSerialPrefix(type);
-    const lastLength = SERIAL_LENGTH[type] - prefix.length;
-    let rows = [];
+    const length = SERIAL_LENGTH[type];
+    const clean = (text) => text.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    // [{ prefix, rows: [{ last }] }], and serials that fit no batch: [{ full }].
+    let groups = [];
+    let odd = [];
 
-    const toRows = (text) => (text || "").toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean).map((sn) => (
-        sn.length === prefix.length + 4 && sn.startsWith(prefix) ? { last: sn.slice(prefix.length) } : { full: sn }
-    ));
-    const serialOf = (row) => (row.full !== undefined ? row.full : row.last ? prefix + row.last : "");
+    // Sorts serial text into batches, keeping the batches in `keep` (their
+    // prefixes) even when empty.
+    const parse = (text, keep = []) => {
+        groups = keep.map((prefix) => ({ prefix, rows: [] }));
+        odd = [];
+        for (const sn of (text || "").toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean)) {
+            let group = groups.find((g) => g.prefix && sn.length === g.prefix.length + 4 && sn.startsWith(g.prefix));
+            if (!group && sn.length === length) {
+                group = { prefix: sn.slice(0, -4), rows: [] };
+                groups.push(group);
+            }
+            if (group) group.rows.push({ last: sn.slice(group.prefix.length) });
+            else odd.push({ full: sn });
+        }
+        if (!groups.length) groups.push({ prefix: usualSerialPrefix(type), rows: [] });
+    };
 
     const editor = el("div", "admin-sn");
-    const head = el("div", "admin-sn-head");
-    const prefixInput = el("input", "admin-sn-prefix");
-    prefixInput.value = prefix;
-    prefixInput.maxLength = SERIAL_LENGTH[type] - 4;
-    prefixInput.spellcheck = false;
-    prefixInput.setAttribute("aria-label", "Batch prefix (all but the last 4 characters)");
-    head.append(el("span", "admin-sn-head-label", "Batch prefix"), prefixInput);
-    const list = el("ol", "admin-sn-rows");
-    const buttons = el("div", "admin-sn-actions");
-    editor.append(head, list, buttons);
+    const batches = el("div", "admin-sn-batches");
+    const footer = el("div", "admin-sn-actions admin-sn-footer");
+    editor.append(batches, footer);
     box.wrap.insertBefore(editor, textarea);
     textarea.classList.add("admin-sn-paste");
     textarea.hidden = true;
@@ -2196,81 +2251,169 @@ function serialPicker(box, type, { add, addMany = 0, startWith = 0 }) {
     let syncing = false;
     const sync = () => {
         syncing = true;
-        textarea.value = rows.map(serialOf).filter(Boolean).join("\n");
+        textarea.value = [
+            ...groups.flatMap((g) => g.rows.filter((row) => row.last).map((row) => g.prefix + row.last)),
+            ...odd.map((row) => row.full).filter(Boolean),
+        ].join("\n");
         textarea.dispatchEvent(new Event("input", { bubbles: true }));
         syncing = false;
     };
 
-    const render = (focus) => {
-        list.replaceChildren(...rows.map((row, i) => {
-            const item = el("li", "admin-sn-row");
-            item.append(el("span", "admin-sn-num", String(i + 1)));
-            let input;
-            if (row.full !== undefined) {
-                input = el("input", "admin-sn-full");
-                input.value = row.full;
-                input.maxLength = 40;
-                input.setAttribute("aria-label", `Serial ${i + 1}`);
-                input.addEventListener("input", () => {
-                    row.full = input.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-                    input.value = row.full;
+    const removeButton = (label, onClick) => {
+        const remove = el("button", "admin-sn-remove");
+        remove.type = "button";
+        remove.setAttribute("aria-label", label);
+        remove.title = label;
+        remove.append(el("span", "material-symbols-rounded", "close"));
+        remove.addEventListener("click", onClick);
+        return remove;
+    };
+
+    // Enter in a row: the next row of its batch (a new one at the end), so
+    // serials can be typed in a run.
+    const onEnter = (input, next) => {
+        input.spellcheck = false;
+        input.autocomplete = "off";
+        input.addEventListener("keydown", (e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            next();
+        });
+    };
+
+    // `focus`: { g, r } (a row), { g, prefix: true } or { odd: r }.
+    const render = (focus = {}) => {
+        let number = 0;
+        const sections = groups.map((g, gi) => {
+            const section = el("div", "admin-sn-group");
+            const head = el("div", "admin-sn-head");
+            const prefixInput = el("input", "admin-sn-prefix");
+            prefixInput.value = g.prefix;
+            prefixInput.maxLength = length - 4;
+            prefixInput.spellcheck = false;
+            prefixInput.dataset.g = gi;
+            prefixInput.setAttribute("aria-label", `Batch ${gi + 1} prefix (all but the last 4 characters)`);
+            // A batch's prefix applies to all its rows.
+            prefixInput.addEventListener("input", () => {
+                g.prefix = clean(prefixInput.value).slice(0, length - 4);
+                prefixInput.value = g.prefix;
+                section.querySelectorAll(".admin-sn-fixed").forEach((fixed) => { fixed.textContent = g.prefix; });
+                sync();
+            });
+            head.append(el("span", "admin-sn-head-label", groups.length > 1 ? `Batch ${gi + 1} prefix` : "Batch prefix"), prefixInput);
+            if (groups.length > 1) {
+                head.append(removeButton(`Remove batch ${gi + 1}`, () => {
+                    const filled = g.rows.filter((row) => row.last).length;
+                    if (filled && !confirm(`Remove batch ${gi + 1} and its ${plural(filled, ["serial", "serials"])}?`)) return;
+                    groups.splice(gi, 1);
+                    render();
                     sync();
-                });
-                item.append(input);
-            } else {
-                item.append(el("span", "admin-sn-fixed", prefix));
-                input = el("input", "admin-sn-last");
+                }));
+            }
+
+            const list = el("ol", "admin-sn-rows");
+            list.replaceChildren(...g.rows.map((row, ri) => {
+                const n = ++number;
+                const item = el("li", "admin-sn-row");
+                item.append(el("span", "admin-sn-num", String(n)), el("span", "admin-sn-fixed", g.prefix));
+                const input = el("input", "admin-sn-last");
                 input.value = row.last || "";
                 input.maxLength = 4;
                 input.placeholder = "····";
-                input.setAttribute("aria-label", `Last 4 characters of serial ${i + 1}`);
+                input.dataset.g = gi;
+                input.dataset.r = ri;
+                input.setAttribute("aria-label", `Last 4 characters of serial ${n}`);
+                input.classList.toggle("short", row.last.length > 0 && row.last.length < 4);
                 input.addEventListener("input", () => {
-                    row.last = input.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 4);
+                    row.last = clean(input.value).slice(0, 4);
                     input.value = row.last;
                     input.classList.toggle("short", row.last.length > 0 && row.last.length < 4);
                     sync();
                 });
-                item.append(input);
-            }
-            // Enter: next row (a new one at the end), so serials can be typed in a run.
-            input.spellcheck = false;
-            input.autocomplete = "off";
-            input.addEventListener("keydown", (e) => {
-                if (e.key !== "Enter") return;
-                e.preventDefault();
-                if (i === rows.length - 1) addRows(1);
-                else list.children[i + 1].querySelector("input").focus();
-            });
-            const remove = el("button", "admin-sn-remove");
-            remove.type = "button";
-            remove.setAttribute("aria-label", `Remove serial ${i + 1}`);
-            remove.append(el("span", "material-symbols-rounded", "close"));
-            remove.addEventListener("click", () => {
-                rows.splice(i, 1);
-                render();
-                sync();
-            });
-            item.append(remove);
-            return item;
-        }));
-        if (focus !== undefined && list.children[focus]) list.children[focus].querySelector("input").focus();
+                onEnter(input, () => {
+                    if (ri === g.rows.length - 1) addRows(gi, 1);
+                    else batches.querySelector(`input[data-g="${gi}"][data-r="${ri + 1}"]`).focus();
+                });
+                item.append(input, removeButton(`Remove serial ${n}`, () => {
+                    g.rows.splice(ri, 1);
+                    render();
+                    sync();
+                }));
+                return item;
+            }));
+
+            const actions = el("div", "admin-sn-actions");
+            const addButton = (label, count) => {
+                const button = el("button", "admin-action");
+                button.type = "button";
+                button.append(el("span", "material-symbols-rounded", "add"), label);
+                button.addEventListener("click", () => addRows(gi, count));
+                actions.append(button);
+            };
+            addButton(add, 1);
+            if (addMany) addButton(`Add ${addMany}`, addMany);
+            section.append(head, list, actions);
+            return section;
+        });
+
+        // Serials that fit no batch, as full serials.
+        if (odd.length) {
+            const section = el("div", "admin-sn-group");
+            section.append(el("div", "admin-sn-head", "Other serials (full)"));
+            const list = el("ol", "admin-sn-rows");
+            list.replaceChildren(...odd.map((row, ri) => {
+                const n = ++number;
+                const item = el("li", "admin-sn-row");
+                const input = el("input", "admin-sn-full");
+                input.value = row.full;
+                input.maxLength = 40;
+                input.dataset.odd = ri;
+                input.setAttribute("aria-label", `Serial ${n}`);
+                input.addEventListener("input", () => {
+                    row.full = clean(input.value);
+                    input.value = row.full;
+                    sync();
+                });
+                onEnter(input, () => {
+                    const next = batches.querySelector(`input[data-odd="${ri + 1}"]`);
+                    if (next) next.focus();
+                });
+                item.append(el("span", "admin-sn-num", String(n)), input, removeButton(`Remove serial ${n}`, () => {
+                    odd.splice(ri, 1);
+                    render();
+                    sync();
+                }));
+                return item;
+            }));
+            section.append(list);
+            sections.push(section);
+        }
+        batches.replaceChildren(...sections);
+
+        const target = focus.odd !== undefined ? batches.querySelector(`input[data-odd="${focus.odd}"]`)
+            : focus.prefix ? batches.querySelector(`.admin-sn-prefix[data-g="${focus.g}"]`)
+            : focus.g !== undefined ? batches.querySelector(`input[data-g="${focus.g}"][data-r="${focus.r}"]`)
+            : null;
+        if (target) {
+            target.focus();
+            if (focus.prefix) target.setSelectionRange(target.value.length, target.value.length);
+        }
     };
 
-    const addRows = (count) => {
-        const first = rows.length;
-        for (let n = 0; n < count; n++) rows.push({ last: "" });
-        render(first);
+    const addRows = (gi, count) => {
+        const first = groups[gi].rows.length;
+        for (let n = 0; n < count; n++) groups[gi].rows.push({ last: "" });
+        render({ g: gi, r: first });
     };
 
-    const addButton = (label, count) => {
-        const button = el("button", "admin-action");
-        button.type = "button";
-        button.append(el("span", "material-symbols-rounded", "add"), label);
-        button.addEventListener("click", () => addRows(count));
-        buttons.append(button);
-    };
-    addButton(add, 1);
-    if (addMany) addButton(`Add ${addMany}`, addMany);
+    // A new batch, its prefix copied from the last one to edit.
+    const addBatch = el("button", "admin-action");
+    addBatch.type = "button";
+    addBatch.append(el("span", "material-symbols-rounded", "playlist_add"), "Add another prefix");
+    addBatch.addEventListener("click", () => {
+        groups.push({ prefix: groups.length ? groups[groups.length - 1].prefix : usualSerialPrefix(type), rows: [{ last: "" }] });
+        render({ g: groups.length - 1, prefix: true });
+    });
     const paste = el("button", "admin-link-button admin-sn-toggle");
     paste.type = "button";
     paste.textContent = "Paste full serials";
@@ -2279,25 +2422,19 @@ function serialPicker(box, type, { add, addMany = 0, startWith = 0 }) {
         paste.textContent = textarea.hidden ? "Paste full serials" : "Hide full serials";
         if (!textarea.hidden) textarea.focus();
     });
-    buttons.append(paste);
+    footer.append(addBatch, paste);
 
-    // Typing or pasting in the box rebuilds the rows.
+    // Typing or pasting in the box sorts the serials into batches again.
     textarea.addEventListener("input", () => {
         if (syncing) return;
-        rows = toRows(textarea.value);
+        parse(textarea.value, groups.map((g) => g.prefix));
         render();
     });
 
-    // A new batch prefix applies to every short row.
-    prefixInput.addEventListener("input", () => {
-        prefixInput.value = prefixInput.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-        prefix = prefixInput.value;
-        render();
-        sync();
-    });
-
-    rows = toRows(textarea.value);
-    if (!rows.length && startWith) rows = Array.from({ length: startWith }, () => ({ last: "" }));
+    parse(textarea.value);
+    if (!groups.some((g) => g.rows.length) && !odd.length && startWith) {
+        groups[0].rows = Array.from({ length: startWith }, () => ({ last: "" }));
+    }
     render();
 }
 
@@ -3324,7 +3461,7 @@ function deleteButton(tab, entry, errorText) {
     remove.type = "button";
     remove.append(el("span", "material-symbols-rounded", "delete"), "Delete");
     remove.addEventListener("click", async () => {
-        const files = tab === "visits" ? serialList(entry.attachments).length : 0;
+        const files = tab === "visits" || tab === "waitlist" ? serialList(entry.attachments).length : 0;
         const what = `${TABS[tab].label.toLowerCase()} from ${entry.name || entry.clientName || entry.fullName || "this client"}`;
         if (!confirm(`Delete this ${what}?${files ? ` Its ${plural(files, ["attachment", "attachments"])} will be deleted too.` : ""} It's removed from Firebase for good and can't be undone.`)) return;
         remove.disabled = true;
@@ -3345,11 +3482,11 @@ function deleteButton(tab, entry, errorText) {
     return remove;
 }
 
-// Deletes the entry, then (visit requests) its uploaded files. A file that's
-// already gone is fine.
+// Deletes the entry, then (visit requests, waitlist sign-ups, checklists) its
+// uploaded files. A file that's already gone is fine.
 async function deleteEntry(tab, entry) {
     await firestore.deleteDoc(firestore.doc(db, TABS[tab].collection, entry.id));
-    const paths = tab === "visits" ? serialList(entry.attachments) : CHECKLIST_TYPES.includes(tab) ? checklistPhotoPaths(entry) : [];
+    const paths = tab === "visits" || tab === "waitlist" ? serialList(entry.attachments) : CHECKLIST_TYPES.includes(tab) ? checklistPhotoPaths(entry) : [];
     if (paths.length) {
         const { storageSdk, storage } = await loadStorage();
         await Promise.all(paths.map((path) => storageSdk.deleteObject(storageSdk.ref(storage, path)).catch((err) => {
@@ -3434,9 +3571,10 @@ function editForm(tab, entry) {
         inputs[spec.name] = input;
     }
 
-    // Attachments (visit requests): keep / remove the current files, add new
-    // ones (images or PDFs, up to MAX_ATTACHMENTS in all).
-    const kept = tab === "visits" ? [...serialList(entry && entry.attachments)] : null;
+    // Attachments (visit requests and waitlist sign-ups, e.g. a bill the client
+    // sent us): keep / remove the current files, add new ones (images or PDFs,
+    // up to MAX_ATTACHMENTS in all).
+    const kept = hasAttachments(tab) ? [...serialList(entry && entry.attachments)] : null;
     const added = [];
     let refreshFiles = () => {};
     if (kept) {
@@ -3474,7 +3612,7 @@ function editForm(tab, entry) {
                 ...added.map((file, i) => row(file.name, `New · ${formatSize(file.size)}`, () => { added.splice(i, 1); refreshFiles(); }, true)),
             );
             const total = kept.length + added.length;
-            const removed = serialList(entry.attachments).length - kept.length;
+            const removed = serialList(entry && entry.attachments).length - kept.length;
             note.textContent = `${plural(total, ["file", "files"])} (up to ${MAX_ATTACHMENTS})`
                 + (added.length ? ` · ${added.length} to upload` : "")
                 + (removed ? ` · ${removed} to delete when you save` : "");
@@ -3527,7 +3665,7 @@ function editForm(tab, entry) {
             depth = 0;
             box.classList.remove("dragging");
             if (add.disabled) {
-                error.textContent = `This request already has ${MAX_ATTACHMENTS} files. Remove one to add another.`;
+                error.textContent = `This ${tab === "visits" ? "request" : "sign-up"} already has ${MAX_ATTACHMENTS} files. Remove one to add another.`;
                 return;
             }
             addFiles([...e.dataTransfer.files]);
@@ -3623,24 +3761,37 @@ function editForm(tab, entry) {
     return form;
 }
 
+// Tabs whose entries keep files in `attachments` (Storage folder named after
+// the collection), which the edit and add forms can manage.
+function hasAttachments(tab) {
+    return tab === "visits" || tab === "waitlist";
+}
+
+// Uploads files added on the admin page into the entry's folder.
+async function uploadEntryFiles(tab, id, files) {
+    const uploaded = [];
+    if (!files.length) return uploaded;
+    const { storageSdk, storage } = await loadStorage();
+    const stamp = Date.now();
+    for (const [i, file] of files.entries()) {
+        const path = `${TABS[tab].collection}/${id}/admin-${stamp}-${i + 1}-${safeFileName(file.name)}`;
+        await storageSdk.uploadBytes(storageSdk.ref(storage, path), file, { contentType: fileType(file) });
+        uploaded.push(path);
+    }
+    return uploaded;
+}
+
 // Uploads new files, saves the entry, then deletes the files that were
 // removed (only once the entry no longer lists them).
 async function saveEdit(tab, entry, values, kept, added) {
     const update = { ...values, editedAt: firestore.serverTimestamp(), editedBy: auth.currentUser.email };
     let removed = [];
-    if (tab === "visits") {
-        const uploaded = [];
-        if (added.length) {
-            const { storageSdk, storage } = await loadStorage();
-            const stamp = Date.now();
-            for (const [i, file] of added.entries()) {
-                const path = `${TABS.visits.collection}/${entry.id}/admin-${stamp}-${i + 1}-${safeFileName(file.name)}`;
-                await storageSdk.uploadBytes(storageSdk.ref(storage, path), file, { contentType: fileType(file) });
-                uploaded.push(path);
-            }
-        }
-        update.attachments = [...kept, ...uploaded];
+    if (hasAttachments(tab)) {
+        const uploaded = await uploadEntryFiles(tab, entry.id, added);
         removed = serialList(entry.attachments).filter((path) => !kept.includes(path));
+        // Waitlist: only when the files changed, so a sign-up that never had
+        // any doesn't gain an empty list.
+        if (tab === "visits" || uploaded.length || removed.length) update.attachments = [...kept, ...uploaded];
     }
     await firestore.updateDoc(firestore.doc(db, TABS[tab].collection, entry.id), update);
     if (removed.length) {
@@ -3722,7 +3873,7 @@ function waitlistOrderFields(grid) {
 }
 
 // Saves a visit request or waitlist sign-up added by hand: uploads its files
-// first (visit requests), then creates it at the New stage.
+// first, then creates it at the New stage.
 async function saveNewEntry(tab, values, added, order) {
     const ref = firestore.doc(firestore.collection(db, TABS[tab].collection));
     const entry = {
@@ -3734,21 +3885,13 @@ async function saveNewEntry(tab, values, added, order) {
         source: "admin",
         createdBy: currentEmail,
     };
+    const uploaded = await uploadEntryFiles(tab, ref.id, added);
     if (tab === "visits") {
-        const uploaded = [];
-        if (added.length) {
-            const { storageSdk, storage } = await loadStorage();
-            const stamp = Date.now();
-            for (const [i, file] of added.entries()) {
-                const path = `${TABS.visits.collection}/${ref.id}/admin-${stamp}-${i + 1}-${safeFileName(file.name)}`;
-                await storageSdk.uploadBytes(storageSdk.ref(storage, path), file, { contentType: fileType(file) });
-                uploaded.push(path);
-            }
-        }
         entry.attachments = uploaded;
     } else {
         delete order.problem;
         Object.assign(entry, order);
+        if (uploaded.length) entry.attachments = uploaded;
     }
     await firestore.setDoc(ref, entry);
     return ref.id;
@@ -5156,21 +5299,83 @@ async function saveQuick(item) {
 // has saved would lose it:
 // save what's waiting straight away and ask the browser to confirm leaving.
 window.addEventListener("beforeunload", (e) => {
+    if (saveWaitingStock().waiting) e.preventDefault();
+});
+
+// Starts saving every count change that's waiting; `saves` settle when done.
+function saveWaitingStock() {
     let waiting = false;
+    const saves = [];
     for (const [id, st] of quick) {
         if (st.delta) {
             clearTimeout(st.timer);
             const item = data.inventory.find((i) => i.id === id);
-            if (item) saveQuick(item);
+            if (item) saves.push(saveQuick(item));
         }
         if (st.delta || st.saving) waiting = true;
     }
     for (const flush of [...panelFlushes]) {
-        flush();
+        saves.push(flush());
         waiting = true;
     }
-    if (waiting) e.preventDefault();
-});
+    return { waiting, saves };
+}
+
+// ------------------------------------------------------------- auto sign-out
+
+// Signed out after AWAY_SIGNOUT_MS away from the page: another tab or app,
+// a locked screen, or the page left or closed and then come back to (the
+// time it was left is kept in sessionStorage, LEFT_AT_KEY, which a reopened
+// tab keeps too). Choosing a file or taking a photo also hides the page on
+// phones, so that time doesn't count. Changes waiting to save are saved
+// first. Only someone signed in when they left is tracked, so a Google
+// sign-in pop-up or redirect isn't cut short.
+// (AWAY_SIGNOUT_MS, the state and forgetLeaving() are near the top, since
+// the sign-in check on arrival and onAuthStateChanged use them.)
+async function signOutAway() {
+    forgetLeaving();
+    if (!auth.currentUser) return;
+    signedOutAway = true;
+    try {
+        await Promise.allSettled([...saveWaitingStock().saves, flushChecklist ? flushChecklist() : null]);
+    } finally {
+        await authSdk.signOut(auth);
+    }
+}
+
+function pageLeft() {
+    if (leftAt || !auth.currentUser || pickingFile) return;
+    leftAt = Date.now();
+    try { sessionStorage.setItem(LEFT_AT_KEY, String(leftAt)); } catch { /* the timer still works */ }
+    awayTimer = setTimeout(signOutAway, AWAY_SIGNOUT_MS);
+}
+
+function pageBack() {
+    if (pickingFile) {
+        pickingFile = false;
+        forgetLeaving();
+        return;
+    }
+    if (!leftAt) return;
+    if (Date.now() - leftAt >= AWAY_SIGNOUT_MS) signOutAway();
+    else forgetLeaving();
+}
+
+document.addEventListener("visibilitychange", () => (document.hidden ? pageLeft() : pageBack()));
+window.addEventListener("pagehide", pageLeft);
+window.addEventListener("pageshow", (e) => { if (e.persisted) pageBack(); });
+// A file input opening its picker (clicked directly or by an "Add photo"
+// button) marks the next time away as not counting.
+document.addEventListener("click", (e) => {
+    if (e.target instanceof HTMLInputElement && e.target.type === "file") pickingFile = true;
+}, true);
+// On a computer the picker closes without hiding the page: clear the mark
+// then, or the next real time away wouldn't count.
+for (const type of ["change", "cancel"]) {
+    document.addEventListener(type, (e) => {
+        if (e.target instanceof HTMLInputElement && e.target.type === "file" && !document.hidden) pickingFile = false;
+    }, true);
+}
 
 // Re-draws after a count change (quick − / + or the item's stock panel)
 // without opening or scrolling to anything:

@@ -542,6 +542,14 @@ body.menu-open{
     }
 }
 
+/* Short explanation under a field's label (e.g. why we ask for bills). */
+.visit-field-note{
+    margin-top: -2px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--visit-muted);
+}
+
 /* File picker: the whole dashed box is the (visually hidden) input's label. */
 .visit-upload{
     position: relative;
@@ -561,11 +569,40 @@ body.menu-open{
         border-color: var(--visit-accent);
     }
 
+    /* Files being dragged over the box. */
+    &.visit-upload-dragover{
+        border-style: solid;
+        border-color: var(--visit-accent);
+        background-color: rgba(125, 129, 135, 0.14);
+
+        .visit-upload-icon{
+            color: var(--visit-accent);
+        }
+    }
+
     input{
         position: absolute;
         width: 1px;
         height: 1px;
         opacity: 0;
+    }
+
+    .visit-upload-browse{
+        text-decoration: underline;
+    }
+
+    .visit-upload-text-touch{
+        display: none;
+    }
+
+    @media (hover: none){
+        .visit-upload-text-pointer{
+            display: none;
+        }
+
+        .visit-upload-text-touch{
+            display: inline;
+        }
     }
 
     .visit-upload-icon{
@@ -597,7 +634,7 @@ body.menu-open{
 
     li{
         display: flex;
-        justify-content: space-between;
+        align-items: center;
         gap: 12px;
         padding: 10px 12px;
         border: 1px solid var(--visit-border);
@@ -613,7 +650,33 @@ body.menu-open{
 
         .visit-file-size{
             flex-shrink: 0;
+            margin-left: auto;
             color: var(--visit-muted);
+        }
+
+        .visit-file-remove{
+            flex-shrink: 0;
+            width: 24px;
+            height: 24px;
+            margin: -2px -4px -2px 0;
+            padding: 0;
+            border: none;
+            border-radius: 50%;
+            background: none;
+            color: var(--visit-muted);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            .material-symbols-rounded{
+                font-size: 18px;
+            }
+
+            &:hover{
+                color: var(--visit-text);
+                background-color: var(--visit-surface);
+            }
         }
     }
 }

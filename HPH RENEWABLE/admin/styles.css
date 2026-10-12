@@ -2599,6 +2599,30 @@ body[data-role="user"] .admin-visit-actions{
     }
 }
 
+/* Batches: each with its own prefix, rows and Add buttons; a second batch
+   (another prefix) sits under a divider. */
+.admin-sn-batches{
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.admin-sn-group{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    & + .admin-sn-group{
+        padding-top: 14px;
+        border-top: 1px dashed var(--admin-border);
+    }
+}
+
+/* "Add another prefix" and "Paste full serials", under the batches. */
+.admin-sn-footer{
+    padding-top: 4px;
+}
+
 /* "Paste full serials": a text link. */
 .admin-link-button{
     padding: 0;

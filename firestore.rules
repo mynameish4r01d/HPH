@@ -569,7 +569,9 @@ service cloud.firestore {
     function isValidWaitlistEdit() {
       let data = request.resource.data;
       return data.diff(resource.data).affectedKeys()
-               .hasOnly(['name', 'phone', 'email', 'address', 'message', 'editedAt', 'editedBy'])
+               .hasOnly(['name', 'phone', 'email', 'address', 'message', 'attachments', 'editedAt', 'editedBy'])
+        // Bills added or removed while editing (see /storage.rules), max 10.
+        && (!('attachments' in data) || (data.attachments is list && data.attachments.size() <= 10))
         && isText(data.name, 1, 100)
         && isText(data.phone, 7, 30)
         && isText(data.email, 0, 200)
@@ -665,8 +667,10 @@ service cloud.firestore {
       let fields = ['system', 'quantities', 'estimatedTotal', 'name', 'phone', 'email',
                     'address', 'message', 'consent', 'sourcePage', 'status', 'createdAt',
                     'source', 'createdBy'];
-      return data.keys().hasOnly(fields)
+      // attachments (bills added on the admin page, max 10) is optional.
+      return data.keys().hasOnly(fields.concat(['attachments']))
         && data.keys().hasAll(fields)
+        && (!('attachments' in data) || (data.attachments is list && data.attachments.size() <= 10))
         && isWaitlistOrder(data)
         && isText(data.name, 1, 100)
         && isText(data.phone, 7, 30)
@@ -712,8 +716,12 @@ service cloud.firestore {
     function isValidWaitlist(data) {
       let fields = ['system', 'quantities', 'estimatedTotal', 'name', 'phone', 'email',
                     'address', 'message', 'consent', 'sourcePage', 'status', 'createdAt'];
-      return data.keys().hasOnly(fields)
+      // attachments (the electricity bill's Cloud Storage paths, see
+      // /storage.rules, max 3) is optional so sign-ups from a cached older
+      // form still go through.
+      return data.keys().hasOnly(fields.concat(['attachments']))
         && data.keys().hasAll(fields)
+        && (!('attachments' in data) || (data.attachments is list && data.attachments.size() <= 3))
         && isWaitlistOrder(data)
         && isText(data.name, 1, 100)
         && isText(data.phone, 7, 30)
