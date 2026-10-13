@@ -4880,6 +4880,187 @@ body[data-role="user"] .admin-visit-actions{
     opacity: 0.8;
 }
 
+/* Inventory "System presets" pane: a card per system with its Use button and
+   its parts (each linked to an inventory item), and what was just used, with
+   Undo. Colours come from the admin tokens, so dark mode follows. */
+.admin-presets-pane{
+    display: grid;
+    gap: 14px;
+    padding-top: 6px;
+
+    .admin-preset-status:empty{
+        display: none;
+    }
+}
+
+.admin-preset, .admin-preset-use{
+    border: 1px solid var(--admin-border);
+    background-color: var(--admin-bg);
+}
+
+.admin-preset.has-problem{
+    border-color: var(--admin-warn-text);
+}
+
+.admin-preset-head, .admin-preset-use-head{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 14px;
+    padding: 14px;
+}
+
+/* A system's header is the summary of its fold-up card. */
+.admin-preset-head{
+    list-style: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &::-webkit-details-marker{
+        display: none;
+    }
+
+    .admin-preset-title{
+        flex: 1;
+    }
+
+    .admin-preset-chevron{
+        color: var(--admin-muted);
+        transition: transform 0.2s ease;
+    }
+}
+
+.admin-preset[open] .admin-preset-chevron{
+    transform: rotate(180deg);
+}
+
+.admin-preset-title, .admin-preset-use-title{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    strong{
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    span{
+        font-size: 13px;
+        color: var(--admin-muted);
+    }
+
+    .admin-preset-ok{
+        color: var(--admin-active-text);
+    }
+
+    .admin-preset-warn{
+        color: var(--admin-warn-text);
+    }
+}
+
+.admin-preset-parts{
+    border-top: 1px solid var(--admin-border);
+
+    .admin-preset-parts-title{
+        margin: 0;
+        padding: 10px 14px 0;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--admin-muted);
+    }
+}
+
+.admin-preset-lines{
+    display: grid;
+    margin: 0;
+    padding: 0 14px 14px;
+    list-style: none;
+}
+
+.admin-preset-line{
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 240px);
+    align-items: center;
+    gap: 8px 14px;
+    padding: 10px 0;
+    border-top: 1px solid var(--admin-border);
+
+    &:first-child{
+        border-top: none;
+    }
+
+    .admin-preset-line-what{
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+
+        strong{
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        span{
+            font-size: 12px;
+            color: var(--admin-muted);
+        }
+    }
+
+    &.is-short .admin-preset-line-what span{
+        color: var(--admin-stale-text);
+    }
+
+    &.is-unlinked .admin-preset-line-what span{
+        color: var(--admin-warn-text);
+    }
+
+    .admin-preset-pick{
+        min-height: 36px;
+        font-size: 14px;
+    }
+}
+
+.admin-preset-use.is-undone{
+    opacity: 0.6;
+}
+
+.admin-preset-use-list{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+    padding: 0 14px 14px;
+    list-style: none;
+
+    li{
+        padding: 3px 8px;
+        border-radius: 4px;
+        background-color: var(--admin-surface);
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 750px){
+    .admin-preset-line{
+        grid-template-columns: 1fr;
+    }
+
+    /* Phones: name and chevron on the first row, the Use button below. */
+    .admin-preset-head{
+        .admin-preset-title{
+            flex: 1 1 0;
+        }
+
+        .admin-action{
+            order: 2;
+            width: 100%;
+            justify-content: center;
+        }
+    }
+}
+
 .admin-inv-restock-list{
     display: grid;
     gap: 8px;
@@ -5288,7 +5469,7 @@ body[data-role="user"] .admin-visit-actions{
         height: 100dvh;
     }
 
-    body[data-view="overview"] .admin-dashboard{
+    body:is([data-view="overview"], [data-view="settings"]) .admin-dashboard{
         grid-template-columns: 232px minmax(0, 1fr);
         grid-template-areas: "nav main";
 
@@ -5311,7 +5492,7 @@ body[data-role="user"] .admin-visit-actions{
     .admin-nav-brand{
         display: block;
         flex: 0 0 auto;
-        padding: 28px 24px 22px;
+        padding: 28px 24px 60px;
 
         /* Scales with the column and keeps its proportions (the logo is about
            16.5:1, so a fixed height would squeeze it in a narrow column). */
@@ -5373,7 +5554,8 @@ body[data-role="user"] .admin-visit-actions{
         .admin-tab-icon{
             flex: 0 0 auto;
             font-size: 21px;
-            color: var(--admin-mark);
+            /* The text colour: black (near-white in dark mode). */
+            color: var(--admin-text);
         }
 
         .admin-tab-label{
@@ -5424,6 +5606,37 @@ body[data-role="user"] .admin-visit-actions{
         gap: 10px;
         padding: 14px 16px 18px 20px;
         border-top: 1px solid var(--admin-border);
+    }
+
+    /* The avatar, role and email: a button that opens Settings. */
+    .admin-nav-profile{
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: -6px 0 -6px -8px;
+        padding: 6px 8px;
+        border: none;
+        border-radius: 8px;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+
+        &:hover{
+            background-color: color-mix(in srgb, var(--admin-text) 5%, transparent);
+        }
+
+        &.active{
+            background-color: color-mix(in srgb, var(--admin-text) 9%, transparent);
+        }
+
+        &:focus-visible{
+            outline: 2px solid var(--admin-mark);
+            outline-offset: -2px;
+        }
     }
 
     .admin-nav-avatar{
@@ -5501,7 +5714,7 @@ body[data-role="user"] .admin-visit-actions{
     }
 
     /* Nothing open in list view. */
-    .admin-main:has(> .admin-overview[hidden]):has(> .admin-detail-pane[hidden]) .admin-pane-empty{
+    .admin-main:has(> .admin-overview[hidden]):has(> .admin-detail-pane[hidden]):has(> .admin-settings[hidden]) .admin-pane-empty{
         display: grid;
         place-content: center;
         justify-items: center;
@@ -5527,7 +5740,7 @@ body[data-role="user"] .admin-visit-actions{
         grid-template-columns: 200px 300px minmax(0, 1fr);
     }
 
-    body[data-view="overview"] .admin-dashboard{
+    body:is([data-view="overview"], [data-view="settings"]) .admin-dashboard{
         grid-template-columns: 200px minmax(0, 1fr);
     }
 }
@@ -5538,7 +5751,7 @@ body[data-role="user"] .admin-visit-actions{
         grid-template-columns: 64px 280px minmax(0, 1fr);
     }
 
-    body[data-view="overview"] .admin-dashboard{
+    body:is([data-view="overview"], [data-view="settings"]) .admin-dashboard{
         grid-template-columns: 64px minmax(0, 1fr);
     }
 
@@ -5581,10 +5794,350 @@ body[data-role="user"] .admin-visit-actions{
         justify-content: center;
         padding: 12px 0 16px;
 
-        .admin-nav-who, .admin-nav-avatar{
+        .admin-nav-who, .admin-nav-signout{
             display: none;
         }
     }
+
+    .admin-nav-profile{
+        flex: 0 0 auto;
+        margin: 0;
+        padding: 4px;
+        border-radius: 50%;
+    }
+}
+
+
+/* ===== Settings (desktop) =====
+   Opened by clicking the profile at the bottom of the navigation: the
+   signed-in account with Sign out, then Accounts for owners, as rows like
+   System Settings'. Laid out like the overview (no list column). */
+.admin-settings{
+    max-width: 520px;
+    margin: 0 auto;
+    font-family: inter;
+}
+
+.admin-settings[hidden]{
+    display: none;
+}
+
+.admin-settings-card{
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 28px;
+    padding: 20px;
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+}
+
+.admin-settings-avatar{
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(160deg, color-mix(in srgb, var(--admin-mark) 55%, #FFFFFF), var(--admin-mark));
+    color: #FFFFFF;
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.admin-settings-who{
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.admin-settings-role{
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--admin-text);
+}
+
+.admin-settings-email{
+    overflow: hidden;
+    font-size: 14px;
+    color: var(--admin-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-settings-group[hidden]{
+    display: none;
+}
+
+.admin-settings-heading{
+    margin: 32px 0 8px;
+    padding: 0 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--admin-subtle);
+}
+
+.admin-settings-row{
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+    background: none;
+    color: var(--admin-text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover{
+        background-color: color-mix(in srgb, var(--admin-text) 5%, transparent);
+    }
+
+    &:focus-visible{
+        outline: 2px solid var(--admin-mark);
+        outline-offset: -2px;
+    }
+}
+
+.admin-settings-icon{
+    flex: 0 0 auto;
+    font-size: 24px;
+}
+
+.admin-settings-text{
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.admin-settings-name{
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.admin-settings-desc{
+    font-size: 13px;
+    color: var(--admin-muted);
+}
+
+.admin-settings-count, .admin-settings-chevron{
+    flex: 0 0 auto;
+    color: var(--admin-subtle);
+}
+
+.admin-settings-count{
+    font-size: 14px;
+}
+
+.admin-settings-home[hidden], .admin-settings-suppliers[hidden]{
+    display: none;
+}
+
+/* Settings → Suppliers: a back link, then the supplier list, a supplier's
+   profile (details and its items) or the add / edit form. */
+.admin-settings-back{
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    margin: 0 0 12px -6px;
+    padding: 4px 8px 4px 2px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--admin-mark);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+
+    .material-symbols-rounded{
+        font-size: 22px;
+    }
+
+    &:hover{
+        background-color: color-mix(in srgb, var(--admin-text) 5%, transparent);
+    }
+}
+
+.admin-settings-intro{
+    margin: 8px 0 20px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--admin-muted);
+}
+
+.admin-suppliers-search{
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border: 1px solid var(--admin-border);
+    border-radius: 8px;
+    background-color: var(--admin-field);
+    color: var(--admin-text);
+    font-family: inter;
+    font-size: 14px;
+    outline: none;
+
+    &:focus{
+        border-color: var(--admin-accent);
+    }
+}
+
+/* Supplier rows on the list are spaced settings rows. */
+.admin-suppliers-list{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+/* Add supplier / Edit / Delete beside the page title. */
+.admin-supplier-tools{
+    display: flex;
+    gap: 8px;
+}
+
+.admin-supplier-error:empty{
+    display: none;
+}
+
+/* A supplier's details. */
+.admin-supplier-profile{
+    margin-top: 20px;
+    padding: 4px 20px;
+    border: 1px solid var(--admin-border);
+    border-radius: 12px;
+}
+
+/* The supplier's items: one row each, with an x to unlink. */
+.admin-supplier-items{
+    border-top: 1px solid var(--admin-border);
+
+    .admin-empty{
+        margin: 12px 0;
+    }
+}
+
+.admin-supplier-row{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--admin-border);
+}
+
+.admin-supplier-item{
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.admin-supplier-name{
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--admin-text);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-supplier-meta{
+    font-size: 12px;
+    color: var(--admin-muted);
+}
+
+.admin-supplier-unlink{
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--admin-muted);
+    cursor: pointer;
+
+    .material-symbols-rounded{
+        font-size: 18px;
+    }
+
+    &:hover{
+        background-color: color-mix(in srgb, var(--admin-text) 7%, transparent);
+        color: var(--admin-text);
+    }
+}
+
+.admin-supplier-link{
+    width: 100%;
+    margin-top: 12px;
+}
+
+.admin-supplier-form{
+    margin-top: 20px;
+}
+
+/* The form's "Products from this supplier": a search box over a scrolling
+   tick list of inventory items, by category. */
+.admin-supplier-products{
+    .admin-suppliers-search{
+        margin: 6px 0 8px;
+    }
+}
+
+.admin-supplier-picks{
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 0 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: 10px;
+
+    .admin-empty{
+        margin: 12px 0;
+    }
+}
+
+.admin-supplier-pick-group{
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 10px 0 4px;
+    background-color: var(--admin-bg);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--admin-subtle);
+}
+
+.admin-supplier-pick{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-top: 1px solid var(--admin-border);
+    cursor: pointer;
+
+    input{
+        flex: 0 0 auto;
+        width: 18px;
+        height: 18px;
+        margin: 0;
+        accent-color: var(--admin-mark);
+        cursor: pointer;
+    }
+}
+
+.admin-supplier-pick-group + .admin-supplier-pick{
+    border-top: none;
 }
 
 

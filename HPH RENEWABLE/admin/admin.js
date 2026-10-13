@@ -300,7 +300,8 @@ async function accessFor(email) {
 // with none left.
 function applyAccess() {
     for (const tab of document.querySelectorAll(".admin-nav .admin-tab")) {
-        tab.hidden = tab.dataset.tab === "accounts" ? role !== "admin" : !can(tab.dataset.tab);
+        // Accounts isn't in the navigation: owners open it from Settings.
+        tab.hidden = tab.dataset.tab === "accounts" || !can(tab.dataset.tab);
     }
     for (const group of document.querySelectorAll(".admin-nav-group")) {
         group.hidden = ![...group.querySelectorAll(".admin-tab")].some((tab) => !tab.hidden);
@@ -424,15 +425,20 @@ function setMenu(open) {
 
 // ---- desktop navigation column (.admin-nav)
 // body[data-view] is "overview" (admins: the overview fills the right; the
-// list column hides) or "list" (a tab's list, with the open entry on the
-// right, or "Select an entry" when nothing is open).
+// list column hides), "settings" (the profile's Settings page, laid out like
+// the overview) or "list" (a tab's list, with the open entry on the right,
+// or "Select an entry" when nothing is open).
 const navOverview = document.querySelector(".admin-nav-overview");
+const navProfile = document.querySelector(".admin-nav-profile");
+const settingsPane = document.querySelector(".admin-settings");
 const listTitle = document.querySelector(".admin-list-title");
 
 function setView(view) {
     document.body.dataset.view = view;
     navOverview.classList.toggle("active", view === "overview");
     navOverview.setAttribute("aria-current", String(view === "overview"));
+    settingsPane.hidden = view !== "settings";
+    markProfile();
     markMenuTab();
     if (view === "overview" && role === "admin") {
         // Close any open entry and show the overview.
@@ -450,6 +456,475 @@ function setView(view) {
 
 navOverview.addEventListener("click", () => setView("overview"));
 
+// The profile stays highlighted on Settings and on Accounts (opened from it).
+function markProfile() {
+    const view = document.body.dataset.view;
+    const active = view === "settings" || (view === "list" && activeTab === "accounts");
+    navProfile.classList.toggle("active", active);
+    navProfile.setAttribute("aria-current", String(active));
+}
+
+// Settings: the signed-in account (and sign out), plus Accounts for owners.
+function showSettings() {
+    selected = null;
+    formOpen = false;
+    itemFormOpen = false;
+    detailPane.hidden = true;
+    detailPane.querySelector(".admin-detail-body").replaceChildren();
+    detailPane.querySelector(".admin-detail-title").replaceChildren();
+    overview.hidden = true;
+    setView("settings");
+    settingsHome.hidden = false;
+    suppliersPage.hidden = true;
+    settingsPane.querySelector('[data-settings="admin"]').hidden = role !== "admin";
+    settingsPane.querySelector('[data-settings="inventory"]').hidden = !can("inventory");
+    const count = document.querySelector('.admin-tab-count[data-count="accounts"]');
+    settingsPane.querySelector('[data-settings-count="accounts"]').textContent = count ? count.textContent : "";
+    updateSupplierCount();
+    document.querySelectorAll(".admin-tab").forEach((t) => {
+        t.classList.remove("active");
+        t.setAttribute("aria-selected", "false");
+    });
+    markSelected();
+    mainArea.scrollTop = 0;
+}
+
+navProfile.addEventListener("click", showSettings);
+settingsPane.querySelector(".admin-settings-signout").addEventListener("click", () => authSdk.signOut(auth));
+
+// ---- Settings → Suppliers
+// Supplier profiles: Firestore suppliers/{id} with name, contactPerson,
+// phone, email, address (office or warehouse), note, createdAt/By and
+// updatedAt/By. An inventory item points at its supplier with supplierId
+// ("" for none). Items saved with only a typed supplier name (supplier, from
+// before profiles) show that name until they're linked to a profile.
+// Pages inside Settings: the list, a supplier's profile (with its items) and
+// the add / edit form (supplierView).
+let suppliers = [];
+const settingsHome = settingsPane.querySelector(".admin-settings-home");
+const suppliersPage = settingsPane.querySelector(".admin-settings-suppliers");
+let supplierView = { page: "list" };
+let supplierSearch = "";
+
+const supplierById = (id) => (id && suppliers.find((s) => s.id === id)) || null;
+const itemsOfSupplier = (id) => data.inventory.filter((i) => i.supplierId === id)
+    .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+const bySupplierName = (a, b) => (a.name || "").localeCompare(b.name || "");
+
+// The name shown for an item's supplier.
+function supplierLabel(item) {
+    const profile = supplierById(item.supplierId);
+    return profile ? profile.name : item.supplier || "";
+}
+
+const canDeleteSupplier = (s) => can("inventory", "delete")
+    || (can("inventory", "edit") && (s.createdBy || "").toLowerCase() === currentEmail);
+
+function updateSupplierCount() {
+    settingsPane.querySelector('[data-settings-count="suppliers"]').textContent = suppliers.length ? String(suppliers.length) : "";
+}
+
+function showSuppliers(view = { page: "list" }) {
+    if (view.page === "list" && supplierView.page === "list") supplierSearch = "";
+    supplierView = view;
+    settingsHome.hidden = true;
+    suppliersPage.hidden = false;
+    drawSuppliers();
+    mainArea.scrollTop = 0;
+}
+
+function settingsBack(label, onClick) {
+    const back = el("button", "admin-settings-back");
+    back.type = "button";
+    back.append(el("span", "material-symbols-rounded", "chevron_left"), label);
+    back.addEventListener("click", onClick);
+    return back;
+}
+
+function settingsTitle(text, ...buttons) {
+    const head = el("div", "admin-heading");
+    head.append(el("h1", "admin-title", text));
+    if (buttons.length) {
+        const tools = el("div", "admin-supplier-tools");
+        tools.append(...buttons);
+        head.append(tools);
+    }
+    return head;
+}
+
+function actionButton(icon, label, className = "") {
+    const button = el("button", `admin-action ${className}`.trim());
+    button.type = "button";
+    button.append(el("span", "material-symbols-rounded", icon), label);
+    return button;
+}
+
+function drawSuppliers() {
+    if (supplierView.page === "profile" && !supplierById(supplierView.id)) supplierView = { page: "list" };
+    if (supplierView.page === "profile") drawSupplierProfile(supplierById(supplierView.id));
+    else if (supplierView.page === "form") drawSupplierForm(supplierById(supplierView.id));
+    else drawSupplierList();
+}
+
+// ---- the list
+function drawSupplierList() {
+    const parts = [settingsBack("Settings", showSettings)];
+    if (can("inventory", "edit")) {
+        const add = actionButton("add", "Add supplier", "admin-action-primary");
+        add.addEventListener("click", () => showSuppliers({ page: "form", id: null }));
+        parts.push(settingsTitle("Suppliers", add));
+    } else {
+        parts.push(settingsTitle("Suppliers"));
+    }
+    parts.push(el("p", "admin-settings-intro", "Who you buy inventory from, with their contact details. Open a supplier to see or link its items."));
+    const search = el("input", "admin-suppliers-search");
+    search.type = "search";
+    search.placeholder = "Search suppliers, contacts or items";
+    search.setAttribute("aria-label", "Search suppliers");
+    search.value = supplierSearch;
+    const list = el("div", "admin-suppliers-list");
+    const fill = () => {
+        const term = supplierSearch.trim().toLowerCase();
+        const shown = [...suppliers].sort(bySupplierName).filter((s) => !term
+            || [s.name, s.contactPerson, s.phone, s.email, s.address, ...itemsOfSupplier(s.id).map((i) => i.name)]
+                .join(" ").toLowerCase().includes(term));
+        if (!shown.length) {
+            list.replaceChildren(el("p", "admin-empty", suppliers.length ? "No suppliers match."
+                : can("inventory", "edit") ? "No suppliers yet. Add the first one." : "No suppliers yet."));
+            return;
+        }
+        list.replaceChildren(...shown.map((s) => {
+            const row = el("button", "admin-settings-row admin-supplier-card");
+            row.type = "button";
+            const text = el("span", "admin-settings-text");
+            text.append(el("span", "admin-settings-name", s.name),
+                el("span", "admin-settings-desc", [s.contactPerson, s.phone || s.email].filter(Boolean).join(" · ") || "No contact details yet"));
+            const count = itemsOfSupplier(s.id).length;
+            row.append(el("span", "material-symbols-rounded admin-settings-icon", "storefront"), text,
+                el("span", "admin-settings-count", count ? plural(count, ["item", "items"]) : ""),
+                el("span", "material-symbols-rounded admin-settings-chevron", "chevron_right"));
+            row.addEventListener("click", () => showSuppliers({ page: "profile", id: s.id }));
+            return row;
+        }));
+    };
+    search.addEventListener("input", () => { supplierSearch = search.value; fill(); });
+    fill();
+    parts.push(search, list);
+    suppliersPage.replaceChildren(...parts);
+}
+
+// ---- a supplier's profile
+function drawSupplierProfile(s) {
+    const error = el("p", "admin-error admin-supplier-error");
+    error.setAttribute("role", "alert");
+    const buttons = [];
+    if (can("inventory", "edit")) {
+        const edit = actionButton("edit", "Edit");
+        edit.addEventListener("click", () => showSuppliers({ page: "form", id: s.id }));
+        buttons.push(edit);
+    }
+    if (canDeleteSupplier(s)) {
+        const remove = actionButton("delete", "Delete", "admin-action-danger");
+        remove.addEventListener("click", async () => {
+            const linked = itemsOfSupplier(s.id);
+            if (!confirm(`Delete ${s.name}?${linked.length ? ` Its ${plural(linked.length, ["item", "items"])} will be left with no supplier.` : ""} This can't be undone.`)) return;
+            remove.disabled = true;
+            error.textContent = "";
+            try {
+                await deleteSupplier(s);
+                showSuppliers({ page: "list" });
+            } catch (err) {
+                console.error("Admin: deleting the supplier failed", err);
+                error.textContent = inventoryErrorMessage(err);
+                remove.disabled = false;
+            }
+        });
+        buttons.push(remove);
+    }
+
+    const card = el("section", "admin-supplier-profile");
+    const details = el("dl", "admin-details");
+    details.append(
+        detailRow("Contact person", s.contactPerson),
+        detailRow("Phone", s.phone, { href: s.phone ? `tel:${s.phone.replace(/[^\d+]/g, "")}` : "" }),
+        detailRow("Email", s.email, { href: s.email ? `mailto:${s.email}` : "" }),
+        detailRow("Office / warehouse address", s.address, { wide: true }),
+    );
+    if (s.note) details.append(detailRow("Note", s.note, { wide: true }));
+    card.append(details);
+
+    // Its items, with unlink (x) and "Link an item".
+    const items = itemsOfSupplier(s.id);
+    const itemList = el("div", "admin-supplier-items");
+    if (!items.length) itemList.append(el("p", "admin-empty", "No items linked yet."));
+    for (const item of items) {
+        const row = el("div", "admin-supplier-row");
+        const text = el("span", "admin-supplier-item");
+        text.append(el("span", "admin-supplier-name", item.name), el("span", "admin-supplier-meta", [qtyText(item), item.category].filter(Boolean).join(" · ")));
+        row.append(text);
+        if (can("inventory", "edit")) {
+            const unlink = el("button", "admin-supplier-unlink");
+            unlink.type = "button";
+            unlink.title = "Remove from this supplier";
+            unlink.setAttribute("aria-label", `Remove ${item.name} from ${s.name}`);
+            unlink.append(el("span", "material-symbols-rounded", "close"));
+            unlink.addEventListener("click", () => linkItem(item, "", error, unlink));
+            row.append(unlink);
+        }
+        itemList.append(row);
+    }
+    const parts = [
+        settingsBack("Suppliers", () => showSuppliers({ page: "list" })),
+        settingsTitle(s.name, ...buttons),
+        error,
+        card,
+        el("div", "admin-settings-heading", `Items from this supplier${items.length ? ` (${items.length})` : ""}`),
+        itemList,
+    ];
+    if (can("inventory", "edit")) {
+        const others = data.inventory.filter((i) => i.supplierId !== s.id)
+            .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+        if (others.length) {
+            const pick = el("select", "admin-select admin-supplier-link");
+            pick.setAttribute("aria-label", `Link an item to ${s.name}`);
+            const none = el("option", "", "Link an item…");
+            none.value = "";
+            pick.append(none);
+            for (const item of others) {
+                const current = supplierLabel(item);
+                const option = el("option", "", current ? `${item.name} (now: ${current})` : item.name);
+                option.value = item.id;
+                pick.append(option);
+            }
+            pick.addEventListener("change", () => {
+                const item = data.inventory.find((i) => i.id === pick.value);
+                if (item) linkItem(item, s.id, error, pick);
+            });
+            parts.push(pick);
+        }
+    }
+    suppliersPage.replaceChildren(...parts);
+}
+
+// Links an item to a supplier ("" unlinks it), then redraws the profile.
+async function linkItem(item, supplierId, error, control) {
+    control.disabled = true;
+    error.textContent = "";
+    try {
+        await firestore.updateDoc(firestore.doc(db, "inventory", item.id), {
+            supplierId,
+            supplier: "",
+            updatedAt: firestore.serverTimestamp(),
+            updatedBy: currentEmail,
+        });
+        Object.assign(item, { supplierId, supplier: "", updatedAt: firestore.Timestamp.now(), updatedBy: currentEmail });
+        drawSuppliers();
+    } catch (err) {
+        console.error("Admin: linking the item failed", err);
+        error.textContent = inventoryErrorMessage(err);
+        control.disabled = false;
+    }
+}
+
+// Deletes the profile and leaves its items with no supplier, in one batch.
+async function deleteSupplier(s) {
+    const batch = firestore.writeBatch(db);
+    const linked = itemsOfSupplier(s.id);
+    for (const item of linked) {
+        batch.update(firestore.doc(db, "inventory", item.id), {
+            supplierId: "",
+            updatedAt: firestore.serverTimestamp(),
+            updatedBy: currentEmail,
+        });
+    }
+    batch.delete(firestore.doc(db, "suppliers", s.id));
+    await batch.commit();
+    for (const item of linked) Object.assign(item, { supplierId: "", updatedAt: firestore.Timestamp.now(), updatedBy: currentEmail });
+    suppliers = suppliers.filter((x) => x.id !== s.id);
+    updateSupplierCount();
+}
+
+// ---- add / edit
+function drawSupplierForm(s) {
+    const form = el("form", "admin-install-form admin-supplier-form");
+    form.noValidate = true;
+    const grid = el("div", "admin-install-grid");
+    const field = (label, node, wide) => {
+        const wrap = el("label", wide ? "admin-field admin-install-wide" : "admin-field");
+        wrap.append(el("span", "admin-label", label), node);
+        grid.append(wrap);
+        return node;
+    };
+    const text = (value, max, attrs = {}) => {
+        const node = el("input");
+        node.type = attrs.type || "text";
+        node.value = value || "";
+        node.maxLength = max;
+        if (attrs.placeholder) node.placeholder = attrs.placeholder;
+        if (attrs.autocomplete) node.autocomplete = attrs.autocomplete;
+        if (attrs.inputMode) node.inputMode = attrs.inputMode;
+        return node;
+    };
+    const area = (value, max, placeholder) => {
+        const node = el("textarea");
+        node.rows = 3;
+        node.maxLength = max;
+        node.value = value || "";
+        node.placeholder = placeholder;
+        return node;
+    };
+    const name = field("Supplier name *", text(s && s.name, 100, { placeholder: "e.g. Solar Parts Trading" }), true);
+    const contact = field("Contact person", text(s && s.contactPerson, 100, { placeholder: "Who you talk to" }));
+    const phone = field("Phone", text(s && s.phone, 40, { type: "tel", inputMode: "tel", placeholder: "e.g. 0917 123 4567" }));
+    const email = field("Email", text(s && s.email, 200, { type: "email", placeholder: "e.g. sales@supplier.com" }), true);
+    const address = field("Office / warehouse address", area(s && s.address, 300, "Where to pick up or send orders"), true);
+    const note = field("Note", area(s && s.note, 500, "Payment terms, delivery days, account number… (optional)"), true);
+    contact.addEventListener("blur", () => { contact.value = tidyName(contact.value); });
+
+    // "Products from this supplier": every inventory item, by category, to
+    // tick. Items already with another supplier say so, and ticking one
+    // moves it here. Saved with the supplier in one batch.
+    const ticked = new Set(s ? itemsOfSupplier(s.id).map((i) => i.id) : []);
+    const productBox = el("div", "admin-field admin-install-wide admin-supplier-products");
+    const productHead = el("span", "admin-label");
+    const productSearch = el("input", "admin-suppliers-search");
+    productSearch.type = "search";
+    productSearch.placeholder = "Search products";
+    productSearch.setAttribute("aria-label", "Search products");
+    const productList = el("div", "admin-supplier-picks");
+    const countTicked = () => { productHead.textContent = `Products from this supplier${ticked.size ? ` (${ticked.size} picked)` : ""}`; };
+    const drawProducts = () => {
+        const term = productSearch.value.trim().toLowerCase();
+        const items = data.inventory
+            .filter((i) => !term || `${i.name} ${i.category || ""}`.toLowerCase().includes(term))
+            .sort((a, b) => categoryOrder(a.category || "") - categoryOrder(b.category || "")
+                || (a.category || "").localeCompare(b.category || "")
+                || (a.name || "").localeCompare(b.name || ""));
+        if (!items.length) {
+            productList.replaceChildren(el("p", "admin-empty", data.inventory.length ? "No products match." : "No inventory items yet. Add them on the Inventory tab."));
+            return;
+        }
+        const rows = [];
+        let group = null;
+        for (const item of items) {
+            if ((item.category || "") !== group) {
+                group = item.category || "";
+                rows.push(el("div", "admin-supplier-pick-group", group || "No category"));
+            }
+            const row = el("label", "admin-supplier-pick");
+            const box = el("input");
+            box.type = "checkbox";
+            box.checked = ticked.has(item.id);
+            box.addEventListener("change", () => {
+                if (box.checked) ticked.add(item.id);
+                else ticked.delete(item.id);
+                countTicked();
+            });
+            const text = el("span", "admin-supplier-item");
+            const other = item.supplierId !== (s && s.id) ? supplierLabel(item) : "";
+            text.append(el("span", "admin-supplier-name", item.name),
+                el("span", "admin-supplier-meta", [qtyText(item), other && `Now from ${other}`].filter(Boolean).join(" · ")));
+            row.append(box, text);
+            rows.push(row);
+        }
+        productList.replaceChildren(...rows);
+    };
+    productSearch.addEventListener("input", drawProducts);
+    // Enter in the search box shouldn't submit the form.
+    productSearch.addEventListener("keydown", (e) => { if (e.key === "Enter") e.preventDefault(); });
+    countTicked();
+    drawProducts();
+    productBox.append(productHead, productSearch, productList);
+    grid.append(productBox);
+
+    const error = el("p", "admin-error admin-install-error");
+    error.setAttribute("role", "alert");
+    const submit = el("button", "admin-action admin-action-primary");
+    submit.type = "submit";
+    submit.append(el("span", "material-symbols-rounded", "save"), s ? "Save changes" : "Add supplier");
+    const cancel = el("button", "admin-action");
+    cancel.type = "button";
+    cancel.textContent = "Cancel";
+    const back = () => showSuppliers(s ? { page: "profile", id: s.id } : { page: "list" });
+    cancel.addEventListener("click", back);
+    const actions = el("div", "admin-install-form-actions admin-inv-form-actions");
+    actions.append(error, submit, cancel);
+    form.append(grid, actions);
+
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        error.textContent = "";
+        const clean = (node) => node.value.trim().replace(/[ \t]+/g, " ");
+        const values = {
+            name: clean(name),
+            contactPerson: tidyName(clean(contact)),
+            phone: clean(phone),
+            email: clean(email),
+            address: clean(address),
+            note: note.value.trim(),
+        };
+        if (!values.name) { error.textContent = "Enter the supplier's name."; name.focus(); return; }
+        if (values.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(values.email)) { error.textContent = "That email doesn't look right."; email.focus(); return; }
+        if (suppliers.some((x) => x.id !== (s && s.id) && x.name.toLowerCase() === values.name.toLowerCase())) {
+            error.textContent = `There's already a supplier called ${values.name}.`;
+            name.focus();
+            return;
+        }
+        submit.disabled = true;
+        try {
+            // The supplier and its products' links, in one batch.
+            const ref = s ? firestore.doc(db, "suppliers", s.id) : firestore.doc(firestore.collection(db, "suppliers"));
+            const id = ref.id;
+            const batch = firestore.writeBatch(db);
+            if (s) {
+                batch.update(ref, { ...values, updatedAt: firestore.serverTimestamp(), updatedBy: currentEmail });
+            } else {
+                batch.set(ref, {
+                    ...values,
+                    createdAt: firestore.serverTimestamp(),
+                    createdBy: currentEmail,
+                    updatedAt: firestore.serverTimestamp(),
+                    updatedBy: currentEmail,
+                });
+            }
+            // Ticked items not yet here are linked; untick ones that were are unlinked.
+            const relinked = data.inventory.filter((i) => ticked.has(i.id) !== (i.supplierId === id))
+                .map((i) => ({ item: i, supplierId: ticked.has(i.id) ? id : "" }));
+            for (const { item, supplierId } of relinked) {
+                batch.update(firestore.doc(db, "inventory", item.id), {
+                    supplierId,
+                    supplier: "",
+                    updatedAt: firestore.serverTimestamp(),
+                    updatedBy: currentEmail,
+                });
+            }
+            await batch.commit();
+            const now = firestore.Timestamp.now();
+            if (s) {
+                Object.assign(s, values, { updatedAt: now, updatedBy: currentEmail });
+            } else {
+                suppliers.push({ id, ...values, createdAt: now, createdBy: currentEmail, updatedAt: now, updatedBy: currentEmail });
+                updateSupplierCount();
+            }
+            for (const { item, supplierId } of relinked) Object.assign(item, { supplierId, supplier: "", updatedAt: now, updatedBy: currentEmail });
+            showSuppliers({ page: "profile", id });
+        } catch (err) {
+            console.error("Admin: saving the supplier failed", err);
+            error.textContent = inventoryErrorMessage(err);
+            submit.disabled = false;
+        }
+    });
+
+    suppliersPage.replaceChildren(
+        settingsBack(s ? s.name : "Suppliers", back),
+        settingsTitle(s ? "Edit supplier" : "Add supplier"),
+        form,
+    );
+    name.focus();
+}
+
+settingsPane.querySelector(".admin-settings-open-suppliers").addEventListener("click", () => showSuppliers({ page: "list" }));
+
 // The account at the bottom of the navigation: initials, role and email.
 function fillNavAccount() {
     const local = currentEmail.split("@")[0] || "";
@@ -458,6 +933,9 @@ function fillNavAccount() {
     document.querySelector(".admin-nav-avatar").textContent = initials.toUpperCase();
     document.querySelector(".admin-nav-role").textContent = role === "admin" ? "Main admin" : "User";
     document.querySelector(".admin-nav-email").textContent = currentEmail;
+    settingsPane.querySelector(".admin-settings-avatar").textContent = initials.toUpperCase();
+    settingsPane.querySelector(".admin-settings-role").textContent = role === "admin" ? "Main admin" : "User";
+    settingsPane.querySelector(".admin-settings-email").textContent = currentEmail;
 }
 
 document.querySelector(".admin-nav-signout").addEventListener("click", () => authSdk.signOut(auth));
@@ -560,7 +1038,7 @@ async function loadSubmissions() {
         // The wishlist and accounts load on their own, so if their rules aren't
         // published yet the rest of the page still works (that tab just stays
         // empty, or for accounts shows only the owners and built-in accounts).
-        const [lists, checklists] = await Promise.all([
+        const [lists, checklists, supplierList] = await Promise.all([
             Promise.all(tabs.map((tab) => tab === "wishlist" || tab === "accounts"
                 ? fetchCollection(TABS[tab].collection).catch((err) => {
                     console.warn(`Admin: couldn't load ${tab} (publish the latest /firestore.rules)`, err);
@@ -575,10 +1053,17 @@ async function loadSubmissions() {
                     console.warn(`Admin: couldn't load ${type} checklists`, err);
                     return [];
                 }))).then((lists) => lists.flat()),
+            // Supplier profiles (Settings → Suppliers), on their own like the
+            // wishlist, so unpublished rules don't stop the rest of the page.
+            can("inventory") ? fetchCollection("suppliers").catch((err) => {
+                console.warn("Admin: couldn't load suppliers (publish the latest /firestore.rules)", err);
+                return [];
+            }) : [],
         ]);
         data = emptyData();
         tabs.forEach((tab, i) => { data[tab] = lists[i]; });
         if (role === "admin") data.accounts = buildAccounts(data.accounts);
+        suppliers = supplierList;
         // The checklists tabs are one collection split by type.
         for (const type of CHECKLIST_TYPES) data[type] = checklists.filter((c) => c.type === type);
         tidyLoadedText();
@@ -587,6 +1072,8 @@ async function loadSubmissions() {
         data.wishlist.sort(byWishStatus);
         renderStats();
         renderList();
+        updateSupplierCount();
+        if (document.body.dataset.view === "settings" && !suppliersPage.hidden && supplierView.page !== "form") drawSuppliers();
         fillMissingCapacities();
         shrinkOldPhotos();
         syncInstallsToVisits();
@@ -596,6 +1083,7 @@ async function loadSubmissions() {
         // Refresh "Stock on hand", or a user's "start a checklist" picker
         // (unless a checklist is being created).
         else if (inventoryHomeShown()) showInventoryHome();
+        else if (presetsShown() && !presetRun) drawPresets();
         else if (role === "user" && CHECKLIST_TYPES.includes(activeTab) && checklistStartShown() && !checklistStartBusy) showChecklistStart(activeTab);
         else if (role === "user" && !formOpen && !selected) showUserHome();
     } catch (err) {
@@ -1723,6 +2211,7 @@ const CSV_COLUMNS = {
         ["Category", (i) => i.category],
         ["Count", (i) => qtyOf(i)],
         ["Unit", (i) => unitOf(i)],
+        ["Supplier", (i) => supplierLabel(i)],
         ["Restock at or below", (i) => (i.lowAt > 0 ? i.lowAt : "")],
         ["Status", (i) => ({ out: "Out of stock", low: "Restock needed", ok: "In stock" })[stockState(i)]],
         ["Note", (i) => i.note],
@@ -3975,7 +4464,7 @@ function closeEntry() {
     detailPane.querySelector(".admin-detail-title").replaceChildren();
     // List view: no overview (desktop shows "Select an entry" instead, or, on
     // the Inventory tab, "Stock on hand"; phones just the list).
-    overview.hidden = document.body.dataset.view === "list";
+    overview.hidden = document.body.dataset.view !== "overview";
     markSelected();
     if (role === "admin" && desktop.matches && document.body.dataset.view === "list" && activeTab === "inventory") showInventoryHome();
 }
@@ -4010,9 +4499,11 @@ document.querySelectorAll(".admin-list").forEach((list) => {
     });
 });
 
-// The open entry in the pane can't be collapsed.
+// The open entry in the pane can't be collapsed. The system presets' fold-up
+// cards (also <details>) still open and close.
 detailPane.addEventListener("click", (e) => {
-    if (e.target.closest("summary")) e.preventDefault();
+    const summary = e.target.closest("summary");
+    if (summary && !summary.closest(".admin-presets-pane")) e.preventDefault();
 });
 
 detailPane.querySelector(".admin-back").addEventListener("click", closeEntry);
@@ -4021,7 +4512,7 @@ detailPane.querySelector(".admin-back").addEventListener("click", closeEntry);
 desktop.addEventListener("change", () => {
     if (!desktop.matches && selected) closeEntry();
     else if (role === "admin" && !selected && !formOpen) {
-        overview.hidden = document.body.dataset.view === "list";
+        overview.hidden = document.body.dataset.view !== "overview";
     }
 });
 
@@ -5299,7 +5790,8 @@ async function saveQuick(item) {
 // has saved would lose it:
 // save what's waiting straight away and ask the browser to confirm leaving.
 window.addEventListener("beforeunload", (e) => {
-    if (saveWaitingStock().waiting) e.preventDefault();
+    // A system preset (or its undo) part-way through counts as waiting too.
+    if (saveWaitingStock().waiting || presetRun) e.preventDefault();
 });
 
 // Starts saving every count change that's waiting; `saves` settle when done.
@@ -5337,7 +5829,7 @@ async function signOutAway() {
     if (!auth.currentUser) return;
     signedOutAway = true;
     try {
-        await Promise.allSettled([...saveWaitingStock().saves, flushChecklist ? flushChecklist() : null]);
+        await Promise.allSettled([...saveWaitingStock().saves, flushChecklist ? flushChecklist() : null, presetRun]);
     } finally {
         await authSdk.signOut(auth);
     }
@@ -5451,6 +5943,7 @@ function renderInventoryItem(item) {
     list.append(
         detailRow("Category", item.category),
         detailRow("Unit", unitOf(item)),
+        detailRow("Supplier", supplierLabel(item)),
         detailRow("Restock level", item.lowAt > 0 ? `At or below ${qtyText(item, item.lowAt)}` : "No warning set"),
         detailRow("Note", item.note, { wide: true }),
         detailRow("Added", `${formatDate(toDate(item.createdAt))}${item.createdBy ? ` by ${item.createdBy}` : ""}`, { wide: true }),
@@ -5842,6 +6335,20 @@ function itemForm(item) {
     };
     const category = field("Category *", select(INV_CATEGORIES, item ? item.category || "" : "", "Choose a category"));
     const unit = field("Unit", select(INV_UNITS, item ? unitOf(item) : "pcs"));
+    // A supplier profile (Settings → Suppliers). A name typed before profiles
+    // existed is shown as a hint until a profile is picked.
+    const supplierSelect = el("select", "admin-select");
+    const noSupplier = el("option", "", suppliers.length ? "No supplier" : "No suppliers yet (add them in Settings)");
+    noSupplier.value = "";
+    supplierSelect.append(noSupplier);
+    for (const profile of [...suppliers].sort(bySupplierName)) {
+        const option = el("option", "", profile.name);
+        option.value = profile.id;
+        supplierSelect.append(option);
+    }
+    supplierSelect.value = item && supplierById(item.supplierId) ? item.supplierId : "";
+    const oldSupplier = item && !supplierById(item.supplierId) ? item.supplier || "" : "";
+    const supplier = field("Supplier", supplierSelect, { hint: oldSupplier ? `Typed before as “${oldSupplier}”.` : "" });
     // Starts empty (a grey "0" placeholder) so the count can be typed straight
     // in; left blank, it's saved as 0.
     const qty = item ? null : field("Starting count *", input("number", "", { min: 0, max: INV_MAX_QTY, step: 1, inputMode: "numeric", placeholder: "0" }));
@@ -5850,7 +6357,7 @@ function itemForm(item) {
     note.rows = 3;
     note.maxLength = 500;
     note.value = item ? item.note || "" : "";
-    note.placeholder = "Where it's kept, supplier, size… (optional)";
+    note.placeholder = "Where it's kept, size… (optional)";
 
     // Photos: keep / remove saved ones, add new ones (camera or library).
     const kept = item ? [...serialList(item.photos)] : [];
@@ -5948,6 +6455,9 @@ function itemForm(item) {
             unit: unit.value.trim() || "pcs",
             lowAt: wholeNumber(lowAt, 0),
             note: note.value.trim(),
+            supplierId: supplier.value,
+            // A name typed before profiles is kept until a profile is picked.
+            supplier: supplier.value ? "" : oldSupplier,
         };
         const startQty = qty ? wholeNumber(qty, 0) : null;
         if (!values.name) { error.textContent = "Enter the item's name."; name.focus(); return; }
@@ -6213,6 +6723,358 @@ lowFilterButton.addEventListener("click", () => {
 });
 
 inventoryActions.querySelector(".admin-add-item").addEventListener("click", () => showItemForm(null));
+
+// ------------------------------------------------------- system presets
+//
+// "System presets" on the Inventory tab: one tap takes everything a 2, 4, 6
+// or 8 kW system needs out of stock, with an Undo right after. Each preset
+// line (PRESET_LINES) takes stock from one inventory item: the item whose
+// name matches (presetNorm(): case, spacing, plurals, "Amp"/"A" and "w/"
+// ignored; an exact match first, else the only item containing the name),
+// or the item someone picked for it, saved for everyone in Firestore
+// inventoryPresets/links ({ links: { <line key>: <item id> } }; the
+// inventoryPresets rule in /firestore.rules). A preset is used only if every
+// line is linked and in stock; otherwise nothing changes and the pane says
+// what's short. Each item's count changes through changeStock(), so every
+// change is in that item's History with the note "<preset> preset"; one
+// failing part-way puts back what was already taken. Undo adds the same
+// amounts back ("Undo: <preset> preset"). Quantities are the owner's lists;
+// MC4 connectors are counted in sets, cables in metres.
+const PRESET_LINES = {
+    "pv-panel": { name: "PV Panel" },
+    "rail": { name: "Rail" },
+    "mid-clamp": { name: "Mid Clamp" },
+    "end-clamp": { name: "End Clamp" },
+    "grounding-lug": { name: "Grounding Lugs" },
+    "grounding-clip": { name: "Grounding Clip" },
+    "grounding-rod": { name: "Grounding Rod" },
+    "micro-inverter": { name: "Micro Inverter" },
+    "mi-box": { name: "MI Box" },
+    "mi-box-13": { name: "MI Box (13 ways)" },
+    "mcb-32": { name: "MCB 32 A" },
+    "mcb-63": { name: "MCB 63 A" },
+    "rs485": { name: "RS485" },
+    "mc4": { name: "MC4 Connector", unit: ["set", "sets"] },
+    "l-foot": { name: "L-Foot w/ TEK Screw" },
+    "ac-cable": { name: "3GA AC Cable", unit: ["mtr", "mtrs"] },
+    "cat6": { name: "Cat 6 Cable", unit: ["mtr", "mtrs"] },
+    "ground-cable": { name: "Ground Cable", unit: ["mtr", "mtrs"] },
+    "splice": { name: "Splice" },
+};
+const INV_PRESETS = [
+    { key: "2kw", label: "2 kW system", lines: [
+        ["pv-panel", 4], ["rail", 4], ["mid-clamp", 8], ["end-clamp", 8], ["grounding-lug", 4], ["grounding-clip", 6],
+        ["grounding-rod", 1], ["micro-inverter", 1], ["mi-box", 1], ["rs485", 1], ["mc4", 1], ["l-foot", 12],
+        ["ac-cable", 15], ["cat6", 15], ["ground-cable", 20], ["splice", 2],
+    ] },
+    { key: "4kw", label: "4 kW system", lines: [
+        ["pv-panel", 8], ["rail", 8], ["mid-clamp", 10], ["end-clamp", 10], ["grounding-lug", 4], ["grounding-clip", 12],
+        ["grounding-rod", 1], ["micro-inverter", 2], ["mi-box", 1], ["rs485", 3], ["mc4", 2], ["l-foot", 24],
+        ["ac-cable", 15], ["cat6", 15], ["ground-cable", 20], ["splice", 6],
+    ] },
+    { key: "6kw", label: "6 kW system", lines: [
+        ["pv-panel", 12], ["rail", 12], ["mid-clamp", 12], ["end-clamp", 12], ["grounding-lug", 4], ["grounding-clip", 18],
+        ["grounding-rod", 1], ["micro-inverter", 3], ["mi-box", 1], ["mcb-32", 1], ["rs485", 5], ["mc4", 3], ["l-foot", 36],
+        ["ac-cable", 15], ["cat6", 15], ["ground-cable", 20], ["splice", 10],
+    ] },
+    { key: "8kw", label: "8 kW system", lines: [
+        ["pv-panel", 16], ["rail", 16], ["mid-clamp", 14], ["end-clamp", 14], ["grounding-lug", 4], ["grounding-clip", 24],
+        ["grounding-rod", 1], ["micro-inverter", 4], ["mi-box-13", 1], ["mcb-32", 2], ["mcb-63", 1], ["rs485", 7], ["mc4", 4], ["l-foot", 48],
+        ["ac-cable", 15], ["cat6", 15], ["ground-cable", 20], ["splice", 14],
+    ] },
+];
+
+// Saved links (null until loaded), the presets used since the page was
+// opened (newest first, each with its own Undo), and the run in progress.
+let presetLinks = null;
+let openPreset = null;
+const presetUses = [];
+let presetRun = null;
+
+const presetsActionButton = inventoryActions.querySelector(".admin-presets");
+const presetsShown = () => !detailPane.hidden && Boolean(detailPane.querySelector(".admin-detail-body > .admin-presets-pane"));
+
+function presetNorm(text) {
+    return String(text || "").toLowerCase().replace(/w\//g, "with ")
+        .split(/[^a-z0-9]+/).filter(Boolean)
+        .map((t) => (t === "amp" || t === "amps" ? "a" : t.length > 3 && t.endsWith("s") && !t.endsWith("ss") ? t.slice(0, -1) : t))
+        .join("");
+}
+
+// The inventory item a line takes stock from, and whether it was picked.
+function presetItem(lineKey) {
+    const saved = presetLinks && presetLinks[lineKey];
+    const linked = saved && data.inventory.find((i) => i.id === saved);
+    if (linked) return { item: linked, picked: true };
+    const want = presetNorm(PRESET_LINES[lineKey].name);
+    const exact = data.inventory.filter((i) => presetNorm(i.name) === want);
+    if (exact.length === 1) return { item: exact[0], picked: false };
+    // A partial match never takes another line's exact item (e.g. "MI Box"
+    // must not fall back to the "MI Box (13 ways)" item).
+    const others = Object.entries(PRESET_LINES).filter(([key]) => key !== lineKey).map(([, line]) => presetNorm(line.name));
+    const partial = data.inventory.filter((i) => presetNorm(i.name).includes(want) && !others.includes(presetNorm(i.name)));
+    return { item: exact.length ? null : partial.length === 1 ? partial[0] : null, picked: false };
+}
+
+const presetQty = (lineKey, qty) => {
+    const unit = PRESET_LINES[lineKey].unit;
+    return unit ? `${qty} ${qty === 1 ? unit[0] : unit[1]}` : `${qty} pcs`;
+};
+
+// What a preset would take: per line its item and the amount, plus problems.
+// Lines linked to the same item add up.
+function presetPlan(preset) {
+    const lines = preset.lines.map(([key, qty]) => ({ key, qty, ...presetItem(key) }));
+    const need = new Map();
+    for (const line of lines) if (line.item) need.set(line.item.id, (need.get(line.item.id) || 0) + line.qty);
+    const unlinked = lines.filter((l) => !l.item);
+    const short = [...need].map(([id, qty]) => ({ item: data.inventory.find((i) => i.id === id), qty }))
+        .filter(({ item, qty }) => qtyOf(item) < qty);
+    return { lines, need, unlinked, short };
+}
+
+async function loadPresetLinks() {
+    if (presetLinks) return;
+    try {
+        const snap = await firestore.getDoc(firestore.doc(db, "inventoryPresets", "links"));
+        presetLinks = snap.exists() && snap.data().links && typeof snap.data().links === "object" ? { ...snap.data().links } : {};
+    } catch (err) {
+        console.warn("Admin: couldn't load preset links (publish the latest /firestore.rules)", err);
+        presetLinks = {};
+    }
+}
+
+async function savePresetLink(lineKey, itemId) {
+    const next = { ...presetLinks };
+    if (itemId) next[lineKey] = itemId;
+    else delete next[lineKey];
+    await firestore.setDoc(firestore.doc(db, "inventoryPresets", "links"), {
+        links: next,
+        updatedAt: firestore.serverTimestamp(),
+        updatedBy: currentEmail,
+    });
+    presetLinks = next;
+}
+
+async function showPresets() {
+    formOpen = true;
+    itemFormOpen = false;
+    selected = null;
+    setBackButton();
+    detailPane.querySelector(".admin-detail-kind").textContent = "Inventory";
+    const main = el("div", "admin-entry-main");
+    main.append(
+        el("span", "admin-entry-title", "System presets"),
+        el("span", "admin-entry-meta", "Tap a system to take everything it needs out of stock. You can undo it right after."),
+    );
+    detailPane.querySelector(".admin-detail-title").replaceChildren(main);
+    const pane = el("div", "admin-presets-pane");
+    pane.append(el("p", "admin-empty", "Loading…"));
+    detailPane.querySelector(".admin-detail-body").replaceChildren(pane);
+    overview.hidden = true;
+    detailPane.hidden = false;
+    mainArea.scrollTop = 0;
+    if (!desktop.matches) detailPane.scrollIntoView({ block: "start" });
+    markSelected();
+    await loadPresetLinks();
+    if (presetsShown()) drawPresets();
+}
+
+function drawPresets(message = "") {
+    const pane = detailPane.querySelector(".admin-detail-body > .admin-presets-pane");
+    if (!pane) return;
+    const editable = can("inventory", "edit");
+    const busy = Boolean(presetRun);
+    const parts = [];
+    const status = el("p", "admin-action-error admin-preset-status", message);
+    status.setAttribute("role", "alert");
+    parts.push(status);
+
+    // Used this visit: what each took out, with Undo.
+    if (presetUses.length) {
+        const recent = el("section", "admin-preset-recent");
+        recent.append(el("h3", "admin-ck-section-title", "Used just now"));
+        for (const use of presetUses) {
+            const card = el("div", `admin-preset-use${use.undone ? " is-undone" : ""}`);
+            const head = el("div", "admin-preset-use-head");
+            const title = el("div", "admin-preset-use-title");
+            title.append(
+                el("strong", "", use.preset.label),
+                el("span", "", `${use.undone ? "Undone" : "Taken out of stock"} · ${use.at.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`),
+            );
+            head.append(title);
+            if (!use.undone && editable) {
+                const undo = el("button", "admin-action");
+                undo.type = "button";
+                undo.disabled = busy;
+                undo.append(el("span", "material-symbols-rounded", "undo"), "Undo");
+                undo.addEventListener("click", () => undoPreset(use));
+                head.append(undo);
+            }
+            const list = el("ul", "admin-preset-use-list");
+            list.append(...use.taken.map((t) => el("li", "", `${use.undone ? "+" : "−"}${t.qty.toLocaleString()} ${t.name}`)));
+            card.append(head, list);
+            recent.append(card);
+        }
+        parts.push(recent);
+    }
+
+    const items = [...data.inventory].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    for (const preset of INV_PRESETS) {
+        const plan = presetPlan(preset);
+        const ready = !plan.unlinked.length && !plan.short.length;
+        // Each system folds to its header (name, status, Use button); tap it
+        // to see its parts. One is open at a time (openPreset), kept through
+        // redraws such as linking an item.
+        const card = el("details", `admin-preset${ready ? "" : " has-problem"}`);
+        card.open = openPreset === preset.key;
+        card.addEventListener("toggle", () => {
+            if (card.open) {
+                openPreset = preset.key;
+                pane.querySelectorAll("details.admin-preset[open]").forEach((d) => { if (d !== card) d.open = false; });
+            } else if (openPreset === preset.key) {
+                openPreset = null;
+            }
+        });
+        const head = el("summary", "admin-preset-head");
+        const title = el("div", "admin-preset-title");
+        title.append(
+            el("strong", "", preset.label),
+            el("span", ready ? "admin-preset-ok" : "admin-preset-warn", ready
+                ? `${plural(preset.lines.length, ["item", "items"])} · ready`
+                : [plan.unlinked.length && `${plan.unlinked.length} not linked`, plan.short.length && `${plan.short.length} short`].filter(Boolean).join(" · ")),
+        );
+        head.append(title);
+        if (editable) {
+            const use = el("button", "admin-action admin-action-primary");
+            use.type = "button";
+            use.disabled = busy || !ready;
+            use.append(el("span", "material-symbols-rounded", "remove_circle"), `Use ${preset.label}`);
+            // In the header: use the preset without folding the card.
+            use.addEventListener("click", (e) => {
+                e.preventDefault();
+                usePreset(preset);
+            });
+            head.append(use);
+        }
+        head.append(el("span", "material-symbols-rounded admin-preset-chevron", "expand_more"));
+
+        const partsBox = el("div", "admin-preset-parts");
+        partsBox.append(el("p", "admin-preset-parts-title", `What it takes (${plural(preset.lines.length, ["item", "items"])})`));
+        const list = el("ul", "admin-preset-lines");
+        for (const line of plan.lines) {
+            const li = el("li", "admin-preset-line");
+            const total = line.item ? plan.need.get(line.item.id) : 0;
+            const short = line.item && qtyOf(line.item) < total;
+            if (!line.item) li.classList.add("is-unlinked");
+            else if (short) li.classList.add("is-short");
+            const what = el("div", "admin-preset-line-what");
+            what.append(el("strong", "", `${presetQty(line.key, line.qty)} · ${PRESET_LINES[line.key].name}`));
+            what.append(el("span", "", !line.item ? "Pick the inventory item it comes from"
+                : short ? `Only ${qtyText(line.item)} in stock · short by ${(total - qtyOf(line.item)).toLocaleString()}`
+                : `${qtyText(line.item)} in stock`));
+            const pick = el("select", "admin-select admin-preset-pick");
+            pick.setAttribute("aria-label", `Inventory item for ${PRESET_LINES[line.key].name}`);
+            pick.disabled = !editable || busy;
+            const none = el("option", "", "Not linked");
+            none.value = "";
+            pick.append(none, ...items.map((i) => {
+                const o = el("option", "", `${i.name} (${qtyText(i)})`);
+                o.value = i.id;
+                return o;
+            }));
+            pick.value = line.item ? line.item.id : "";
+            pick.addEventListener("change", async () => {
+                pick.disabled = true;
+                try {
+                    await savePresetLink(line.key, pick.value);
+                    drawPresets();
+                } catch (err) {
+                    console.error("Admin: saving preset link failed", err);
+                    drawPresets(inventoryErrorMessage(err));
+                }
+            });
+            li.append(what, pick);
+            list.append(li);
+        }
+        partsBox.append(list);
+        card.append(head, partsBox);
+        parts.push(card);
+    }
+    pane.replaceChildren(...parts);
+}
+
+// Takes a preset's items out of stock, one item at a time. If one fails
+// (e.g. someone just used the last few), what was already taken is put back.
+function usePreset(preset) {
+    if (presetRun) return;
+    const plan = presetPlan(preset);
+    if (plan.unlinked.length || plan.short.length) return drawPresets();
+    const note = `${preset.label} preset`;
+    presetRun = (async () => {
+        const taken = [];
+        try {
+            for (const [id, qty] of plan.need) {
+                const item = data.inventory.find((i) => i.id === id);
+                drawPresets(`Taking out ${item.name}… (${taken.length + 1} of ${plan.need.size})`);
+                await changeStock(item, "use", qty, "", note);
+                taken.push({ id, name: item.name, qty });
+            }
+            presetUses.unshift({ preset, taken, at: new Date(), undone: false });
+            return "";
+        } catch (err) {
+            console.error("Admin: using preset failed", err);
+            const putBack = await restockAll(taken, `Put back: ${note} didn't finish`);
+            return `Couldn't use the ${preset.label}: ${inventoryErrorMessage(err)}${putBack.length
+                ? ` Couldn't put back ${putBack.map((t) => `${t.qty} ${t.name}`).join(", ")}; check those counts.`
+                : taken.length ? " Nothing was taken out." : ""}`;
+        }
+    })();
+    presetRun.then((message) => {
+        presetRun = null;
+        redrawInventory({ id: "" });
+        if (presetsShown()) drawPresets(message);
+    });
+}
+
+// Adds amounts back; returns the ones that couldn't be.
+async function restockAll(taken, note) {
+    const failed = [];
+    for (const t of [...taken].reverse()) {
+        const item = data.inventory.find((i) => i.id === t.id);
+        try {
+            if (!item) throw new Error("item deleted");
+            await changeStock(item, "restock", t.qty, "", note);
+        } catch (err) {
+            console.error("Admin: putting stock back failed", t, err);
+            failed.push(t);
+        }
+    }
+    return failed;
+}
+
+function undoPreset(use) {
+    if (presetRun || use.undone) return;
+    presetRun = (async () => {
+        drawPresets("Putting it back…");
+        const failed = await restockAll(use.taken, `Undo: ${use.preset.label} preset`);
+        if (!failed.length) {
+            use.undone = true;
+            return "";
+        }
+        // Keep what's left to undo, so Undo can be tried again.
+        use.taken = failed;
+        return `Couldn't put back ${failed.map((t) => `${t.qty} ${t.name}`).join(", ")}. Check your connection and tap Undo again.`;
+    })();
+    presetRun.then((message) => {
+        presetRun = null;
+        redrawInventory({ id: "" });
+        if (presetsShown()) drawPresets(message);
+    });
+}
+
+presetsActionButton.addEventListener("click", showPresets);
+
 
 
 // --------------------------------------------------------------- accounts
@@ -6839,9 +7701,11 @@ function selectTab(name) {
     addEntryActions.querySelector(".admin-add-entry-text").textContent = name === "waitlist" ? "Add sign-up" : "Add visit request";
     inventoryActions.hidden = name !== "inventory";
     inventoryActions.querySelector(".admin-add-item").hidden = !can("inventory", "edit");
+    inventoryActions.querySelector(".admin-presets").hidden = !can("inventory", "edit");
     wishlistActions.hidden = name !== "wishlist";
     wishlistActions.querySelector(".admin-add-wish").hidden = !can("wishlist", "edit");
     accountsActions.hidden = name !== "accounts" || role !== "admin";
+    markProfile();
     updateStatusFilter();
     renderList();
     // A user's right-hand pane follows the page: its home pane (e.g. the

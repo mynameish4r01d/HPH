@@ -6,71 +6,82 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Who may do what on the admin page (HPH RENEWABLE/admin/):
+    //   - Owners (the Main admins, isOwner()) may do everything.
+    //   - Everyone else is a user with a level per page in staffRoles/{email}
+    //     (`access`), set by the owners in the Accounts section: 'view' (1),
+    //     'edit' (2) or 'delete' (3, edit + delete); a page left out is off.
+    //     Pages: visits, waitlist, feedback, nda, installs, inspection,
+    //     installation, inventory, wishlist (ACCESS_PAGES in admin.js).
+    //   - The original Team Workspace and installer emails keep their old
+    //     access (legacyLevel()) until they're given an entry.
+    // can(page, level) checks this.
+
     // "Schedule a Visit" requests from the website (HPH RENEWABLE/schedule-a-visit/).
-    // Anyone may submit a well-formed request; only admins can read them and
-    // move them through the quote pipeline, correct their details and
-    // attachments, or delete them (HPH RENEWABLE/admin/). The encoder account
-    // can do all of that except delete. The public can't change or delete
-    // anything.
+    // Anyone may submit a well-formed request. Ocular Visits users read them
+    // (and so do checklist editors, to pick a client); Edit moves them through
+    // the pipeline, corrects their details and adds requests by hand; Edit +
+    // delete also deletes. Owners also import from OpenSolar. Installs editors
+    // create an install's own Ocular Visits entry.
     // Stages: keep in step with TABS.visits.pipeline in HPH RENEWABLE/admin/admin.js.
     match /visitRequests/{requestId} {
       allow create: if isValidVisitRequest(request.resource.data)
-        || (isStaff() && isValidCopiedVisit(request.resource.data))
-        || (isStaff() && isValidStaffVisit(request.resource.data))
-        || (isAdmin() && isValidOpenSolarVisit(requestId, request.resource.data));
-      allow read: if isStaff() || isInstaller();
-      allow update: if (isAdmin() && (isValidStatusChange() || isValidOpenSolarSync()))
-        || (isStaff()
+        || (can('installs', 2) && isValidCopiedVisit(request.resource.data))
+        || (can('visits', 2) && isValidStaffVisit(request.resource.data))
+        || (isOwner() && isValidOpenSolarVisit(requestId, request.resource.data));
+      allow read: if can('visits', 1) || can('inspection', 2) || can('installation', 2);
+      allow update: if (isOwner() && (isValidStatusChange() || isValidOpenSolarSync()))
+        || (can('visits', 2)
             && (isValidStageChange(['new', 'contacted', 'scheduled', 'visited', 'quoted', 'installing', 'installed'])
                 || isValidVisitEdit()));
-      allow delete: if isAdmin();
+      allow delete: if can('visits', 3);
     }
 
     // "Share Your Experience" feedback from the website (HPH RENEWABLE/feedback/).
-    // Same idea: anyone may submit well-formed feedback; only admins can
-    // read or delete it; nobody can change it (it's the customer's words).
+    // Anyone may submit well-formed feedback; Feedback users read it, Edit +
+    // delete deletes it; nobody can change it (it's the customer's words).
     match /feedback/{feedbackId} {
       allow create: if isValidFeedback(request.resource.data);
-      allow read, delete: if isAdmin();
+      allow read: if can('feedback', 1);
+      allow delete: if can('feedback', 3);
       allow update: if false;
     }
 
-    // Installer checklists (HPH RENEWABLE/admin/, the Site visit inspection and
-    // Installation and commissioning tabs). One document per job and checklist
-    // type; the checklist's content lives in admin/checklist-templates.js. The
-    // installer account (and admins) start one and fill it in while it's
+    // Installer checklists (HPH RENEWABLE/admin/, the Inspection and
+    // Commissioning pages; type 'inspection' or 'installation', which is also
+    // the page). One document per job and checklist type; the content lives in
+    // admin/checklist-templates.js. Edit starts one and fills it in while it's
     // "in_progress", but only its creator can change it; submitting it locks
-    // it. Admins can read every checklist, reopen a submitted one, or delete.
+    // it. Owners reopen a submitted one; Edit + delete deletes.
     match /jobChecklists/{checklistId} {
-      allow read: if isAdmin() || isInstaller();
-      allow create: if canFillChecklists() && isValidChecklistCreate(request.resource.data);
-      allow update: if (canFillChecklists()
+      allow read: if can(resource.data.type, 1);
+      allow create: if can(request.resource.data.type, 2) && isValidChecklistCreate(request.resource.data);
+      allow update: if (can(resource.data.type, 2)
             && resource.data.status == 'in_progress'
             && resource.data.createdBy == request.auth.token.email
             && isValidChecklistUpdate(resource.data, request.resource.data))
-        || (isAdmin()
+        || (isOwner()
             && resource.data.status == 'submitted'
             && isValidChecklistReopen(resource.data, request.resource.data));
-      allow delete: if isAdmin();
+      allow delete: if can(resource.data.type, 3);
     }
 
-    // Inventory (HPH RENEWABLE/admin/, Inventory tab): stock on hand, kept by
-    // admins, the installer and the encoder (canKeepInventory). Every change to
-    // an item's count is written together with an inventoryLog record in one
-    // transaction, and the item points at that record (lastLogId), so the
-    // history always explains the count. Details and photos can change without
-    // a record; the count can't. Admins delete any item, the installer and the
-    // encoder only items they added.
+    // Inventory (HPH RENEWABLE/admin/, Inventory page): stock on hand. Every
+    // change to an item's count is written together with an inventoryLog
+    // record in one transaction, and the item points at that record
+    // (lastLogId), so the history always explains the count. Details and
+    // photos can change without a record; the count can't. Edit + delete
+    // deletes any item, Edit only items they added.
     match /inventory/{itemId} {
-      allow read: if canKeepInventory();
-      allow create: if canKeepInventory()
+      allow read: if can('inventory', 1);
+      allow create: if can('inventory', 2)
         && isValidInventoryItem(request.resource.data)
         && request.resource.data.createdAt == request.time
         && request.resource.data.createdBy == request.auth.token.email
         && request.resource.data.updatedAt == request.time
         && request.resource.data.updatedBy == request.auth.token.email
         && isInventoryLogFor(itemId, request.resource.data);
-      allow update: if canKeepInventory()
+      allow update: if can('inventory', 2)
         && isValidInventoryItem(request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.createdBy == resource.data.createdBy
@@ -82,28 +93,84 @@ service cloud.firestore {
                 && isInventoryLogFor(itemId, request.resource.data)
                 && getAfter(/databases/$(database)/documents/inventoryLog/$(request.resource.data.lastLogId)).data.qtyBefore
                      == resource.data.qty));
-      allow delete: if isAdmin()
-        || ((isInstaller() || isEncoder()) && resource.data.createdBy == request.auth.token.email);
+      allow delete: if can('inventory', 3)
+        || (can('inventory', 2) && resource.data.createdBy == request.auth.token.email);
     }
 
     // One record per change to an item's count (see /inventory above). Never
-    // changed; admins may delete old records.
+    // changed; owners may delete old records.
     match /inventoryLog/{logId} {
-      allow read: if canKeepInventory();
-      allow create: if canKeepInventory() && isValidInventoryLog(logId, request.resource.data);
+      allow read: if can('inventory', 1);
+      allow create: if can('inventory', 2) && isValidInventoryLog(logId, request.resource.data);
       allow update: if false;
-      allow delete: if isAdmin();
+      allow delete: if isOwner();
     }
 
-    // Wishlist (HPH RENEWABLE/admin/, Wishlist tab): things the team wants
-    // bought, with a price. Admins and the encoder (team account) read and add
-    // items. An open item can be edited by admins or whoever added it. Only
-    // admins mark an item complete or reopen it, which changes just status,
-    // completedAt/By and updatedAt/By. Admins delete any item; the encoder only
-    // open items it added.
+    // Inventory system presets (HPH RENEWABLE/admin/, Inventory tab, "System
+    // presets"): one document, inventoryPresets/links, mapping each preset
+    // line (PRESET_LINES in admin.js, e.g. "pv-panel") to the inventory item
+    // it takes stock from. Inventory editors set the links; using a preset
+    // changes counts through the normal /inventory and /inventoryLog rules.
+    match /inventoryPresets/{docId} {
+      allow read: if can('inventory', 1);
+      allow create, update: if can('inventory', 2)
+        && docId == 'links'
+        && request.resource.data.keys().hasOnly(['links', 'updatedAt', 'updatedBy'])
+        && request.resource.data.keys().hasAll(['links', 'updatedAt', 'updatedBy'])
+        && request.resource.data.links is map
+        && request.resource.data.links.size() <= 50
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.token.email;
+      allow delete: if false;
+    }
+
+    // Supplier profiles (HPH RENEWABLE/admin/, Settings → Suppliers): name,
+    // contact person, phone, email, office / warehouse address and a note.
+    // Inventory items point at one with supplierId. Inventory users read
+    // them; Edit adds and edits any and deletes their own; Edit + delete
+    // deletes any.
+    match /suppliers/{supplierId} {
+      allow read: if can('inventory', 1);
+      allow create: if can('inventory', 2)
+        && isValidSupplier(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.createdBy == request.auth.token.email
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.token.email;
+      allow update: if can('inventory', 2)
+        && isValidSupplier(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.token.email;
+      allow delete: if can('inventory', 3)
+        || (can('inventory', 2) && resource.data.createdBy == request.auth.token.email);
+    }
+
+    // Admin page accounts (Accounts section, owners only): one document per
+    // email (the ID, lower-case) with the user's level per page. Removing
+    // access turns every page off, so there's a record; nothing is deleted.
+    // Each account may read its own entry, which the page uses at sign-in.
+    match /staffRoles/{email} {
+      allow read: if isOwner()
+        || (signedInWithEmail() && request.auth.token.email.lower() == email);
+      allow create: if isOwner() && isValidAccess(email)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.createdBy == request.auth.token.email;
+      allow update: if isOwner() && isValidAccess(email)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy;
+      allow delete: if false;
+    }
+
+    // Wishlist (HPH RENEWABLE/admin/, Wishlist page): things the team wants
+    // bought, with a price. Edit adds items and edits or deletes their own
+    // open ones; Edit + delete edits or deletes any. Only owners mark an item
+    // complete or reopen it, which changes just status, completedAt/By and
+    // updatedAt/By.
     match /wishlist/{wishId} {
-      allow read: if isStaff();
-      allow create: if isStaff()
+      allow read: if can('wishlist', 1);
+      allow create: if can('wishlist', 2)
         && isValidWish(request.resource.data)
         && request.resource.data.status == 'open'
         && request.resource.data.completedAt == null
@@ -112,54 +179,52 @@ service cloud.firestore {
         && request.resource.data.createdBy == request.auth.token.email
         && request.resource.data.updatedAt == request.time
         && request.resource.data.updatedBy == request.auth.token.email;
-      allow update: if isStaff()
+      allow update: if can('wishlist', 2)
         && isValidWish(request.resource.data)
         && request.resource.data.updatedAt == request.time
         && request.resource.data.updatedBy == request.auth.token.email
-        && (isWishEdit() || (isAdmin() && isWishStatusChange()));
-      allow delete: if isAdmin()
-        || (isEncoder() && resource.data.status == 'open'
+        && (isWishEdit() || (isOwner() && isWishStatusChange()));
+      allow delete: if can('wishlist', 3)
+        || (can('wishlist', 2) && resource.data.status == 'open'
             && resource.data.createdBy == request.auth.token.email);
     }
 
     // Confidentiality Agreement (NDA) responses from
     // HPH RENEWABLE/legal-policies/confidentiality-agreement/ (nda-form.js).
-    // Anyone may submit a response; only admins can read or delete them, and
-    // nobody can change one after it's recorded. (Responses from the old NDA
-    // Google Form were imported once; they carry source "google-form".)
+    // Anyone may submit a response; NDA users read them, Edit + delete deletes
+    // them, and nobody can change one after it's recorded. (Responses from the
+    // old NDA Google Form were imported once; they carry source "google-form".)
     match /ndaResponses/{responseId} {
       allow create: if isValidNdaResponse(request.resource.data);
-      allow read, delete: if isAdmin();
+      allow read: if can('nda', 1);
+      allow delete: if can('nda', 3);
       allow update: if false;
     }
 
     // "Join the Waitlist" sign-ups from the product pages (HPH RENEWABLE/join-waitlist/).
-    // Anyone may sign up; only admins can read them, move them through the
-    // waitlist pipeline (same stage fields as visit requests), correct their
-    // contact details, or delete them. The encoder account can do all of
-    // that except delete.
+    // Anyone may sign up; Waitlist users read them; Edit moves them through
+    // the waitlist pipeline, corrects contact details and adds sign-ups by
+    // hand; Edit + delete also deletes.
     // Stages: keep in step with TABS.waitlist.pipeline in HPH RENEWABLE/admin/admin.js.
     match /waitlist/{signupId} {
       allow create: if isValidWaitlist(request.resource.data)
-        || (isStaff() && isValidStaffWaitlist(request.resource.data));
-      allow read: if isStaff();
-      allow update: if (isAdmin() && isValidStatusChange())
-        || (isStaff()
+        || (can('waitlist', 2) && isValidStaffWaitlist(request.resource.data));
+      allow read: if can('waitlist', 1);
+      allow update: if (isOwner() && isValidStatusChange())
+        || (can('waitlist', 2)
             && (isValidStageChange(['new', 'contacted', 'reserved', 'delivered', 'cancelled'])
                 || isValidWaitlistEdit()));
-      allow delete: if isAdmin();
+      allow delete: if can('waitlist', 3);
     }
 
-    // Installations (HPH RENEWABLE/admin/, "Installs" tab), which replaced the
+    // Installations (HPH RENEWABLE/admin/, "Installs" page), which replaced the
     // installation Google Sheet. One document per install with the client's
     // details, its serial numbers and its panel count (panels whose serial
-    // wasn't recorded still count). Admins and the encoder account can read,
-    // add and edit any install. Admins can delete any install, and the
-    // encoder only the ones it added. Imports from the sheet (source "sheet")
-    // are admin-only.
+    // wasn't recorded still count). Installs users read them; Edit adds and
+    // edits any install and deletes ones they added; Edit + delete deletes any.
     match /installs/{installId} {
-      allow read: if isStaff();
-      allow create: if isStaff()
+      allow read: if can('installs', 1);
+      allow create: if can('installs', 2)
         && isValidInstall(request.resource.data)
         && request.resource.data.createdAt == request.time
         && request.resource.data.createdBy == request.auth.token.email
@@ -169,7 +234,7 @@ service cloud.firestore {
         // from the Google Sheet (source "sheet") has been removed, though its
         // installs can still be edited.
         && request.resource.data.source == 'admin';
-      allow update: if isStaff()
+      allow update: if can('installs', 2)
         && isValidInstall(request.resource.data)
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.createdBy == resource.data.createdBy
@@ -177,8 +242,8 @@ service cloud.firestore {
         && request.resource.data.sheetTimestamp == resource.data.sheetTimestamp
         && request.resource.data.updatedAt == request.time
         && request.resource.data.updatedBy == request.auth.token.email;
-      allow delete: if isAdmin()
-        || (isEncoder() && resource.data.createdBy == request.auth.token.email);
+      allow delete: if can('installs', 3)
+        || (can('installs', 2) && resource.data.createdBy == request.auth.token.email);
     }
 
     // Public totals per install: { inverters, panels }, no client details.
@@ -187,7 +252,7 @@ service cloud.firestore {
     // (MX2250 serials listed, panelCount); removed with it.
     match /installCounts/{installId} {
       allow read: if true;
-      allow create, update: if isStaff()
+      allow create, update: if can('installs', 2)
         && request.resource.data.keys().hasOnly(['inverters', 'panels'])
         && request.resource.data.keys().hasAll(['inverters', 'panels'])
         && existsAfter(/databases/$(database)/documents/installs/$(installId))
@@ -195,7 +260,7 @@ service cloud.firestore {
              == getAfter(/databases/$(database)/documents/installs/$(installId)).data.inverterSerials.size()
         && request.resource.data.panels
              == getAfter(/databases/$(database)/documents/installs/$(installId)).data.panelCount;
-      allow delete: if isStaff()
+      allow delete: if can('installs', 2)
         && !existsAfter(/databases/$(database)/documents/installs/$(installId));
     }
 
@@ -204,14 +269,14 @@ service cloud.firestore {
     // only { type, installId }. Written in the same batch as the install that
     // lists the serial, and removed with it; never changed.
     match /serials/{serial} {
-      allow read: if isStaff();
-      allow create: if isStaff() && isValidSerial(serial, request.resource.data);
+      allow read: if can('installs', 1);
+      allow create: if can('installs', 2) && isValidSerial(serial, request.resource.data);
       allow update: if false;
-      // The encoder may remove a serial its edit took off an install (the
-      // install no longer lists it), or the serials of an install of its own
-      // that it's deleting.
-      allow delete: if isAdmin()
-        || (isEncoder()
+      // Edit may remove a serial its edit took off an install (the install no
+      // longer lists it), or the serials of an install of its own that it's
+      // deleting.
+      allow delete: if can('installs', 3)
+        || (can('installs', 2)
             && ((existsAfter(/databases/$(database)/documents/installs/$(resource.data.installId))
                  && !(serial in getAfter(/databases/$(database)/documents/installs/$(resource.data.installId)).data.inverterSerials)
                  && !(serial in getAfter(/databases/$(database)/documents/installs/$(resource.data.installId)).data.panelSerials))
@@ -220,49 +285,61 @@ service cloud.firestore {
                          == request.auth.token.email)));
     }
 
-    // Admin page sign-in (Firebase Authentication, email + password).
-    // Keep this list in step with ADMIN_EMAILS in HPH RENEWABLE/admin/admin.js
-    // and isAdmin() in /storage.rules.
-    function isAdmin() {
-      return request.auth != null
+    // ---- who's signed in
+
+    function signedInWithEmail() {
+      return request.auth != null && request.auth.token.get('email', null) is string;
+    }
+
+    // The Main admins, fixed here so nobody can be locked out. Keep in step
+    // with OWNER_EMAILS in HPH RENEWABLE/admin/admin.js and isOwner() in
+    // /storage.rules.
+    function isOwner() {
+      return signedInWithEmail()
         && request.auth.token.email in ['harold.t.hermosa@gmail.com',
                                      'jeff.hermosa@hphtechsolutions.com',
                                      'lerin.hermosa@hphtechsolutions.com'];
     }
 
-    // The encoder account: signs in on the admin page without the overview
-    // dashboard or feedback. It adds and edits installations (deleting only
-    // its own), and
-    // views, edits and moves visit requests and waitlist sign-ups through the
-    // pipeline, but can't delete them. Keep in step with ENCODER_EMAILS in
-    // HPH RENEWABLE/admin/admin.js and isEncoder() in /storage.rules.
-    function isEncoder() {
-      return request.auth != null
-        && request.auth.token.email in ['inquiries@hphtechsolutions.com'];
+    // The original accounts' access until they're given a staffRoles entry
+    // (LEGACY_ACCESS in admin.js): the Team Workspace and the installer.
+    function legacyLevel(page) {
+      return request.auth.token.email == 'inquiries@hphtechsolutions.com'
+          ? {'visits': 2, 'waitlist': 2, 'installs': 2, 'inventory': 2, 'wishlist': 2}.get(page, 0)
+        : request.auth.token.email == 'hphrenewable@gmail.com'
+          ? {'inspection': 2, 'installation': 2, 'inventory': 2}.get(page, 0)
+        : 0;
     }
 
-    function isStaff() {
-      return isAdmin() || isEncoder();
+    // The signed-in user's level on a page: 0 off, 1 view, 2 edit, 3 delete.
+    function accessLevel(page) {
+      let path = /databases/$(database)/documents/staffRoles/$(request.auth.token.email.lower());
+      return exists(path)
+        ? {'view': 1, 'edit': 2, 'delete': 3}.get(get(path).data.get('access', {}).get(page, 'off'), 0)
+        : legacyLevel(page);
     }
 
-    // The installer account: signs in on the admin page to a workspace with
-    // only the two checklist tabs and Inventory. It can read visit requests
-    // (to pick a client) but change none, start and fill in checklists, and
-    // keep the inventory. Keep in step
-    // with INSTALLER_EMAILS in HPH RENEWABLE/admin/admin.js and isInstaller()
-    // in /storage.rules.
-    function isInstaller() {
-      return request.auth != null
-        && request.auth.token.email in ['hphrenewable@gmail.com'];
+    function can(page, level) {
+      return isOwner() || (signedInWithEmail() && accessLevel(page) >= level);
     }
 
-    function canFillChecklists() {
-      return isAdmin() || isInstaller();
-    }
-
-    // Who keeps the inventory: admins, the installer and the encoder.
-    function canKeepInventory() {
-      return isAdmin() || isInstaller() || isEncoder();
+    // A staffRoles entry (see /staffRoles above): a name and a level per page.
+    function isValidAccess(email) {
+      let data = request.resource.data;
+      return email == email.lower()
+        && email.matches('[^@\\s/]+@[^@\\s/]+[.][^@\\s/]+')
+        && !(email in ['harold.t.hermosa@gmail.com',
+                       'jeff.hermosa@hphtechsolutions.com',
+                       'lerin.hermosa@hphtechsolutions.com'])
+        && data.keys().hasOnly(['name', 'access', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'])
+        && data.keys().hasAll(['name', 'access', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'])
+        && isText(data.name, 0, 100)
+        && data.access is map
+        && data.access.keys().hasOnly(['visits', 'waitlist', 'feedback', 'nda', 'installs',
+                                       'inspection', 'installation', 'inventory', 'wishlist'])
+        && data.access.values().hasOnly(['view', 'edit', 'delete'])
+        && data.updatedAt == request.time
+        && data.updatedBy == request.auth.token.email;
     }
 
     function isValidInstall(data) {
@@ -314,15 +391,15 @@ service cloud.firestore {
         && isText(data.updatedBy, 0, 200);
     }
 
-    // Editing an open item's details (admins, or whoever added it).
+    // Editing an open item's details (Edit + delete, or whoever added it).
     function isWishEdit() {
       return resource.data.status == 'open'
-        && (isAdmin() || resource.data.createdBy == request.auth.token.email)
+        && (can('wishlist', 3) || resource.data.createdBy == request.auth.token.email)
         && request.resource.data.diff(resource.data).affectedKeys()
              .hasOnly(['name', 'price', 'qty', 'link', 'note', 'updatedAt', 'updatedBy']);
     }
 
-    // Marking an item complete, or reopening it (admins).
+    // Marking an item complete, or reopening it (owners).
     function isWishStatusChange() {
       let data = request.resource.data;
       return data.diff(resource.data).affectedKeys()
@@ -338,8 +415,13 @@ service cloud.firestore {
     function isValidInventoryItem(data) {
       let fields = ['name', 'category', 'unit', 'qty', 'lowAt', 'note', 'photos', 'lastLogId',
                     'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
-      return data.keys().hasOnly(fields)
+      // supplierId (a /suppliers profile, '' for none) is optional, so items
+      // saved before it existed stay valid; supplier is a name typed before
+      // supplier profiles existed.
+      return data.keys().hasOnly(fields.concat(['supplierId', 'supplier']))
         && data.keys().hasAll(fields)
+        && (!('supplierId' in data) || isText(data.supplierId, 0, 100))
+        && (!('supplier' in data) || isText(data.supplier, 0, 100))
         && isText(data.name, 1, 100)
         && isText(data.category, 0, 50)
         && isText(data.unit, 1, 20)
@@ -349,6 +431,20 @@ service cloud.firestore {
         && data.photos is list && data.photos.size() <= 6
         && isText(data.lastLogId, 1, 100)
         && data.createdBy is string;
+    }
+
+    // A supplier profile (see /suppliers above).
+    function isValidSupplier(data) {
+      let fields = ['name', 'contactPerson', 'phone', 'email', 'address', 'note',
+                    'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && isText(data.name, 1, 100)
+        && isText(data.contactPerson, 0, 100)
+        && isText(data.phone, 0, 40)
+        && isText(data.email, 0, 200)
+        && isText(data.address, 0, 300)
+        && isText(data.note, 0, 500);
     }
 
     // The item's lastLogId names a history record, written in the same batch,

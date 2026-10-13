@@ -184,8 +184,9 @@
                         </div>
                     </div>
 
-                    <!-- Admins only: who can use this page, and with which role. -->
-                    <div class="admin-nav-group" data-group="settings">
+                    <!-- Admins only: who can use this page, and with which role. Kept
+                         hidden: Accounts opens from Settings (the profile at the bottom). -->
+                    <div class="admin-nav-group" data-group="settings" hidden>
                         <div class="admin-nav-heading">Settings</div>
                         <div class="admin-tabs" role="tablist" aria-label="Settings">
                         <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="accounts">
@@ -197,12 +198,15 @@
                     </div>
                 </div>
 
+                <!-- The profile opens Settings (the account, and Accounts for owners). -->
                 <div class="admin-nav-account">
-                    <span class="admin-nav-avatar" aria-hidden="true"></span>
-                    <span class="admin-nav-who">
-                        <span class="admin-nav-role"></span>
-                        <span class="admin-nav-email"></span>
-                    </span>
+                    <button type="button" class="admin-nav-profile" title="Settings" aria-label="Settings">
+                        <span class="admin-nav-avatar" aria-hidden="true"></span>
+                        <span class="admin-nav-who">
+                            <span class="admin-nav-role"></span>
+                            <span class="admin-nav-email"></span>
+                        </span>
+                    </button>
                     <button type="button" class="admin-nav-signout" title="Sign out" aria-label="Sign out">
                         <span class="material-symbols-rounded">logout</span>
                     </button>
@@ -403,6 +407,61 @@
                     <div class="admin-detail-body"></div>
                 </div>
 
+                <!-- Desktop: Settings, opened by clicking the profile in the navigation
+                     (body[data-view="settings"], showSettings() in admin.js). -->
+                <div class="admin-settings" hidden>
+                    <div class="admin-settings-home">
+                    <div class="admin-heading">
+                        <h1 class="admin-title">Settings</h1>
+                    </div>
+
+                    <section class="admin-settings-card" aria-label="Your account">
+                        <span class="admin-settings-avatar" aria-hidden="true"></span>
+                        <span class="admin-settings-who">
+                            <span class="admin-settings-role"></span>
+                            <span class="admin-settings-email"></span>
+                        </span>
+                        <button type="button" class="admin-refresh admin-settings-signout">
+                            <span class="material-symbols-rounded">logout</span>
+                            Sign out
+                        </button>
+                    </section>
+
+                    <!-- Owners only (hidden for others by showSettings()). -->
+                    <section class="admin-settings-group" data-settings="admin">
+                        <div class="admin-settings-heading">Administration</div>
+                        <button type="button" class="admin-settings-row" data-open-tab="accounts">
+                            <span class="material-symbols-rounded admin-settings-icon">manage_accounts</span>
+                            <span class="admin-settings-text">
+                                <span class="admin-settings-name">Accounts</span>
+                                <span class="admin-settings-desc">Who can use this page, and which pages each person can view or edit</span>
+                            </span>
+                            <span class="admin-settings-count" data-settings-count="accounts"></span>
+                            <span class="material-symbols-rounded admin-settings-chevron" aria-hidden="true">chevron_right</span>
+                        </button>
+                    </section>
+
+                    <!-- Anyone who can edit the inventory (hidden for others by showSettings()). -->
+                    <section class="admin-settings-group" data-settings="inventory">
+                        <div class="admin-settings-heading">Inventory</div>
+                        <button type="button" class="admin-settings-row admin-settings-open-suppliers">
+                            <span class="material-symbols-rounded admin-settings-icon">local_shipping</span>
+                            <span class="admin-settings-text">
+                                <span class="admin-settings-name">Suppliers</span>
+                                <span class="admin-settings-desc">Supplier profiles: contact person, phone, email and address, and the items you buy from each</span>
+                            </span>
+                            <span class="admin-settings-count" data-settings-count="suppliers"></span>
+                            <span class="material-symbols-rounded admin-settings-chevron" aria-hidden="true">chevron_right</span>
+                        </button>
+                    </section>
+                    </div>
+
+                    <!-- Settings → Suppliers: the supplier profiles, one supplier's profile
+                         with its items, or the add / edit form, drawn by showSuppliers()
+                         in admin.js. -->
+                    <div class="admin-settings-suppliers" hidden></div>
+                </div>
+
                 <!-- Desktop, list view with nothing open (shown by CSS when both the
                      overview and the detail pane are hidden). -->
                 <div class="admin-pane-empty">
@@ -456,12 +515,17 @@
                     </button>
                 </div>
 
-                <!-- Inventory tab: add an item (the form opens on the right), and show only
-                     items at or below their restock level. -->
+                <!-- Inventory tab: add an item (the form opens on the right), use a system
+                     preset (2/4/6/8 kW: takes its parts out of stock, with Undo), and show
+                     only items at or below their restock level. -->
                 <div class="admin-install-actions admin-inventory-actions" hidden>
                     <button type="button" class="admin-action admin-action-primary admin-add-item">
                         <span class="material-symbols-rounded">add</span>
                         Add item
+                    </button>
+                    <button type="button" class="admin-action admin-presets" hidden>
+                        <span class="material-symbols-rounded">solar_power</span>
+                        System presets
                     </button>
                     <button type="button" class="admin-action admin-low-filter" aria-pressed="false">
                         <span class="material-symbols-rounded">warning</span>

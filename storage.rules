@@ -6,86 +6,100 @@ rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
 
+    // Who may do what is the same as in /firestore.rules: owners (the Main
+    // admins) everything; everyone else by their level per page in Firestore
+    // staffRoles/{email} (set in the admin page's Accounts section): view 1,
+    // edit 2, delete 3 (edit + delete).
+
     // Files attached to "Schedule a Visit" requests (HPH RENEWABLE/schedule-a-visit/).
     // Anyone may upload a new image or PDF of up to 10 MB into a request's
-    // folder (staff too, when adding a bill for a client); only admins and the
-    // encoder account can delete them (HPH RENEWABLE/admin/: removing an
-    // attachment while editing, or an admin deleting the request); nobody can
-    // replace files. The installer can also view them, for the Site Visit
-    // checklist's "Import from Ocular Visit" (the client's bills).
+    // folder (staff too, when adding a bill for a client). Ocular Visits users
+    // view them (and so do checklist editors, for the Site Visit checklist's
+    // "Import from Ocular Visit"); Edit removes them while editing a request,
+    // and its files go with a deleted request. Nobody can replace a file.
     match /visitRequests/{requestId}/{fileName} {
       allow create: if resource == null
                     && request.resource.size <= 10 * 1024 * 1024
                     && (request.resource.contentType.matches('image/.*')
                         || request.resource.contentType == 'application/pdf');
-      allow get: if isAdmin() || isEncoder() || isInstaller();
-      allow delete: if isAdmin() || isEncoder();
+      allow get: if can('visits', 1) || can('inspection', 2) || can('installation', 2);
+      allow delete: if can('visits', 2);
       allow list, update: if false;
     }
 
     // Electricity bills attached to "Join the Waitlist" sign-ups
     // (HPH RENEWABLE/join-waitlist/, waitlist/<sign-up id>/). Same as visit
     // requests: anyone may upload a new image or PDF of up to 10 MB (staff
-    // too, when adding a bill on the admin page); admins and the encoder
-    // account can view them and delete them (removing one while editing, or
-    // an admin deleting the sign-up); nobody can replace files.
+    // too, when adding a bill on the admin page). Waitlist users view them;
+    // Edit removes them while editing a sign-up, and its files go with a
+    // deleted sign-up. Nobody can replace a file.
     match /waitlist/{signupId}/{fileName} {
       allow create: if resource == null
                     && request.resource.size <= 10 * 1024 * 1024
                     && (request.resource.contentType.matches('image/.*')
                         || request.resource.contentType == 'application/pdf');
-      allow get, delete: if isAdmin() || isEncoder();
+      allow get: if can('waitlist', 1);
+      allow delete: if can('waitlist', 2);
       allow list, update: if false;
     }
 
-    // Photos on installer checklist items (HPH RENEWABLE/admin/, jobChecklists/
-    // <checklist id>/). The installer account and admins can add an image of up
-    // to 10 MB, view them and remove them; nobody can replace a file.
+    // Photos on installer checklist items (jobChecklists/<checklist id>/).
+    // Checklist editors add an image of up to 10 MB and remove them; anyone
+    // who can see a checklist page views them. Nobody can replace a file.
     match /jobChecklists/{checklistId}/{fileName} {
-      allow create: if (isAdmin() || isInstaller())
+      allow create: if (can('inspection', 2) || can('installation', 2))
                     && resource == null
                     && request.resource.size <= 10 * 1024 * 1024
                     && request.resource.contentType.matches('image/.*');
-      allow get, delete: if isAdmin() || isInstaller();
+      allow get: if can('inspection', 1) || can('installation', 1);
+      allow delete: if can('inspection', 2) || can('installation', 2);
       allow list, update: if false;
     }
 
-    // Photos of inventory items (HPH RENEWABLE/admin/, Inventory tab;
-    // inventory/<item id>/). Admins, the installer and the encoder account can
-    // add an image of up to 10 MB, view them and remove them; nobody can
+    // Photos of inventory items (inventory/<item id>/). Inventory editors add
+    // an image of up to 10 MB and remove them; viewers see them. Nobody can
     // replace a file.
     match /inventory/{itemId}/{fileName} {
-      allow create: if (isAdmin() || isInstaller() || isEncoder())
+      allow create: if can('inventory', 2)
                     && resource == null
                     && request.resource.size <= 10 * 1024 * 1024
                     && request.resource.contentType.matches('image/.*');
-      allow get, delete: if isAdmin() || isInstaller() || isEncoder();
+      allow get: if can('inventory', 1);
+      allow delete: if can('inventory', 2);
       allow list, update: if false;
     }
 
-    // The installer account (adds and views checklist photos). Keep in step
-    // with INSTALLER_EMAILS in HPH RENEWABLE/admin/admin.js and isInstaller()
-    // in /firestore.rules.
-    function isInstaller() {
-      return request.auth != null
-        && request.auth.token.email in ['hphrenewable@gmail.com'];
+    function signedInWithEmail() {
+      return request.auth != null && request.auth.token.get('email', null) is string;
     }
 
-    // The encoder account (sees visit request attachments, can add or remove
-    // them while editing). Keep in step with ENCODER_EMAILS in
-    // HPH RENEWABLE/admin/admin.js and isEncoder() in /firestore.rules.
-    function isEncoder() {
-      return request.auth != null
-        && request.auth.token.email in ['inquiries@hphtechsolutions.com'];
-    }
-
-    // Keep in step with ADMIN_EMAILS in HPH RENEWABLE/admin/admin.js and
-    // isAdmin() in /firestore.rules.
-    function isAdmin() {
-      return request.auth != null
+    // The Main admins. Keep in step with OWNER_EMAILS in
+    // HPH RENEWABLE/admin/admin.js and isOwner() in /firestore.rules.
+    function isOwner() {
+      return signedInWithEmail()
         && request.auth.token.email in ['harold.t.hermosa@gmail.com',
                                      'jeff.hermosa@hphtechsolutions.com',
                                      'lerin.hermosa@hphtechsolutions.com'];
+    }
+
+    // The original accounts' access until they get a staffRoles entry.
+    function legacyLevel(page) {
+      return request.auth.token.email == 'inquiries@hphtechsolutions.com'
+          ? {'visits': 2, 'waitlist': 2, 'installs': 2, 'inventory': 2, 'wishlist': 2}.get(page, 0)
+        : request.auth.token.email == 'hphrenewable@gmail.com'
+          ? {'inspection': 2, 'installation': 2, 'inventory': 2}.get(page, 0)
+        : 0;
+    }
+
+    function accessLevel(page) {
+      let path = /databases/(default)/documents/staffRoles/$(request.auth.token.email.lower());
+      return firestore.exists(path)
+        ? {'view': 1, 'edit': 2, 'delete': 3}.get(firestore.get(path).data.get('access', {}).get(page, 'off'), 0)
+        : legacyLevel(page);
+    }
+
+    function can(page, level) {
+      return isOwner() || (signedInWithEmail() && accessLevel(page) >= level);
     }
   }
 }
