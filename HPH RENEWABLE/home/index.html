@@ -215,9 +215,7 @@
                 </div>
             </div>
 
-            <video class="landing" autoplay muted loop playsinline preload="auto">
-                <source src="elements/content1/element1.mov" type="video/mp4">
-            </video>
+            <video class="landing hero-video" muted loop playsinline preload="none" poster="elements/content1/element1-poster.jpg" data-src="elements/content1/element1.mp4" data-media="(min-width: 751px)"></video>
 
         </div>
 
@@ -402,9 +400,7 @@
         </nav>
 
         <div class="mobile-hero">
-            <video class="mobile-hero-img" autoplay muted loop playsinline preload="auto">
-                <source src="elements/content1/element1.mov" type="video/mp4">
-            </video>
+            <video class="mobile-hero-img hero-video" muted loop playsinline preload="none" poster="elements/content1/element1-poster-mobile.jpg" data-src="elements/content1/element1-mobile.mp4" data-media="(max-width: 750px)"></video>
 
             <div class="mobile-hero-content">
                 <div class="mobile-hero-top">
@@ -520,6 +516,20 @@
             <div class="mobile-copyright">&copy; 2026 HPH Renewable. All rights reserved.</div>
         </footer>
     </div>
+
+    <script>
+        // Hero video: only the one on screen (desktop or phone) is downloaded.
+        document.querySelectorAll(".hero-video").forEach(video => {
+            const mq = window.matchMedia(video.dataset.media);
+            const start = () => {
+                if (!mq.matches) { video.pause(); return; }
+                if (!video.src) video.src = video.dataset.src;
+                video.play().catch(() => {});
+            };
+            start();
+            mq.addEventListener("change", start);
+        });
+    </script>
 
     <script>
         const navItems = document.querySelectorAll(".nav-bar .nav-item");
