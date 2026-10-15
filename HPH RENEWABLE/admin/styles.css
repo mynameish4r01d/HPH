@@ -2242,6 +2242,23 @@ body:not([data-role="admin"]){
         grid-column: 1 / -1;
     }
 
+    /* MX2250, panel and battery serials: each set off by a divider. */
+    .admin-install-section{
+        padding-top: 32px;
+        margin-top: 16px;
+        border-top: 1px solid var(--admin-divider);
+
+        /* Its heading as a solid tag (inverts in dark mode). */
+        > .admin-label{
+            align-self: flex-start;
+            padding: 3px 7px;
+            border-radius: 5px;
+            background: var(--admin-text);
+            color: var(--admin-bg);
+            font-size: 12px;
+        }
+    }
+
     textarea{
         width: 100%;
         box-sizing: border-box;
@@ -2498,8 +2515,9 @@ body[data-role="user"] .admin-visit-actions{
 
 .admin-sn-head{
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
+    gap: 8px 10px;
     font-size: 12px;
     color: var(--admin-subtle);
 
@@ -2516,6 +2534,51 @@ body[data-role="user"] .admin-visit-actions{
         outline: none;
 
         &:focus{ border-style: solid; border-color: var(--admin-accent); }
+    }
+
+    /* Batteries: the batch's model, which fills in its prefix. */
+    .admin-sn-model{
+        min-height: 32px;
+        padding: 0 28px 0 10px;
+        border: 1px solid var(--admin-border);
+        border-radius: 6px;
+        background: var(--admin-bg);
+        color: var(--admin-text);
+        font: inherit;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+
+        &:focus{ outline: none; border-color: var(--admin-accent); }
+    }
+}
+
+/* Under the battery serials: "1 MAU5000 Elite · 2 B5000 Elite", and an
+   amber line for a setup that can't work as recorded. */
+.admin-battery-note{
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+
+    &:empty{ display: none; }
+
+    .admin-battery-setup{
+        color: var(--admin-text);
+        font-weight: 500;
+    }
+
+    .admin-battery-warn{
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        padding: 8px 10px;
+        border-radius: 6px;
+        background: var(--admin-warn-bg);
+        color: var(--admin-warn-text);
+
+        .material-symbols-rounded{ font-size: 16px; line-height: 18px; }
     }
 }
 
@@ -2619,10 +2682,6 @@ body[data-role="user"] .admin-visit-actions{
 }
 
 /* "Add another prefix" and "Paste full serials", under the batches. */
-.admin-sn-footer{
-    padding-top: 4px;
-}
-
 /* "Paste full serials": a text link. */
 .admin-link-button{
     padding: 0;

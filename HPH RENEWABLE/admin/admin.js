@@ -2266,7 +2266,8 @@ const CSV_COLUMNS = {
         ["MX2250 serials", (i) => serialList(i.inverterSerials).join("; ")],
         ["Panel count", (i) => panelCountOf(i)],
         ["Panel serials", (i) => serialList(i.panelSerials).join("; ")],
-        ["Battery serials", (i) => serialList(i.batterySerials).join("; ")],
+        ["Batteries", (i) => batterySummary(i)],
+        ["Battery serials", (i) => batteryGroups(i).map((g) => `${g.name}: ${g.serials.join(", ")}`).join("; ")],
         ["Capacity (kWp)", (i) => (Number.isFinite(i.capacityKwp) ? i.capacityKwp : "")],
         ["Added", (i) => csvDate(toDate(i.createdAt))],
         ["Added by", (i) => i.createdBy],
@@ -2577,6 +2578,7 @@ function renderInstall(i) {
         plural(inverters.length, ["MX2250", "MX2250s"]),
         plural(panelCount, ["panel", "panels"]),
         capacity,
+        batteryGroups(i).map((g) => `${g.serials.length} ${g.name}`).join(" + "),
         i.address,
     ].filter(Boolean).join(" · ");
     const details = entryShell(i.clientName, meta, null, {
@@ -2596,7 +2598,9 @@ function renderInstall(i) {
         detailRow(`Solar panels (${panelCount})`, panels.length
             ? `${panels.join("\n")}${panels.length < panelCount ? `\n+ ${panelCount - panels.length} without a recorded serial` : ""}`
             : `${panelCount} ${panelCount === 1 ? "panel" : "panels"}, serials not recorded`),
-        detailRow(`Battery serials (${batteries.length})`, batteries.join("\n"), { wide: true }),
+        detailRow(`Batteries (${batteries.length})`, batteryGroups(i)
+            .map((g) => `${g.name} (${g.serials.length})\n${g.serials.join("\n")}`)
+            .join("\n\n"), { wide: true }),
         detailRow("Added", added, { wide: true }),
     );
     if (i.updatedAt) {
@@ -2671,7 +2675,66 @@ function showInstallForm(install) {
 // The batch prefix (everything but the last 4 characters) shared by most
 // recorded serials of a type, or the usual one before there are any.
 const SERIAL_PREFIX_DEFAULT = { inverter: "Y0019A57121D", panel: "Z2026300G161002" };
-const SERIAL_LENGTH = { inverter: 16, panel: 19 };
+const SERIAL_LENGTH = { inverter: 16, panel: 19, battery: 16 };
+
+// Battery models and their serial prefixes (the serial's last 4 characters
+// differ per unit). A head unit takes up to `perHead` of its extension
+// battery. The ids are what an install's batteryModels map saves, so keep
+// them in step with isValidInstall() in /firestore.rules; a new model or a
+// new prefix is one line here.
+const BATTERY_MODELS = [
+    { id: "mau5000", name: "MAU5000 Elite", prefix: "N001A96F0308", ext: "b5000" },
+    { id: "b5000", name: "B5000 Elite", prefix: "N001A970000A", head: "mau5000" },
+    { id: "msu4000", name: "MSU4000 Elite", prefix: "N001A8650207", ext: "b4000" },
+    { id: "b4000", name: "B4000 Elite", prefix: "N001A9720019", head: "msu4000" },
+];
+const BATTERIES_PER_HEAD = 4;
+// Battery serials of this form are kept unique across installs (serials/).
+const BATTERY_SN = /^N[0-9A-Z]{15}$/;
+const batteryModel = (id) => BATTERY_MODELS.find((m) => m.id === id) || null;
+
+// A battery serial's model: as saved with the install, else from its prefix.
+function batteryModelOf(install, sn) {
+    const saved = install && install.batteryModels && install.batteryModels[sn];
+    if (batteryModel(saved)) return saved;
+    const match = BATTERY_MODELS.find((m) => sn.length === m.prefix.length + 4 && sn.startsWith(m.prefix));
+    return match ? match.id : "";
+}
+
+// [{ name, serials }] per model in BATTERY_MODELS order, then "Other battery".
+function batteryGroups(install) {
+    const groups = new Map();
+    for (const sn of serialList(install.batterySerials)) {
+        const id = batteryModelOf(install, sn);
+        if (!groups.has(id)) groups.set(id, []);
+        groups.get(id).push(sn);
+    }
+    return [...BATTERY_MODELS.map((m) => m.id), ""]
+        .filter((id) => groups.has(id))
+        .map((id) => ({ name: id ? batteryModel(id).name : "Other battery", serials: groups.get(id) }));
+}
+
+// "1 MAU5000 Elite · 2 B5000 Elite"
+function batterySummary(install) {
+    return batteryGroups(install).map((g) => `${g.serials.length} ${g.name}`).join(" · ");
+}
+
+// Setups that can't work as recorded: extension batteries without their head
+// unit, or more than BATTERIES_PER_HEAD per head unit. `counts` is { id: n }.
+function batteryWarnings(counts) {
+    const warnings = [];
+    for (const ext of BATTERY_MODELS.filter((m) => m.head)) {
+        const n = counts[ext.id] || 0;
+        const heads = counts[ext.head] || 0;
+        const head = batteryModel(ext.head);
+        if (!n) continue;
+        if (!heads) warnings.push(`No ${head.name} head unit is listed for the ${ext.name} ${n === 1 ? "battery" : "batteries"}.`);
+        else if (n > heads * BATTERIES_PER_HEAD) {
+            warnings.push(`${n} ${ext.name} batteries are more than ${plural(heads, [`${head.name} head unit`, `${head.name} head units`])} can take (up to ${BATTERIES_PER_HEAD} each).`);
+        }
+    }
+    return warnings;
+}
 
 function usualSerialPrefix(type) {
     const field = type === "inverter" ? "inverterSerials" : "panelSerials";
@@ -2698,7 +2761,11 @@ function usualSerialPrefix(type) {
 // stays the form's source of truth; "Paste full serials" shows the box for
 // pasting, and what's pasted is sorted into batches again (a serial of the
 // usual length from a new batch starts one by itself).
-function serialPicker(box, type, { add, addMany = 0, startWith = 0 }) {
+// With `models` (batteries), each batch also has a model dropdown that fills
+// in the model's prefix, and "Add another model" starts the next batch; the
+// returned modelsBySerial() gives { serial: model id } for saving.
+// `savedModels` is the install's batteryModels.
+function serialPicker(box, type, { add, addMany = 0, startWith = 0, models = null, savedModels = {} }) {
     const textarea = box.input;
     // The field's <label> would send clicks anywhere in it to its first
     // input, so it becomes a plain container (keeping its contents).
@@ -2708,31 +2775,41 @@ function serialPicker(box, type, { add, addMany = 0, startWith = 0 }) {
     box.wrap = wrap;
     const length = SERIAL_LENGTH[type];
     const clean = (text) => text.toUpperCase().replace(/[^A-Z0-9]/g, "");
-    // [{ prefix, rows: [{ last }] }], and serials that fit no batch: [{ full }].
+    // [{ prefix, model, rows: [{ last }] }], and serials that fit no batch:
+    // [{ full }]. `model` is a BATTERY_MODELS id ("" = other), batteries only.
     let groups = [];
     let odd = [];
+    const modelOfPrefix = (prefix) => {
+        const match = models && models.find((m) => m.prefix === prefix);
+        return match ? match.id : "";
+    };
 
-    // Sorts serial text into batches, keeping the batches in `keep` (their
-    // prefixes) even when empty.
+    // Sorts serial text into batches, keeping the batches in `keep`
+    // ({ prefix, model }) even when empty.
     const parse = (text, keep = []) => {
-        groups = keep.map((prefix) => ({ prefix, rows: [] }));
+        groups = keep.map(({ prefix, model }) => ({ prefix, model, rows: [] }));
         odd = [];
         for (const sn of (text || "").toUpperCase().split(/[^A-Z0-9]+/).filter(Boolean)) {
             let group = groups.find((g) => g.prefix && sn.length === g.prefix.length + 4 && sn.startsWith(g.prefix));
             if (!group && sn.length === length) {
-                group = { prefix: sn.slice(0, -4), rows: [] };
+                const prefix = sn.slice(0, -4);
+                const saved = models && batteryModel(savedModels[sn]) ? savedModels[sn] : "";
+                group = { prefix, model: saved || modelOfPrefix(prefix), rows: [] };
                 groups.push(group);
             }
             if (group) group.rows.push({ last: sn.slice(group.prefix.length) });
             else odd.push({ full: sn });
         }
-        if (!groups.length) groups.push({ prefix: usualSerialPrefix(type), rows: [] });
+        if (!groups.length) {
+            groups.push(models
+                ? { prefix: models[0].prefix, model: models[0].id, rows: [] }
+                : { prefix: usualSerialPrefix(type), model: "", rows: [] });
+        }
     };
 
     const editor = el("div", "admin-sn");
     const batches = el("div", "admin-sn-batches");
-    const footer = el("div", "admin-sn-actions admin-sn-footer");
-    editor.append(batches, footer);
+    editor.append(batches);
     box.wrap.insertBefore(editor, textarea);
     textarea.classList.add("admin-sn-paste");
     textarea.hidden = true;
@@ -2789,7 +2866,27 @@ function serialPicker(box, type, { add, addMany = 0, startWith = 0 }) {
                 section.querySelectorAll(".admin-sn-fixed").forEach((fixed) => { fixed.textContent = g.prefix; });
                 sync();
             });
-            head.append(el("span", "admin-sn-head-label", groups.length > 1 ? `Batch ${gi + 1} prefix` : "Batch prefix"), prefixInput);
+            if (models) {
+                // Picking a model fills in its prefix (still editable).
+                const select = el("select", "admin-sn-model");
+                select.setAttribute("aria-label", `Batch ${gi + 1} model`);
+                for (const m of models) select.append(new Option(m.name, m.id));
+                select.append(new Option("Other battery", ""));
+                select.value = g.model;
+                select.addEventListener("change", () => {
+                    g.model = select.value;
+                    const m = batteryModel(g.model);
+                    if (m) {
+                        g.prefix = m.prefix;
+                        prefixInput.value = g.prefix;
+                        section.querySelectorAll(".admin-sn-fixed").forEach((fixed) => { fixed.textContent = g.prefix; });
+                    }
+                    sync();
+                });
+                head.append(select, el("span", "admin-sn-head-label", "Prefix"), prefixInput);
+            } else {
+                head.append(el("span", "admin-sn-head-label", groups.length > 1 ? `Batch ${gi + 1} prefix` : "Batch prefix"), prefixInput);
+            }
             if (groups.length > 1) {
                 head.append(removeButton(`Remove batch ${gi + 1}`, () => {
                     const filled = g.rows.filter((row) => row.last).length;
@@ -2878,6 +2975,10 @@ function serialPicker(box, type, { add, addMany = 0, startWith = 0 }) {
             sections.push(section);
         }
         batches.replaceChildren(...sections);
+        // "Add another prefix" and "Paste full serials" share the last
+        // batch's row of Add buttons.
+        const rows = batches.querySelectorAll(".admin-sn-group > .admin-sn-actions");
+        rows[rows.length - 1].append(addBatch, paste);
 
         const target = focus.odd !== undefined ? batches.querySelector(`input[data-odd="${focus.odd}"]`)
             : focus.prefix ? batches.querySelector(`.admin-sn-prefix[data-g="${focus.g}"]`)
@@ -2895,13 +2996,25 @@ function serialPicker(box, type, { add, addMany = 0, startWith = 0 }) {
         render({ g: gi, r: first });
     };
 
-    // A new batch, its prefix copied from the last one to edit.
+    // A new batch, its prefix copied from the last one to edit. For
+    // batteries, the next model: a head unit's extension battery, else the
+    // first model not listed yet.
     const addBatch = el("button", "admin-action");
     addBatch.type = "button";
-    addBatch.append(el("span", "material-symbols-rounded", "playlist_add"), "Add another prefix");
+    addBatch.append(el("span", "material-symbols-rounded", "playlist_add"), models ? "Add another model" : "Add another prefix");
     addBatch.addEventListener("click", () => {
-        groups.push({ prefix: groups.length ? groups[groups.length - 1].prefix : usualSerialPrefix(type), rows: [{ last: "" }] });
-        render({ g: groups.length - 1, prefix: true });
+        const last = groups[groups.length - 1];
+        if (models) {
+            const lastModel = last && batteryModel(last.model);
+            const next = (lastModel && lastModel.ext && batteryModel(lastModel.ext))
+                || models.find((m) => !groups.some((g) => g.model === m.id))
+                || models[0];
+            groups.push({ prefix: next.prefix, model: next.id, rows: [{ last: "" }] });
+            render({ g: groups.length - 1, r: 0 });
+        } else {
+            groups.push({ prefix: last ? last.prefix : usualSerialPrefix(type), model: "", rows: [{ last: "" }] });
+            render({ g: groups.length - 1, prefix: true });
+        }
     });
     const paste = el("button", "admin-link-button admin-sn-toggle");
     paste.type = "button";
@@ -2911,12 +3024,11 @@ function serialPicker(box, type, { add, addMany = 0, startWith = 0 }) {
         paste.textContent = textarea.hidden ? "Paste full serials" : "Hide full serials";
         if (!textarea.hidden) textarea.focus();
     });
-    footer.append(addBatch, paste);
 
     // Typing or pasting in the box sorts the serials into batches again.
     textarea.addEventListener("input", () => {
         if (syncing) return;
-        parse(textarea.value, groups.map((g) => g.prefix));
+        parse(textarea.value, groups.map(({ prefix, model }) => ({ prefix, model })));
         render();
     });
 
@@ -2925,6 +3037,17 @@ function serialPicker(box, type, { add, addMany = 0, startWith = 0 }) {
         groups[0].rows = Array.from({ length: startWith }, () => ({ last: "" }));
     }
     render();
+
+    return {
+        modelsBySerial: () => {
+            const out = {};
+            for (const g of groups) {
+                if (!g.model) continue;
+                for (const row of g.rows) if (row.last) out[g.prefix + row.last] = g.model;
+            }
+            return out;
+        },
+    };
 }
 
 function installForm(install) {
@@ -2933,8 +3056,9 @@ function installForm(install) {
     form.noValidate = true;
     const grid = el("div", "admin-install-grid");
 
-    const field = (label, tag, { name, type = "text", value = "", required, wide, placeholder, rows, attrs = {} }) => {
+    const field = (label, tag, { name, type = "text", value = "", required, wide, section, placeholder, rows, attrs = {} }) => {
         const wrap = el("label", wide ? "admin-field admin-install-wide" : "admin-field");
+        if (section) wrap.classList.add("admin-install-section");
         const input = el(tag);
         input.name = name;
         if (tag === "input") input.type = type;
@@ -2953,15 +3077,15 @@ function installForm(install) {
     const email = field("Email", "input", { name: "email", type: "email", value: v.email, attrs: { maxlength: 200 } });
     const address = field("Address", "input", { name: "address", value: v.address, wide: true, attrs: { maxlength: 300 } });
     const inverters = field("MX2250 serial numbers", "textarea", {
-        name: "inverterSerials", value: serialList(v.inverterSerials).join("\n"), wide: true, rows: 4,
+        name: "inverterSerials", value: serialList(v.inverterSerials).join("\n"), wide: true, section: true, rows: 4,
         placeholder: "One per line, e.g. Y0019A57121D00D2",
     });
     const panels = field("Solar panel serial numbers", "textarea", {
-        name: "panelSerials", value: serialList(v.panelSerials).join("\n"), wide: true, rows: 6,
+        name: "panelSerials", value: serialList(v.panelSerials).join("\n"), wide: true, section: true, rows: 6,
         placeholder: "One per line, e.g. Z2026300G1210029683",
     });
-    const batteries = field("Battery serial numbers (if any)", "textarea", {
-        name: "batterySerials", value: serialList(v.batterySerials).join("\n"), wide: true, rows: 2,
+    const batteries = field("Battery serial numbers", "textarea", {
+        name: "batterySerials", value: serialList(v.batterySerials).join("\n"), wide: true, section: true, rows: 2,
     });
     // Number of panels isn't typed in: it's the number of panel serials.
     // Older installs (from the sheet) may also have panels with no recorded
@@ -3010,6 +3134,34 @@ function installForm(install) {
     // hidden behind "Paste full serials"), so the checks below still apply.
     serialPicker(inverters, "inverter", { add: "Add MX2250", startWith: install ? 0 : 1 });
     serialPicker(panels, "panel", { add: "Add panel", addMany: 4 });
+    const batteryPicker = serialPicker(batteries, "battery", {
+        add: "Add unit", models: BATTERY_MODELS, savedModels: v.batteryModels || {},
+    });
+
+    // Under the battery serials: the setup by model, and an amber note for a
+    // setup that can't work as recorded (it doesn't stop the save, e.g. when
+    // batteries were added to a head unit recorded elsewhere).
+    const batteryNote = el("div", "admin-battery-note");
+    batteries.wrap.append(batteryNote);
+    const updateBatteryNote = () => {
+        const serials = readBatteries().valid;
+        const modelOf = batteryPicker.modelsBySerial();
+        const counts = {};
+        serials.forEach((sn) => { const id = modelOf[sn] || ""; counts[id] = (counts[id] || 0) + 1; });
+        const setup = [...BATTERY_MODELS.map((m) => m.id), ""]
+            .filter((id) => counts[id])
+            .map((id) => `${counts[id]} ${id ? batteryModel(id).name : "Other battery"}`)
+            .join(" · ");
+        batteryNote.replaceChildren();
+        if (setup) batteryNote.append(el("span", "admin-battery-setup", setup));
+        for (const warning of batteryWarnings(counts)) {
+            const line = el("span", "admin-battery-warn");
+            line.append(el("span", "material-symbols-rounded", "warning"), warning);
+            batteryNote.append(line);
+        }
+    };
+    batteries.input.addEventListener("input", updateBatteryNote);
+    updateBatteryNote();
 
     // Panels = panel serials (+ an older install's panels without serials).
     const currentPanelCount = () => readPanels().valid.length + unserialised;
@@ -3072,6 +3224,9 @@ function installForm(install) {
             panelCount: currentPanelCount(),
             batterySerials: readBatteries().valid,
         };
+        // Each battery serial's model (serials under "Other battery" have none).
+        const modelOf = batteryPicker.modelsBySerial();
+        values.batteryModels = Object.fromEntries(values.batterySerials.filter((sn) => modelOf[sn]).map((sn) => [sn, modelOf[sn]]));
         if (!values.clientName) return fail("Enter the client's name.", name.input);
         if (!/^\d{4}-\d{2}-\d{2}$/.test(values.installDate)) return fail("Enter the installation date.", date.input);
         if (inv.invalid.length) return fail("Some MX2250 serial numbers aren't recognised (shown in red). They start with Y and have 16 characters.", inverters.input);
@@ -3079,6 +3234,7 @@ function installForm(install) {
         if (!inv.valid.length && !values.panelCount) return fail("Add at least one MX2250 or solar panel serial number.", inverters.input);
         if (values.panelCount > 2000) return fail("That's more panels than one installation can hold (2,000). Split it into several installations.");
         if (inv.valid.length > 100 || pan.valid.length > 400) return fail("That's more serials than one installation can hold (100 MX2250s, 400 panels). Split it into several installations.");
+        if (values.batterySerials.length > 50) return fail("That's more batteries than one installation can hold (50). Split it into several installations.", batteries.input);
         values.capacityKwp = capacityOf(values.panelCount);
 
         save.disabled = true;
@@ -3124,12 +3280,19 @@ async function saveInstall(existing, values) {
     const before = {
         inverter: existing ? serialList(existing.inverterSerials) : [],
         panel: existing ? serialList(existing.panelSerials) : [],
+        battery: existing ? serialList(existing.batterySerials).filter((sn) => BATTERY_SN.test(sn)) : [],
     };
-    const after = { inverter: values.inverterSerials, panel: values.panelSerials };
+    const after = {
+        inverter: values.inverterSerials,
+        panel: values.panelSerials,
+        battery: values.batterySerials.filter((sn) => BATTERY_SN.test(sn)),
+    };
     const added = [];
     const removed = [];
-    for (const type of ["inverter", "panel"]) {
-        after[type].filter((sn) => !before[type].includes(sn)).forEach((sn) => added.push({ sn, type }));
+    for (const type of ["inverter", "panel", "battery"]) {
+        // Battery serials saved before they were kept unique have no serial
+        // document yet, so every one is checked and the missing ones added.
+        after[type].filter((sn) => type === "battery" || !before[type].includes(sn)).forEach((sn) => added.push({ sn, type }));
         before[type].filter((sn) => !after[type].includes(sn)).forEach((sn) => removed.push(sn));
     }
 
@@ -3158,6 +3321,7 @@ async function saveInstall(existing, values) {
         panelSerials: values.panelSerials,
         panelCount: values.panelCount,
         batterySerials: values.batterySerials,
+        batteryModels: values.batteryModels,
     };
     const batch = firestore.writeBatch(db);
     if (existing) {
@@ -3218,7 +3382,11 @@ async function fillMissingCapacities() {
 
 // Deletes an install and the serial documents that belong to it.
 async function deleteInstall(install) {
-    const serials = [...serialList(install.inverterSerials), ...serialList(install.panelSerials)];
+    const serials = [
+        ...serialList(install.inverterSerials),
+        ...serialList(install.panelSerials),
+        ...serialList(install.batterySerials).filter((sn) => BATTERY_SN.test(sn)),
+    ];
     const snaps = await Promise.all(serials.map((sn) => firestore.getDoc(serialDoc(sn))));
     const batch = firestore.writeBatch(db);
     batch.delete(firestore.doc(db, "installs", install.id));

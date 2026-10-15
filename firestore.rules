@@ -264,7 +264,7 @@ service cloud.firestore {
         && !existsAfter(/databases/$(database)/documents/installs/$(installId));
     }
 
-    // One document per recorded MX2250 / solar panel serial, its ID being the
+    // One document per recorded MX2250 / solar panel / battery serial, its ID being the
     // serial itself, so a serial can't be recorded on two installs. Holds
     // only { type, installId }. Written in the same batch as the install that
     // lists the serial, and removed with it; never changed.
@@ -279,7 +279,8 @@ service cloud.firestore {
         || (can('installs', 2)
             && ((existsAfter(/databases/$(database)/documents/installs/$(resource.data.installId))
                  && !(serial in getAfter(/databases/$(database)/documents/installs/$(resource.data.installId)).data.inverterSerials)
-                 && !(serial in getAfter(/databases/$(database)/documents/installs/$(resource.data.installId)).data.panelSerials))
+                 && !(serial in getAfter(/databases/$(database)/documents/installs/$(resource.data.installId)).data.panelSerials)
+                 && !(serial in getAfter(/databases/$(database)/documents/installs/$(resource.data.installId)).data.batterySerials))
                 || (exists(/databases/$(database)/documents/installs/$(resource.data.installId))
                     && get(/databases/$(database)/documents/installs/$(resource.data.installId)).data.createdBy
                          == request.auth.token.email)));
@@ -346,7 +347,8 @@ service cloud.firestore {
       let fields = ['clientName', 'email', 'contact', 'address', 'installDate', 'capacityKwp',
                     'inverterSerials', 'panelSerials', 'panelCount', 'batterySerials', 'source',
                     'sheetTimestamp', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
-      return data.keys().hasOnly(fields)
+      // batteryModels is optional, so installs saved before it still validate.
+      return data.keys().hasOnly(fields.concat(['batteryModels']))
         && data.keys().hasAll(fields)
         && isText(data.clientName, 1, 150)
         && isText(data.email, 0, 200)
@@ -362,6 +364,10 @@ service cloud.firestore {
         && data.panelCount is int
         && data.panelCount >= data.panelSerials.size() && data.panelCount <= 2000
         && data.batterySerials is list && data.batterySerials.size() <= 50
+        // { battery serial: model }; ids match BATTERY_MODELS in admin.js.
+        && (!('batteryModels' in data)
+            || (data.batteryModels is map && data.batteryModels.size() <= 50
+                && data.batteryModels.values().hasOnly(['mau5000', 'b5000', 'msu4000', 'b4000'])))
         && data.source in ['admin', 'sheet']
         && isText(data.sheetTimestamp, 0, 40)
         && data.createdBy is string;
@@ -504,7 +510,10 @@ service cloud.firestore {
             || (data.type == 'panel'
                && serial.matches('^Z[0-9A-Z]{18}$')
                && !serial.matches('^Z0+$')
-               && serial in install.data.panelSerials));
+               && serial in install.data.panelSerials)
+            || (data.type == 'battery'
+               && serial.matches('^N[0-9A-Z]{15}$')
+               && serial in install.data.batterySerials));
     }
 
     // Admin pipeline stage change: only stage, stageUpdatedAt and stageUpdatedBy
