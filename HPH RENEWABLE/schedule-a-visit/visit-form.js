@@ -379,6 +379,9 @@ form.addEventListener("submit", async (e) => {
                 // or "Not sure yet" when neither is ticked.
                 product: data.getAll("interest").join(" + ") || "Not sure yet",
                 monthlyBill: value("monthlyBill"),
+                // "Flat", "Mostly Day", "Middle of Day", "Mostly Night",
+                // "Evening Peak", or blank for "Not sure".
+                usagePattern: value("usagePattern"),
                 // No date field any more: HPH arranges the visit date with the
                 // client. Kept blank so /firestore.rules stays unchanged.
                 preferredDate: "",

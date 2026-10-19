@@ -536,6 +536,7 @@ service cloud.firestore {
       return data.diff(resource.data).affectedKeys()
                .hasOnly(['name', 'phone', 'email', 'address', 'propertyType', 'product',
                          'monthlyBill', 'preferredDate', 'preferredTime', 'referralCode',
+                         'usagePattern',
                          'message', 'attachments', 'editedAt', 'editedBy'])
         && isText(data.name, 1, 100)
         && (data.phone == '' || isText(data.phone, 7, 30))
@@ -548,6 +549,7 @@ service cloud.firestore {
         && isText(data.preferredTime, 1, 50)
         && isText(data.message, 0, 2000)
         && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
+        && (!('usagePattern' in data) || isUsagePattern(data.usagePattern))
         && data.attachments is list
         && data.attachments.size() <= 10
         && data.editedAt == request.time
@@ -706,14 +708,23 @@ service cloud.firestore {
       return value is string && value.size() >= minSize && value.size() <= maxSize;
     }
 
+    // "When do you use the most electricity?" on the Schedule a Visit form
+    // (blank = "Not sure"). Keep in step with schedule-a-visit/index.html and
+    // EDIT_FIELDS in admin.js.
+    function isUsagePattern(value) {
+      return value in ['', 'Flat', 'Mostly Day', 'Middle of Day', 'Mostly Night', 'Evening Peak'];
+    }
+
     function isValidVisitRequest(data) {
       let fields = ['name', 'phone', 'email', 'address', 'propertyType', 'product',
                     'monthlyBill', 'preferredDate', 'preferredTime', 'message',
                     'attachments', 'consent', 'sourcePage', 'status', 'createdAt'];
-      // referralCode is optional so requests from a cached older form still go through.
-      return data.keys().hasOnly(fields.concat(['referralCode']))
+      // referralCode and usagePattern are optional so requests from a cached
+      // older form still go through.
+      return data.keys().hasOnly(fields.concat(['referralCode', 'usagePattern']))
         && data.keys().hasAll(fields)
         && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
+        && (!('usagePattern' in data) || isUsagePattern(data.usagePattern))
         && isText(data.name, 1, 100)
         && (data.phone == '' || isText(data.phone, 7, 30))
         && isText(data.email, 0, 200)
@@ -742,9 +753,10 @@ service cloud.firestore {
                     'monthlyBill', 'preferredDate', 'preferredTime', 'message',
                     'attachments', 'consent', 'sourcePage', 'status', 'createdAt',
                     'source', 'createdBy'];
-      return data.keys().hasOnly(fields.concat(['referralCode']))
+      return data.keys().hasOnly(fields.concat(['referralCode', 'usagePattern']))
         && data.keys().hasAll(fields)
         && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
+        && (!('usagePattern' in data) || isUsagePattern(data.usagePattern))
         && isText(data.name, 1, 100)
         && (data.phone == '' || isText(data.phone, 7, 30))
         && isText(data.email, 0, 200)

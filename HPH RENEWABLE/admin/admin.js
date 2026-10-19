@@ -1879,6 +1879,7 @@ function renderVisit(v) {
         detailRow("Property type", v.propertyType),
         detailRow("Interested in", v.product),
         detailRow("Monthly bill", v.monthlyBill),
+        detailRow("Usage pattern", v.usagePattern),
         detailRow("Preferred date", v.preferredDate),
         detailRow("Preferred time", v.preferredTime),
         detailRow("Referred by", referral ? referrerLabel(referral) : ""),
@@ -2229,6 +2230,7 @@ const CSV_COLUMNS = {
         ["Property type", (v) => v.propertyType],
         ["Interested in", (v) => v.product],
         ["Monthly bill", (v) => v.monthlyBill],
+        ["Usage pattern", (v) => v.usagePattern || ""],
         ["Preferred date", (v) => v.preferredDate],
         ["Preferred time", (v) => v.preferredTime],
         ["Referral code", (v) => (v.referralCode || "").trim().toUpperCase()],
@@ -4039,6 +4041,7 @@ const EDIT_FIELDS = {
         // stays selectable for them (see the extra-option rule above).
         { name: "product", label: "Interested in", options: ["Not sure yet", "Micro Inverter", "Battery", "Micro Inverter + Battery"] },
         { name: "monthlyBill", label: "Monthly bill", options: ["", "Below ₱3,000", "₱3,000 – ₱6,000", "₱6,000 – ₱10,000", "Above ₱10,000"], blank: "Prefer not to say" },
+        { name: "usagePattern", label: "Usage pattern", options: ["", "Flat", "Mostly Day", "Middle of Day", "Mostly Night", "Evening Peak"], blank: "Not sure" },
         { name: "preferredDate", label: "Preferred date", type: "date" },
         { name: "preferredTime", label: "Preferred time", options: ["Any time", "Morning (9AM – 12PM)", "Afternoon (1PM – 5PM)"] },
         { name: "referralCode", label: "Referral code", max: 50, upper: true },
