@@ -27,6 +27,7 @@ service cloud.firestore {
     match /visitRequests/{requestId} {
       allow create: if isValidVisitRequest(request.resource.data)
         || (can('installs', 2) && isValidCopiedVisit(request.resource.data))
+        || (can('visits', 2) && can('waitlist', 1) && isValidWaitlistVisit(requestId, request.resource.data))
         || (can('visits', 2) && isValidStaffVisit(request.resource.data))
         || (isOwner() && isValidOpenSolarVisit(requestId, request.resource.data));
       allow read: if can('visits', 1) || can('inspection', 2) || can('installation', 2);
@@ -590,6 +591,43 @@ service cloud.firestore {
         && data.stageUpdatedBy == request.auth.token.email
         && isText(data.installId, 1, 100)
         && data.source == 'install';
+    }
+
+    // A waitlist sign-up's Ocular Visits entry, created automatically by the
+    // admin page (syncWaitlistToVisits in admin.js). Its ID is
+    // "waitlist-<signupId>", so it's only ever created once, and the sign-up
+    // must exist. It's dated by the sign-up, interest is Battery, and it may
+    // link the sign-up's bills (up to 10, as in admin edits).
+    function isValidWaitlistVisit(requestId, data) {
+      let fields = ['name', 'phone', 'email', 'address', 'propertyType', 'product',
+                    'monthlyBill', 'preferredDate', 'preferredTime', 'message',
+                    'attachments', 'consent', 'sourcePage', 'status', 'createdAt',
+                    'stage', 'stageUpdatedAt', 'stageUpdatedBy', 'waitlistId', 'source'];
+      return data.keys().hasOnly(fields)
+        && data.keys().hasAll(fields)
+        && isText(data.name, 1, 100)
+        && isText(data.phone, 0, 30)
+        && isText(data.email, 0, 200)
+        && isText(data.address, 0, 300)
+        && data.propertyType in ['Residential', 'Commercial', 'Industrial']
+        && data.product == 'Battery'
+        && isText(data.monthlyBill, 0, 50)
+        && isText(data.preferredDate, 0, 10)
+        && isText(data.preferredTime, 1, 50)
+        && isText(data.message, 0, 2000)
+        && data.attachments is list
+        && data.attachments.size() <= 10
+        && data.consent is bool
+        && isText(data.sourcePage, 0, 300)
+        && data.status == 'new'
+        && data.createdAt is timestamp
+        && data.stage in ['new', 'contacted', 'scheduled', 'visited', 'quoted', 'installing', 'installed']
+        && data.stageUpdatedAt == request.time
+        && data.stageUpdatedBy == request.auth.token.email
+        && isText(data.waitlistId, 1, 100)
+        && requestId == 'waitlist-' + data.waitlistId
+        && exists(/databases/$(database)/documents/waitlist/$(data.waitlistId))
+        && data.source == 'waitlist';
     }
 
     // Admin "Import from OpenSolar" (an OpenSolar project export, CSV): a new

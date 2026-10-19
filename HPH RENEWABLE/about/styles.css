@@ -1197,3 +1197,41 @@ body.menu-open{
         }
     }
 }
+
+/* ===== Product tags (mega panel and phone menu) =====
+   "For <head unit>" pills after the extension batteries. */
+.product-tag{
+    display: inline-block;
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background-color: #F0F0F0;
+    color: #6E6E6E;
+    font-family: inter;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.5;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+@media (prefers-color-scheme: dark){
+    .product-tag{
+        background-color: #2A2A2A;
+        color: #9E9E9E;
+    }
+}
+
+/* "Coming soon" pills, in red, after Power Pack, MAU10000 and MAU16000. */
+.product-tag-soon{
+    background-color: #FDECEC;
+    color: #D70015;
+}
+
+@media (prefers-color-scheme: dark){
+    .product-tag-soon{
+        background-color: #3A1416;
+        color: #FF6961;
+    }
+}

@@ -198,6 +198,14 @@
                     </div>
                 </div>
 
+                <!-- Shrinks the navigation to icons, and back (admin.js). -->
+                <div class="admin-nav-foot">
+                    <button type="button" class="admin-nav-item admin-nav-collapse" aria-pressed="false">
+                        <span class="material-symbols-rounded admin-tab-icon">left_panel_close</span>
+                        <span class="admin-tab-label">Collapse sidebar</span>
+                    </button>
+                </div>
+
                 <!-- The profile opens Settings (the account, and Accounts for owners). -->
                 <div class="admin-nav-account">
                     <button type="button" class="admin-nav-profile" title="Settings" aria-label="Settings">
@@ -484,6 +492,7 @@
                             <option value="website">Website form</option>
                             <option value="opensolar">OpenSolar</option>
                             <option value="admin">Added on the admin page</option>
+                            <option value="waitlist">Waitlist</option>
                         </select>
 
                         <!-- Inventory only: one category, with counts (filled in by admin.js). -->

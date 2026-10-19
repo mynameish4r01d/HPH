@@ -456,6 +456,27 @@ function setView(view) {
 
 navOverview.addEventListener("click", () => setView("overview"));
 
+// "Collapse sidebar": the navigation shrinks to icons (body.admin-nav-collapsed;
+// the icons-only styles follow the column's width), remembered per browser.
+const NAV_COLLAPSED_KEY = "hph-admin-nav-collapsed";
+const navCollapse = document.querySelector(".admin-nav-collapse");
+
+function setNavCollapsed(collapsed) {
+    document.body.classList.toggle("admin-nav-collapsed", collapsed);
+    navCollapse.setAttribute("aria-pressed", String(collapsed));
+    navCollapse.querySelector(".admin-tab-icon").textContent = collapsed ? "left_panel_open" : "left_panel_close";
+    navCollapse.querySelector(".admin-tab-label").textContent = collapsed ? "Expand sidebar" : "Collapse sidebar";
+    navCollapse.title = collapsed ? "Expand sidebar" : "Collapse sidebar";
+}
+
+try { setNavCollapsed(localStorage.getItem(NAV_COLLAPSED_KEY) === "1"); } catch { setNavCollapsed(false); }
+
+navCollapse.addEventListener("click", () => {
+    const collapsed = !document.body.classList.contains("admin-nav-collapsed");
+    setNavCollapsed(collapsed);
+    try { localStorage.setItem(NAV_COLLAPSED_KEY, collapsed ? "1" : "0"); } catch { /* not remembered */ }
+});
+
 // The profile stays highlighted on Settings and on Accounts (opened from it).
 function markProfile() {
     const view = document.body.dataset.view;
@@ -1076,7 +1097,7 @@ async function loadSubmissions() {
         if (document.body.dataset.view === "settings" && !suppliersPage.hidden && supplierView.page !== "form") drawSuppliers();
         fillMissingCapacities();
         shrinkOldPhotos();
-        syncInstallsToVisits();
+        syncInstallsToVisits().then(syncWaitlistToVisits);
         // Re-show the open entry with the fresh data (or close it if it's
         // gone), unless a form is open.
         if (selected && !formOpen) showEntry(selected.tab, selected.id);
@@ -1717,7 +1738,7 @@ function fromOpenSolar(entry) {
 }
 
 function fromWebsite(entry) {
-    return entry.source !== "opensolar" && entry.source !== "install" && entry.source !== "admin";
+    return entry.source !== "opensolar" && entry.source !== "install" && entry.source !== "admin" && entry.source !== "waitlist";
 }
 
 function filteredEntries() {
@@ -1733,7 +1754,7 @@ function filteredEntries() {
                 : stageOf(activeTab, entry) === wanted))
         && (product === "all" || waitlistProducts(entry).includes(product))
         && (source === "all" || (source === "opensolar" ? fromOpenSolar(entry)
-            : source === "admin" ? entry.source === "admin" : fromWebsite(entry)))
+            : source === "admin" || source === "waitlist" ? entry.source === source : fromWebsite(entry)))
         && (activeTab !== "inventory" || !lowOnly || needsRestock(entry))
         && (activeTab !== "inventory" || activeCategory === "all" || (entry.category || "") === activeCategory));
     const inventoryFilter = activeTab === "inventory" && (lowOnly || activeCategory !== "all");
@@ -1888,6 +1909,7 @@ function renderVisit(v) {
         detailRow("Request ID", v.id),
     );
     if (v.source === "install") list.append(detailRow("Source", "Added automatically from the Installs tab", { wide: true }));
+    if (v.source === "waitlist") list.append(detailRow("Source", "Added automatically from the Waitlist tab", { wide: true }));
     if (v.source === "opensolar") list.append(detailRow("Source", "Imported from OpenSolar", { wide: true }));
     if (v.source === "admin") list.append(detailRow("Source", `Added on the admin page${v.createdBy ? ` by ${v.createdBy}` : ""}`, { wide: true }));
     const openSolarIds = serialList(v.openSolarIds);
@@ -3529,6 +3551,89 @@ async function syncInstallsToVisits() {
 }
 
 
+// ----- waitlist -> Ocular Visits (automatic)
+
+// Every waitlist sign-up also gets an Ocular Visits entry, so it goes through
+// the visit pipeline too (its waitlist stage carries on separately). It's
+// added the next time staff open the page (syncWaitlistToVisits), with the ID
+// "waitlist-<signupId>", so it's only ever created once, and points back to
+// its sign-up (waitlistId). Interest is Battery, the order and estimate go in
+// the message, and the sign-up's bills are linked (the same waitlist/<id>/
+// paths, not copies, so deleting or editing the visit entry never deletes
+// them). A sign-up whose client is already a visit request (same phone, last
+// 10 digits, or else same name) gets none, and cancelled ones are skipped.
+// Checked by isValidWaitlistVisit() in /firestore.rules.
+
+// The visit stage a sign-up starts at, from how far it got on the waitlist.
+const WAITLIST_TO_VISIT_STAGE = { new: "new", contacted: "contacted", reserved: "contacted", delivered: "installed" };
+
+function waitlistHasVisit(w) {
+    if (data.visits.some((v) => v.waitlistId === w.id)) return true;
+    const phone = digitsKey(w.phone);
+    if (phone.length >= 7) return data.visits.some((v) => digitsKey(v.phone) === phone);
+    const name = nameKey(w.name);
+    return Boolean(name) && data.visits.some((v) => nameKey(v.name) === name);
+}
+
+// True for a file that belongs to another entry (a sign-up's bill linked to
+// its Ocular Visits entry), which only that entry may delete.
+const linkedFile = (tab, entry, path) => !path.startsWith(`${TABS[tab].collection}/${entry.id}/`);
+
+function waitlistVisit(w, stage) {
+    const estimate = Number.isFinite(w.estimatedTotal) ? ` · est. ₱${w.estimatedTotal.toLocaleString("en-PH")} (starting prices)` : "";
+    const order = `Joined the waitlist: ${waitlistItems(w).join(", ") || "no order"}${estimate}.`;
+    return {
+        name: (w.name || "Unnamed client").slice(0, 100),
+        phone: (w.phone || "").slice(0, 30),
+        email: (w.email || "").slice(0, 200),
+        address: (w.address || w.location || "").slice(0, 300),
+        propertyType: "Residential",
+        product: "Battery",
+        monthlyBill: "",
+        preferredDate: "",
+        preferredTime: "Any time",
+        message: (w.message ? `${order}\n\n${w.message}` : order).slice(0, 2000),
+        attachments: serialList(w.attachments).slice(0, 10),
+        consent: w.consent === true,
+        sourcePage: (w.sourcePage || "").slice(0, 300),
+        status: "new",
+        createdAt: w.createdAt instanceof firestore.Timestamp ? w.createdAt : firestore.Timestamp.fromDate(toDate(w.createdAt) || new Date()),
+        stage,
+        stageUpdatedAt: firestore.serverTimestamp(),
+        stageUpdatedBy: auth.currentUser.email,
+        waitlistId: w.id,
+        source: "waitlist",
+    };
+}
+
+// Gives sign-ups without an Ocular Visits entry one, then reloads if any were
+// added. Each is its own write, so one that already exists is just skipped.
+let syncingWaitlist = false;
+async function syncWaitlistToVisits() {
+    if (!role || !can("visits", "edit") || !can("waitlist") || syncingWaitlist) return;
+    const missing = data.waitlist.filter((w) => WAITLIST_TO_VISIT_STAGE[stageOf("waitlist", w)] && !waitlistHasVisit(w));
+    if (!missing.length) return;
+    syncingWaitlist = true;
+    let added = 0;
+    try {
+        for (const w of missing) {
+            try {
+                await firestore.setDoc(firestore.doc(db, TABS.visits.collection, `waitlist-${w.id}`),
+                    waitlistVisit(w, WAITLIST_TO_VISIT_STAGE[stageOf("waitlist", w)]));
+                added++;
+            } catch (err) {
+                console.warn("Admin: adding a waitlist sign-up to Ocular Visits failed", w.id, err);
+                // Rules not published yet: stop, and try again next time.
+                if (err.code === "permission-denied" && !added) break;
+            }
+        }
+    } finally {
+        syncingWaitlist = false;
+    }
+    if (added) await loadSubmissions();
+}
+
+
 // ----- import from OpenSolar (admins only)
 
 // Reads an OpenSolar project export (CSV) into Ocular Visits. Safe to repeat
@@ -4142,11 +4247,18 @@ function deleteButton(tab, entry, errorText) {
     return remove;
 }
 
+// A sign-up's bill still linked from its Ocular Visits entry: kept when the
+// sign-up is deleted.
+const linkedToVisit = (tab, entry, path) => tab === "waitlist"
+    && data.visits.some((v) => v.waitlistId === entry.id && serialList(v.attachments).includes(path));
+
 // Deletes the entry, then (visit requests, waitlist sign-ups, checklists) its
-// uploaded files. A file that's already gone is fine.
+// uploaded files, but not files linked from another entry (linkedFile). A file
+// that's already gone is fine.
 async function deleteEntry(tab, entry) {
     await firestore.deleteDoc(firestore.doc(db, TABS[tab].collection, entry.id));
-    const paths = tab === "visits" || tab === "waitlist" ? serialList(entry.attachments) : CHECKLIST_TYPES.includes(tab) ? checklistPhotoPaths(entry) : [];
+    const paths = tab === "visits" || tab === "waitlist" ? serialList(entry.attachments).filter((path) => !linkedFile(tab, entry, path) && !linkedToVisit(tab, entry, path))
+        : CHECKLIST_TYPES.includes(tab) ? checklistPhotoPaths(entry) : [];
     if (paths.length) {
         const { storageSdk, storage } = await loadStorage();
         await Promise.all(paths.map((path) => storageSdk.deleteObject(storageSdk.ref(storage, path)).catch((err) => {
@@ -4452,6 +4564,8 @@ async function saveEdit(tab, entry, values, kept, added) {
         // Waitlist: only when the files changed, so a sign-up that never had
         // any doesn't gain an empty list.
         if (tab === "visits" || uploaded.length || removed.length) update.attachments = [...kept, ...uploaded];
+        // Unlinked files that belong to another entry stay in Storage.
+        removed = removed.filter((path) => !linkedFile(tab, entry, path) && !linkedToVisit(tab, entry, path));
     }
     await firestore.updateDoc(firestore.doc(db, TABS[tab].collection, entry.id), update);
     if (removed.length) {

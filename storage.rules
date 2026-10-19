@@ -38,7 +38,11 @@ service firebase.storage {
                     && request.resource.size <= 10 * 1024 * 1024
                     && (request.resource.contentType.matches('image/.*')
                         || request.resource.contentType == 'application/pdf');
-      allow get: if can('waitlist', 1);
+      // Ocular Visits users too: a sign-up's bills are linked from its Ocular
+      // Visits entry (syncWaitlistToVisits in admin.js), and checklist editors
+      // may import them from there.
+      allow get: if can('waitlist', 1) || can('visits', 1)
+                 || can('inspection', 2) || can('installation', 2);
       allow delete: if can('waitlist', 2);
       allow list, update: if false;
     }
