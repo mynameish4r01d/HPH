@@ -19,6 +19,14 @@ a:link{
 }
 
 :root{
+    /* Corner radii, used everywhere on the page: xs for tiny tags and focus
+       rings, sm for controls (buttons, inputs, thumbnails, list rows), md for
+       cards and panels, pill for chips, badges, segmented controls, steppers
+       and progress bars. Circles stay 50%. */
+    --admin-radius-xs: 4px;
+    --admin-radius-sm: 8px;
+    --admin-radius-md: 12px;
+    --admin-radius-pill: 999px;
     --admin-bg: rgb(255, 255, 255);
     --admin-text: #1A1A1A;
     --admin-muted: #757575;
@@ -42,6 +50,9 @@ a:link{
     --admin-goal: #18794E;
     --admin-goal-track: #DCDCE0;
     --admin-mark: rgb(0, 122, 255);
+    --admin-mark-tint: rgba(0, 122, 255, 0.1);
+    --admin-mark-tint-hover: rgba(0, 122, 255, 0.16);
+    --admin-tick-ring: #C7C7CC;
     --admin-ticket: rgb(255, 255, 255);
     --admin-ticket-edge: rgba(0, 0, 0, 0.4);
     --admin-ticket-shadow: rgba(0, 0, 0, 0.07);
@@ -72,6 +83,9 @@ a:link{
         --admin-stale-text: #FF8A80;
         --admin-goal: #4CC38A;
         --admin-goal-track: #3A3A3C;
+        --admin-mark-tint: rgba(10, 132, 255, 0.18);
+        --admin-mark-tint-hover: rgba(10, 132, 255, 0.26);
+        --admin-tick-ring: #48484A;
         --admin-ticket: #1C1C1E;
         --admin-ticket-edge: rgba(255, 255, 255, 0.22);
         --admin-ticket-shadow: rgba(0, 0, 0, 0.5);
@@ -129,7 +143,7 @@ a:link{
         height: 32px;
         padding: 0 14px;
         border: 1px solid var(--admin-border);
-        border-radius: 4px;
+        border-radius: var(--admin-radius-sm);
         background: none;
         color: var(--admin-text);
         font-family: inter;
@@ -208,7 +222,7 @@ a:link{
         min-height: 44px;
         padding: 0 12px;
         border: 1px solid var(--admin-border);
-        border-radius: 4px;
+        border-radius: var(--admin-radius-sm);
         background-color: var(--admin-field);
         color: var(--admin-text);
         font-family: inter;
@@ -252,7 +266,7 @@ a:link{
     width: 100%;
     height: 48px;
     border: 1px solid var(--admin-border);
-    border-radius: 4px;
+    border-radius: var(--admin-radius-sm);
     background-color: var(--admin-field);
     color: var(--admin-text);
     font-family: inter;
@@ -280,7 +294,7 @@ a:link{
     width: 100%;
     height: 48px;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--admin-radius-sm);
     background-color: var(--admin-accent);
     color: var(--admin-on-accent);
     font-family: inter;
@@ -312,7 +326,7 @@ a:link{
     height: 36px;
     padding: 0 14px;
     border: 1px solid var(--admin-border);
-    border-radius: 4px;
+    border-radius: var(--admin-radius-sm);
     background: none;
     color: var(--admin-text);
     font-family: inter;
@@ -333,7 +347,7 @@ a:link{
 .admin-portfolio{
     margin-top: 28px;
     padding: 20px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-surface);
 }
 
@@ -469,14 +483,14 @@ a:link{
 
 .admin-goal-track{
     height: 8px;
-    border-radius: 4px;
+    border-radius: var(--admin-radius-pill);
     overflow: hidden;
     background-color: var(--admin-goal-track);
 
     .admin-goal-fill{
         width: var(--progress);
         height: 100%;
-        border-radius: 4px;
+        border-radius: var(--admin-radius-pill);
         background-color: var(--admin-goal);
         transition: width 0.6s ease;
     }
@@ -486,7 +500,7 @@ a:link{
 .admin-impact{
     margin-top: 12px;
     padding: 20px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-surface);
 
     .admin-impact-note{
@@ -512,7 +526,7 @@ a:link{
     gap: 8px 12px;
     margin: -16px 0 24px;
     padding: 12px 16px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-warn-bg);
     color: var(--admin-warn-text);
     font-size: 13px;
@@ -530,7 +544,7 @@ a:link{
     .admin-stale-link{
         padding: 6px 12px;
         border: 1px solid currentColor;
-        border-radius: 999px;
+        border-radius: var(--admin-radius-pill);
         background: none;
         color: inherit;
         font: inherit;
@@ -543,7 +557,7 @@ a:link{
 /* Referrals: visit requests grouped by referral code. */
 .admin-referrals{
     margin: -12px 0 28px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-surface);
 
     summary{
@@ -616,7 +630,7 @@ a:link{
     .admin-referral-code{
         padding: 3px 8px;
         border: 1px solid var(--admin-border);
-        border-radius: 4px;
+        border-radius: var(--admin-radius-xs);
         background-color: var(--admin-bg);
         color: var(--admin-text);
         font: inherit;
@@ -662,7 +676,7 @@ a:link{
     gap: 2px;
     padding: 8px 14px;
     border: 1px solid var(--admin-border);
-    border-radius: 6px;
+    border-radius: var(--admin-radius-sm);
     background-color: var(--admin-field);
     color: var(--admin-text);
     font-family: inter;
@@ -707,7 +721,7 @@ a:link{
     flex-direction: column;
     gap: 6px;
     padding: 20px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-surface);
 
     .admin-star-filled{
@@ -741,7 +755,7 @@ a:link{
     display: flex;
     gap: 4px;
     padding: 4px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-surface);
 }
 
@@ -750,7 +764,7 @@ a:link{
     height: 34px;
     padding: 0 14px;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--admin-radius-sm);
     background: none;
     color: var(--admin-muted);
     font-family: inter;
@@ -786,7 +800,7 @@ a:link{
     height: 40px;
     padding: 0 36px 0 12px;
     border: 1px solid var(--admin-border);
-    border-radius: 4px;
+    border-radius: var(--admin-radius-sm);
     background-color: var(--admin-field);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%237D8187' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
@@ -812,7 +826,7 @@ a:link{
     padding: 0 12px;
     box-sizing: border-box;
     border: 1px solid var(--admin-border);
-    border-radius: 4px;
+    border-radius: var(--admin-radius-sm);
     background-color: var(--admin-field);
     color: var(--admin-text);
     font-family: inter;
@@ -910,7 +924,7 @@ a:link{
     align-items: center;
     height: 20px;
     padding: 0 8px;
-    border-radius: 10px;
+    border-radius: var(--admin-radius-pill);
     background-color: var(--admin-accent);
     color: var(--admin-on-accent);
     font-size: 11px;
@@ -955,7 +969,7 @@ a:link{
 .admin-pipeline{
     margin: 0 0 24px;
     padding: 20px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-surface);
 }
 
@@ -1001,7 +1015,7 @@ a:link{
     min-width: 0;
     padding: 10px 12px 12px;
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-bg);
     color: var(--admin-text);
     font-family: inter;
@@ -1042,7 +1056,7 @@ a:link{
         width: 100%;
         height: 4px;
         margin-top: 8px;
-        border-radius: 2px;
+        border-radius: var(--admin-radius-pill);
         background-color: var(--admin-goal-track);
         overflow: hidden;
 
@@ -1051,7 +1065,7 @@ a:link{
             position: absolute;
             inset: 0 auto 0 0;
             width: calc(var(--share) * 100%);
-            border-radius: 2px;
+            border-radius: var(--admin-radius-pill);
             background-color: var(--admin-mark);
         }
     }
@@ -1282,7 +1296,7 @@ a:link{
     height: 30px;
     padding: 0 10px 0 8px;
     border: 1px solid var(--admin-border);
-    border-radius: 4px;
+    border-radius: var(--admin-radius-sm);
     background: none;
     color: var(--admin-text);
     font-family: inter;
@@ -1332,7 +1346,7 @@ a:link{
     height: 36px;
     padding: 0 14px;
     border: 1px solid var(--admin-border);
-    border-radius: 4px;
+    border-radius: var(--admin-radius-sm);
     background: none;
     color: var(--admin-text);
     font-family: inter;
@@ -1368,7 +1382,7 @@ a:link{
     gap: 16px 24px;
     margin: 0 0 20px;
     padding: 20px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-surface);
 }
 
@@ -1406,7 +1420,7 @@ a:link{
     align-self: start;
     margin: -6px -8px;
     padding: 6px 36px 6px 8px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-sm);
     cursor: pointer;
     transition: background-color 0.15s ease;
 
@@ -1431,7 +1445,7 @@ a:link{
         box-sizing: border-box;
         justify-content: center;
         border: none;
-        border-radius: 4px;
+        border-radius: var(--admin-radius-sm);
         background: none;
         color: var(--admin-subtle);
         font-family: inter;
@@ -1492,7 +1506,7 @@ a:link{
 .admin-ticket-paper{
     position: relative;
     /* Square bottom corners: the torn edge replaces them. */
-    border-radius: 10px 10px 0 0;
+    border-radius: var(--admin-radius-md) var(--admin-radius-md) 0 0;
     background-color: var(--admin-ticket);
     /* Three mask layers that don't overlap: the left and right halves (each
        with its notch) stop --tear-h above the bottom, and a strip of
@@ -1596,7 +1610,7 @@ a:link{
     aspect-ratio: 3 / 4;
     padding: 0;
     border: 1px solid var(--admin-border);
-    border-radius: 6px;
+    border-radius: var(--admin-radius-sm);
     overflow: hidden;
     background-color: var(--admin-surface);
     cursor: zoom-in;
@@ -1624,7 +1638,7 @@ a:link{
     box-sizing: border-box;
     padding: 14px;
     border: 1px solid var(--admin-border);
-    border-radius: 6px;
+    border-radius: var(--admin-radius-sm);
     background-color: var(--admin-surface);
     color: var(--admin-text);
     transition: border-color 0.2s ease;
@@ -1743,7 +1757,7 @@ a:link{
         max-width: 100%;
         max-height: 100%;
         object-fit: contain;
-        border-radius: 4px;
+        border-radius: var(--admin-radius-sm);
         background-color: #FFFFFF;
     }
 
@@ -1787,7 +1801,7 @@ a:link{
     height: 36px;
     padding: 0 14px 0 10px;
     border: 1px solid var(--admin-border);
-    border-radius: 4px;
+    border-radius: var(--admin-radius-sm);
     background: none;
     color: var(--admin-text);
     font-family: inter;
@@ -1838,10 +1852,11 @@ a:link{
     .admin-main{
         /* Top padding, also used to pin .admin-detail-sticky to the very top. */
         --main-pad-top: 40px;
+        --main-pad-bottom: 80px;
         grid-area: main;
         min-width: 0;
         overflow-y: auto;
-        padding: var(--main-pad-top) 48px 80px;
+        padding: var(--main-pad-top) 48px var(--main-pad-bottom);
         box-sizing: border-box;
     }
 
@@ -1902,14 +1917,14 @@ a:link{
     /* Sidebar rows: name and tags, details line, then the date. */
     .admin-sidebar .admin-entry{
         border-bottom: none;
-        border-radius: 6px;
+        border-radius: var(--admin-radius-sm);
 
         summary{
             flex-direction: column;
             align-items: stretch;
             gap: 4px;
             padding: 12px;
-            border-radius: 6px;
+            border-radius: var(--admin-radius-sm);
         }
 
         /* Hover is a lighter grey than the selected row, so the two differ. */
@@ -2040,7 +2055,8 @@ a:link{
 
     .admin-main{
         --main-pad-top: 32px;
-        padding: var(--main-pad-top) 28px 64px;
+        --main-pad-bottom: 64px;
+        padding: var(--main-pad-top) 28px var(--main-pad-bottom);
     }
 
     .admin-stats{
@@ -2097,6 +2113,42 @@ body[data-role="user"] .admin-overview{
     .admin-action{
         height: 34px;
         font-size: 12px;
+    }
+}
+
+/* "Add visit request" / "Add sign-up" and "Import from OpenSolar": stacked
+   on desktop, side by side on phones, with the import status below them. */
+.admin-entry-actions-row{
+    display: contents;
+}
+
+@media only screen and (max-width:750px){
+    .admin-entry-actions-row:has(> :not([hidden])){
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, max-content));
+        align-items: center;
+        gap: 8px;
+        margin-top: 14px;
+
+        .admin-import-status{
+            grid-column: 1 / -1;
+        }
+
+        > .admin-install-actions:not([hidden]){
+            display: contents;
+        }
+
+        /* Tighter, and allowed to shrink (cutting the label short), so both
+           fit side by side on small phones too. */
+        .admin-action{
+            flex: 0 1 auto;
+            min-width: 0;
+            gap: 4px;
+            padding: 0 8px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
     }
 }
 
@@ -2252,7 +2304,7 @@ body:not([data-role="admin"]){
         > .admin-label{
             align-self: flex-start;
             padding: 3px 7px;
-            border-radius: 5px;
+            border-radius: var(--admin-radius-xs);
             background: var(--admin-text);
             color: var(--admin-bg);
             font-size: 12px;
@@ -2264,7 +2316,7 @@ body:not([data-role="admin"]){
         box-sizing: border-box;
         padding: 10px 12px;
         border: 1px solid var(--admin-border);
-        border-radius: 4px;
+        border-radius: var(--admin-radius-sm);
         background-color: var(--admin-field);
         color: var(--admin-text);
         font-family: ui-monospace, Menlo, monospace;
@@ -2306,7 +2358,7 @@ body:not([data-role="admin"]){
     min-height: 44px;
     padding: 0 12px;
     box-sizing: border-box;
-    border-radius: 4px;
+    border-radius: var(--admin-radius-sm);
     background-color: var(--admin-surface);
     font-size: 14px;
     color: var(--admin-subtle);
@@ -2408,7 +2460,7 @@ body:not([data-role="admin"]){
 
 .admin-os-chip{
     padding: 6px 12px;
-    border-radius: 999px;
+    border-radius: var(--admin-radius-pill);
     background-color: var(--admin-surface);
     font-size: 13px;
     color: var(--admin-muted);
@@ -2526,7 +2578,7 @@ body[data-role="user"] .admin-visit-actions{
         min-height: 32px;
         padding: 0 8px;
         border: 1px dashed var(--admin-border);
-        border-radius: 4px;
+        border-radius: var(--admin-radius-xs);
         background: none;
         color: var(--admin-text);
         font-family: ui-monospace, Menlo, monospace;
@@ -2541,7 +2593,7 @@ body[data-role="user"] .admin-visit-actions{
         min-height: 32px;
         padding: 0 28px 0 10px;
         border: 1px solid var(--admin-border);
-        border-radius: 6px;
+        border-radius: var(--admin-radius-sm);
         background: var(--admin-bg);
         color: var(--admin-text);
         font: inherit;
@@ -2574,7 +2626,7 @@ body[data-role="user"] .admin-visit-actions{
         align-items: flex-start;
         gap: 6px;
         padding: 8px 10px;
-        border-radius: 6px;
+        border-radius: var(--admin-radius-sm);
         background: var(--admin-warn-bg);
         color: var(--admin-warn-text);
 
@@ -2620,7 +2672,7 @@ body[data-role="user"] .admin-visit-actions{
         padding: 0 8px;
         box-sizing: border-box;
         border: 1px solid var(--admin-border);
-        border-radius: 4px;
+        border-radius: var(--admin-radius-sm);
         background-color: var(--admin-field);
         color: var(--admin-text);
         font: inherit;
@@ -2641,7 +2693,7 @@ body[data-role="user"] .admin-visit-actions{
     display: flex;
     padding: 4px;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--admin-radius-sm);
     background: none;
     color: var(--admin-subtle);
     cursor: pointer;
@@ -2704,7 +2756,7 @@ body[data-role="user"] .admin-visit-actions{
     padding: 0 36px 0 12px;
     box-sizing: border-box;
     border: 1px solid var(--admin-border);
-    border-radius: 4px;
+    border-radius: var(--admin-radius-sm);
     background-color: var(--admin-field);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%237D8187' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
@@ -2739,7 +2791,7 @@ body[data-role="user"] .admin-visit-actions{
     gap: 8px 12px;
     padding: 14px 16px;
     border: 1.5px dashed var(--admin-border);
-    border-radius: 8px;
+    border-radius: var(--admin-radius-md);
     font-size: 13px;
     color: var(--admin-subtle);
     transition: border-color 0.15s ease, background-color 0.15s ease;
@@ -2791,7 +2843,7 @@ body[data-role="user"] .admin-visit-actions{
     min-width: 0;
     padding: 8px 8px 8px 12px;
     border: 1px solid var(--admin-border);
-    border-radius: 6px;
+    border-radius: var(--admin-radius-sm);
     font-size: 13px;
 
     > .material-symbols-rounded{
@@ -2825,7 +2877,7 @@ body[data-role="user"] .admin-visit-actions{
     display: flex;
     padding: 4px;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--admin-radius-sm);
     background: none;
     color: var(--admin-subtle);
     cursor: pointer;
@@ -2915,6 +2967,27 @@ body[data-role="user"] .admin-visit-actions{
         max-width: none;
     }
 
+    /* Search on its own row, then the stage and source / category dropdowns
+       sharing the row below. They can't overflow the screen: each shrinks,
+       cutting a long choice short with an ellipsis. */
+    .admin-filters{
+        flex-wrap: wrap;
+        justify-content: stretch;
+
+        .admin-search{
+            order: -1;
+            flex: 1 1 100%;
+        }
+
+        .admin-status-filter,
+        .admin-source-filter,
+        .admin-category-filter{
+            flex: 1 1 0;
+            min-width: 0;
+            text-overflow: ellipsis;
+        }
+    }
+
     .admin-bar .admin-account-email{
         display: none;
     }
@@ -2948,366 +3021,59 @@ body[data-role="user"] .admin-visit-actions{
     }
 }
 
-/* Inspection / Commissioning tabs: the short names are shown (the full ones,
-   Site Visit / Installation, are kept in the markup but hidden). */
-.admin-tab-full{
-    display: none;
-}
+/* ===== Installer checklist =====
+   The Checklists page (the "installer checklist" section of admin.js and
+   checklist-templates.js): the overview box here; the form, the read-only
+   report and the printed report in the "Installer checklist form" block
+   further down. Inventory reuses a few of these (section titles, intro text,
+   the photo grid and error text). */
 
-
-
-/* ===== Installer checklists =====
-   The two checklist tabs, the installer account's workspace (only those tabs),
-   the "start a checklist" picker, the form an installer fills in, the read-only
-   report admins see, and the overview box (admin.js, checklist-templates.js). */
-
-/* Tabs: short names among the admin's tabs, full names for the installer. */
-.admin-tab-full{
-    display: none;
-}
-
-
-/* Progress: a small bar in list rows, a larger one in an open checklist. */
-.admin-ck-meta{
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-
-    > span:last-child{
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-}
-
+/* A small progress bar (overview cells). */
 .admin-ck-minibar{
     flex: 0 0 auto;
     display: inline-block;
     width: 56px;
     height: 6px;
-    border-radius: 3px;
+    border-radius: var(--admin-radius-pill);
     background-color: var(--admin-goal-track);
     overflow: hidden;
 
     i{
         display: block;
         height: 100%;
-        border-radius: 3px;
+        border-radius: var(--admin-radius-pill);
         background-color: var(--admin-goal);
         transition: width 0.25s ease;
     }
 }
 
-.admin-ck{
-    padding: 4px 0 8px;
-}
-
-.admin-ck-head{
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 8px 16px;
-}
-
-.admin-ck-job{
-    min-width: 0;
-
-    span{
-        font-size: 13px;
-        color: var(--admin-muted);
-    }
-}
-
-.admin-ck-kind{
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--admin-subtle);
-
-    .material-symbols-rounded{
-        font-size: 18px;
-    }
-}
-
-.admin-ck-sample{
-    padding: 2px 8px;
-    border-radius: 10px;
-    background-color: var(--admin-warn-bg);
-    color: var(--admin-warn-text);
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.admin-ck-toprow{
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px 14px;
-    margin-top: 14px;
-}
-
-.admin-ck-progress{
-    flex: 1 1 220px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-    margin-top: 14px;
-}
-
-.admin-ck-toprow .admin-ck-progress{
-    margin-top: 0;
-}
-
-.admin-ck-bar{
-    flex: 1;
-    height: 8px;
-    border-radius: 4px;
-    background-color: var(--admin-goal-track);
-    overflow: hidden;
-
-    i{
-        display: block;
-        height: 100%;
-        border-radius: 4px;
-        background-color: var(--admin-goal);
-        transition: width 0.25s ease;
-    }
-}
-
-.admin-ck-count{
-    font-size: 12px;
-    color: var(--admin-muted);
-    white-space: nowrap;
-}
-
-.admin-ck-save{
-    padding: 0;
-    border: none;
-    background: none;
-    font-family: inherit;
-    font-size: 12px;
-    color: var(--admin-subtle);
-    cursor: default;
-
-    &[data-state="ok"]{
-        color: var(--admin-active-text);
-    }
-
-    &[data-state="error"]{
-        color: var(--admin-stale-text);
-        text-decoration: underline;
-        cursor: pointer;
-    }
-}
-
+/* Shared with the Inventory tab. */
 .admin-ck-intro{
     margin: 14px 0 0;
+    padding: 10px 14px;
+    border-left: 3px solid var(--admin-mark);
+    border-radius: 0 var(--admin-radius-sm) var(--admin-radius-sm) 0;
+    background-color: var(--admin-surface);
     font-size: 13px;
     line-height: 1.5;
     color: var(--admin-muted);
 }
 
-.admin-ck-signoff{
-    margin: 10px 0 0;
-    font-size: 12px;
-    color: var(--admin-muted);
-}
-
-.admin-ck-section{
-    margin-top: 28px;
-}
-
 .admin-ck-section-title{
+    display: flex;
+    align-items: center;
+    gap: 10px;
     margin: 0;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--admin-border);
+    padding-bottom: 10px;
     font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.01em;
     color: var(--admin-subtle);
-}
 
-.admin-ck-text{
-    font-size: 14px;
-    line-height: 1.45;
-}
-
-.admin-ck-hint{
-    margin-top: 2px;
-    font-size: 12px;
-    line-height: 1.4;
-    color: var(--admin-muted);
-}
-
-.admin-ck-item{
-    padding: 14px 0;
-    border-bottom: 1px solid var(--admin-border);
-}
-
-/* The form: the item's text beside its three choices, then note and photos. */
-.admin-ck-edit .admin-ck-item{
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
-    gap: 10px 16px;
-    transition: box-shadow 0.2s ease, padding 0.2s ease;
-
-    &[data-state="pass"]{
-        box-shadow: inset 3px 0 0 var(--admin-active-text);
-        padding-left: 12px;
-    }
-
-    &[data-state="fix"]{
-        box-shadow: inset 3px 0 0 var(--admin-warn-text);
-        padding-left: 12px;
-    }
-}
-
-.admin-ck-choices{
-    display: flex;
-    gap: 6px;
-}
-
-/* A question with set answers: the answers wrap instead of squeezing. */
-.admin-ck-choices.admin-ck-options{
-    flex-wrap: wrap;
-}
-
-.admin-ck-value{
-    margin-top: 2px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--admin-text);
-}
-
-/* The photo button is the main action of a photo item. */
-.admin-ck-tool.admin-ck-tool-main{
-    height: 36px;
-    border-style: solid;
-    border-color: var(--admin-accent);
-    color: var(--admin-accent);
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.admin-ck-choice{
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    height: 36px;
-    padding: 0 12px;
-    border: 1px solid var(--admin-border);
-    border-radius: 18px;
-    background-color: var(--admin-field);
-    color: var(--admin-text);
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    white-space: nowrap;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
-
-    .material-symbols-rounded{
-        font-size: 18px;
-        color: var(--admin-subtle);
-    }
-
-    &:hover{
-        border-color: var(--admin-subtle);
-    }
-
-    &[aria-pressed="true"]{
-        font-weight: 600;
-    }
-
-    &.admin-ck-choice-pass[aria-pressed="true"]{
-        border-color: var(--admin-active-text);
-        background-color: var(--admin-active-bg);
-        color: var(--admin-active-text);
-    }
-
-    &.admin-ck-choice-fix[aria-pressed="true"]{
-        border-color: var(--admin-warn-text);
-        background-color: var(--admin-warn-bg);
-        color: var(--admin-warn-text);
-    }
-
-    &.admin-ck-choice-na[aria-pressed="true"]{
-        border-color: var(--admin-subtle);
-        background-color: var(--admin-surface);
-    }
-
-    &[aria-pressed="true"] .material-symbols-rounded{
-        color: inherit;
-    }
-}
-
-.admin-ck-extra{
-    grid-column: 1 / -1;
-    display: grid;
-    gap: 8px;
-}
-
-.admin-ck-note{
-    box-sizing: border-box;
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid var(--admin-border);
-    border-radius: 6px;
-    background-color: var(--admin-field);
-    color: var(--admin-text);
-    font-family: inherit;
-    font-size: 14px;
-    line-height: 1.45;
-    resize: vertical;
-
-    &[hidden]{
-        display: none;
-    }
-
-    &:focus{
-        outline: none;
-        border-color: var(--admin-accent);
-    }
-}
-
-.admin-ck-tools{
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-
-.admin-ck-tool{
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 32px;
-    padding: 0 12px;
-    border: 1px dashed var(--admin-border);
-    border-radius: 16px;
-    background: none;
-    color: var(--admin-muted);
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-
-    .material-symbols-rounded{
-        font-size: 18px;
-    }
-
-    &:hover{
-        border-color: var(--admin-subtle);
-        color: var(--admin-text);
+    &::after{
+        content: "";
+        flex: 1;
+        height: 1px;
+        background-color: var(--admin-border);
     }
 }
 
@@ -3322,11 +3088,7 @@ body[data-role="user"] .admin-visit-actions{
     }
 }
 
-.admin-ck-extra .admin-ck-error{
-    margin: 0;
-}
-
-/* Photos: the existing thumbnail grid, smaller, with a remove button. */
+/* Photos: the attachment thumbnail grid, smaller, with a remove button. */
 .admin-ck-photos{
     grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
     gap: 8px;
@@ -3342,8 +3104,11 @@ body[data-role="user"] .admin-visit-actions{
 }
 
 .admin-ck-photo{
-    cursor: default;
+    position: relative;
     aspect-ratio: 1 / 1;
+    border-radius: var(--admin-radius-sm);
+    overflow: hidden;
+    cursor: default;
 
     &.admin-ck-photo-broken{
         display: grid;
@@ -3382,245 +3147,12 @@ body[data-role="user"] .admin-visit-actions{
     }
 }
 
-/* The read-only report: mark, item and result per row. */
-.admin-ck:not(.admin-ck-edit) .admin-ck-item{
-    display: grid;
-    grid-template-columns: 24px minmax(0, 1fr) auto;
-    align-items: start;
-    gap: 10px;
-
-    &.admin-ck-fix{
-        background-color: color-mix(in srgb, var(--admin-warn-bg) 55%, transparent);
-    }
-}
-
-.admin-ck-mark{
-    color: var(--admin-subtle);
-
-    .material-symbols-rounded{
-        font-size: 20px;
-    }
-}
-
-.admin-ck-pass .admin-ck-mark{
-    color: var(--admin-active-text);
-}
-
-.admin-ck-fix .admin-ck-mark{
-    color: var(--admin-warn-text);
-}
-
-.admin-ck-result{
-    padding: 2px 8px;
-    border-radius: 10px;
-    background-color: var(--admin-surface);
-    color: var(--admin-muted);
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.admin-ck-pass .admin-ck-result{
-    background-color: var(--admin-active-bg);
-    color: var(--admin-active-text);
-}
-
-.admin-ck-fix .admin-ck-result{
-    background-color: var(--admin-warn-bg);
-    color: var(--admin-warn-text);
-}
-
-.admin-ck-open .admin-ck-text{
-    color: var(--admin-muted);
-}
-
-.admin-ck-note-text{
-    margin-top: 8px;
-    padding: 8px 10px;
-    border-radius: 6px;
-    background-color: var(--admin-surface);
-    font-size: 13px;
-    line-height: 1.5;
-    white-space: pre-wrap;
-}
-
-/* Sign off. */
-.admin-ck-field{
-    display: grid;
-    gap: 6px;
-    margin-top: 12px;
-
-    > span{
-        font-size: 12px;
-        font-weight: 500;
-        color: var(--admin-muted);
-    }
-
-    input{
-        box-sizing: border-box;
-        width: 100%;
-        height: 42px;
-        padding: 0 12px;
-        border: 1px solid var(--admin-border);
-        border-radius: 6px;
-        background-color: var(--admin-field);
-        color: var(--admin-text);
-        font-family: inherit;
-        font-size: 15px;
-
-        &:focus{
-            outline: none;
-            border-color: var(--admin-accent);
-        }
-    }
-}
-
-.admin-ck-submit{
-    .admin-ck-field{
-        max-width: 360px;
-    }
-
-    .admin-action{
-        margin-top: 14px;
-        height: 44px;
-        padding: 0 20px;
-        font-size: 14px;
-
-        &:disabled{
-            opacity: 0.45;
-            cursor: not-allowed;
-        }
-    }
-}
-
-.admin-ck-submit-note{
-    margin: 12px 0 0;
-    font-size: 13px;
-    line-height: 1.45;
-    color: var(--admin-muted);
-}
-
-/* The "start a checklist" picker. */
-.admin-ck-start{
-    display: grid;
-    gap: 14px;
-    padding-top: 6px;
-
-    .admin-ck-intro{
-        margin: 0;
-    }
-}
-
-.admin-ck-start-tools{
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px 14px;
-}
-
-.admin-ck-search{
-    flex: 1 1 220px;
-    box-sizing: border-box;
-    min-width: 0;
-    height: 42px;
-    padding: 0 12px;
-    border: 1px solid var(--admin-border);
-    border-radius: 6px;
-    background-color: var(--admin-field);
-    color: var(--admin-text);
-    font-family: inherit;
-    font-size: 15px;
-
-    &:focus{
-        outline: none;
-        border-color: var(--admin-accent);
-    }
-}
-
-.admin-ck-showall{
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--admin-muted);
-    cursor: pointer;
-
-    input{
-        accent-color: var(--admin-accent);
-    }
-}
-
-.admin-ck-start-note{
-    margin: 0;
-    font-size: 12px;
-    line-height: 1.5;
-    color: var(--admin-subtle);
-}
-
-.admin-ck-clients{
-    display: grid;
-    gap: 8px;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-}
-
-.admin-ck-client{
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 12px 14px;
-    border: 1px solid var(--admin-border);
-    border-radius: 8px;
-
-    .admin-action{
-        flex: 0 0 auto;
-    }
-}
-
-.admin-ck-client-info{
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-
-    strong{
-        font-size: 14px;
-        font-weight: 600;
-    }
-
-    span{
-        overflow: hidden;
-        font-size: 12px;
-        color: var(--admin-muted);
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-}
-
-.admin-ck-manual{
-    padding: 12px 14px;
-    border: 1px dashed var(--admin-border);
-    border-radius: 8px;
-
-    summary{
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-    }
-
-    .admin-action{
-        margin-top: 14px;
-    }
-}
-
 /* Overview: Inventory box, the installer's "Stock on hand" summary. On the
    box's grey background the plain tiles and restock rows are white. */
 .admin-inventory-box{
     margin: 0 0 24px;
     padding: 20px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-surface);
 
     &[hidden]{
@@ -3640,7 +3172,7 @@ body[data-role="user"] .admin-visit-actions{
 .admin-checklists{
     margin: 0 0 24px;
     padding: 20px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-surface);
 
     &[hidden]{
@@ -3669,7 +3201,7 @@ body[data-role="user"] .admin-visit-actions{
 .admin-checklists-alert{
     margin-top: 12px;
     padding: 10px 14px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-sm);
     background-color: var(--admin-warn-bg);
     color: var(--admin-warn-text);
     font-size: 13px;
@@ -3679,14 +3211,14 @@ body[data-role="user"] .admin-visit-actions{
 .admin-checklists-table{
     margin-top: 12px;
     border: 1px solid var(--admin-border);
-    border-radius: 8px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-bg);
     overflow: hidden;
 }
 
 .admin-checklists-row{
     display: grid;
-    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 1fr);
     align-items: center;
     gap: 8px;
     padding: 10px 14px;
@@ -3733,7 +3265,7 @@ body[data-role="user"] .admin-visit-actions{
     gap: 8px;
     padding: 6px 8px;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-sm);
     background: none;
     color: var(--admin-text);
     font-family: inherit;
@@ -3744,15 +3276,14 @@ body[data-role="user"] .admin-visit-actions{
     &:hover{
         background-color: var(--admin-surface);
     }
+}
 
-    &.admin-ck-cell-none{
-        color: var(--admin-subtle);
-        cursor: default;
-
-        &:hover{
-            background: none;
-        }
-    }
+.admin-checklists-system{
+    overflow: hidden;
+    font-size: 12px;
+    color: var(--admin-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 @media only screen and (max-width:750px){
@@ -3765,352 +3296,15 @@ body[data-role="user"] .admin-visit-actions{
     }
 
     .admin-checklists-row{
-        grid-template-columns: 1fr;
-        gap: 2px;
+        grid-template-columns: 1fr 1fr;
+        gap: 2px 8px;
     }
 
-    /* Phones: an item's choices go under its text, as three equal buttons
-       big enough for a gloved finger. */
-    .admin-ck-edit .admin-ck-item{
-        grid-template-columns: 1fr;
-    }
-
-    .admin-ck-choices{
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-    }
-
-    .admin-ck-choices.admin-ck-options{
-        display: flex;
-    }
-
-    .admin-ck-choices.admin-ck-options .admin-ck-choice{
-        flex: 1 1 auto;
-    }
-
-    .admin-ck-tool.admin-ck-tool-main{
-        height: 44px;
-    }
-
-    .admin-ck-choice{
-        height: 44px;
-        padding: 0 6px;
-    }
-
-    .admin-ck-tool{
-        height: 36px;
-    }
-
-    .admin-ck-client{
-        flex-wrap: wrap;
-    }
-
-    .admin-ck-client .admin-action{
-        width: 100%;
-        justify-content: center;
+    .admin-checklists-job, .admin-checklists-system{
+        grid-column: 1 / -1;
     }
 }
 
-
-/* ===== Checklist polish =====
-   Cards for items with numbered badges, a progress card, a tinted intro, a
-   segmented look for the answer buttons, and a sign-off card. Later than the
-   checklist block above, so it wins at equal specificity. */
-.admin-ck{
-    counter-reset: ckitem;
-}
-
-.admin-ck-progress{
-    padding: 12px 14px;
-    border-radius: 10px;
-    background-color: var(--admin-surface);
-}
-
-.admin-ck-toprow .admin-ck-progress{
-    flex: 1 1 240px;
-}
-
-.admin-ck-bar{
-    height: 10px;
-    border-radius: 5px;
-    background-color: var(--admin-goal-track);
-
-    i{
-        border-radius: 5px;
-    }
-}
-
-.admin-ck-count{
-    font-weight: 500;
-    color: var(--admin-text);
-}
-
-.admin-ck-intro{
-    padding: 10px 14px;
-    border-left: 3px solid var(--admin-mark);
-    border-radius: 0 8px 8px 0;
-    background-color: var(--admin-surface);
-}
-
-.admin-ck-section{
-    margin-top: 32px;
-}
-
-.admin-ck-section-title{
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding-bottom: 10px;
-    border-bottom: none;
-    font-size: 13px;
-    font-weight: 600;
-    letter-spacing: 0;
-
-    &::after{
-        content: "";
-        flex: 1;
-        height: 1px;
-        background-color: var(--admin-border);
-    }
-}
-
-/* Items become cards. */
-.admin-ck-item{
-    counter-increment: ckitem;
-    margin-top: 10px;
-    padding: 16px;
-    border: 1px solid var(--admin-border);
-    border-radius: 12px;
-    background-color: var(--admin-bg);
-}
-
-.admin-ck-edit .admin-ck-item{
-    transition: border-color 0.2s ease, background-color 0.2s ease;
-
-    &[data-state="pass"]{
-        padding-left: 16px;
-        box-shadow: none;
-        border-color: color-mix(in srgb, var(--admin-active-text) 45%, var(--admin-border));
-        background-color: color-mix(in srgb, var(--admin-active-bg) 35%, var(--admin-bg));
-    }
-
-    &[data-state="fix"]{
-        padding-left: 16px;
-        box-shadow: none;
-        border-color: color-mix(in srgb, var(--admin-warn-text) 55%, var(--admin-border));
-        background-color: color-mix(in srgb, var(--admin-warn-bg) 45%, var(--admin-bg));
-    }
-}
-
-/* Numbered badge before the item text (form only; the report has its own marks). */
-.admin-ck-edit .admin-ck-text{
-    font-weight: 500;
-
-    &::before{
-        content: counter(ckitem);
-        display: inline-grid;
-        place-items: center;
-        min-width: 22px;
-        height: 22px;
-        margin-right: 10px;
-        padding: 0 6px;
-        box-sizing: border-box;
-        border-radius: 11px;
-        background-color: var(--admin-surface);
-        color: var(--admin-muted);
-        font-size: 12px;
-        font-weight: 600;
-        vertical-align: 1px;
-        transition: background-color 0.2s ease, color 0.2s ease;
-    }
-}
-
-.admin-ck-edit .admin-ck-item[data-state="pass"] .admin-ck-text::before{
-    content: "✓";
-    background-color: var(--admin-active-text);
-    color: var(--admin-bg);
-}
-
-.admin-ck-edit .admin-ck-item[data-state="fix"] .admin-ck-text::before{
-    content: "!";
-    background-color: var(--admin-warn-text);
-    color: var(--admin-bg);
-}
-
-.admin-ck-edit .admin-ck-hint{
-    margin-left: 32px;
-}
-
-/* Answer buttons: a connected segmented control. */
-.admin-ck-choices:not(.admin-ck-options){
-    gap: 0;
-    padding: 3px;
-    border-radius: 21px;
-    background-color: var(--admin-surface);
-}
-
-.admin-ck-choices:not(.admin-ck-options) .admin-ck-choice{
-    border-color: transparent;
-    background-color: transparent;
-    color: var(--admin-muted);
-
-    &:hover{
-        color: var(--admin-text);
-        border-color: transparent;
-    }
-
-    &[aria-pressed="true"]{
-        background-color: var(--admin-bg);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
-    }
-
-    &.admin-ck-choice-pass[aria-pressed="true"]{
-        background-color: var(--admin-active-bg);
-        border-color: transparent;
-    }
-
-    &.admin-ck-choice-fix[aria-pressed="true"]{
-        background-color: var(--admin-warn-bg);
-        border-color: transparent;
-    }
-
-    &.admin-ck-choice-na[aria-pressed="true"]{
-        background-color: var(--admin-bg);
-        border-color: transparent;
-        color: var(--admin-text);
-    }
-}
-
-.admin-ck-choice:focus-visible,
-.admin-ck-tool:focus-visible{
-    outline: 2px solid var(--admin-mark);
-    outline-offset: 2px;
-}
-
-/* Set-answer questions keep separate pills. */
-.admin-ck-choices.admin-ck-options .admin-ck-choice[aria-pressed="true"]{
-    box-shadow: 0 0 0 1px currentColor inset;
-}
-
-.admin-ck-extra{
-    padding-top: 2px;
-}
-
-.admin-ck-note{
-    border-radius: 8px;
-    background-color: var(--admin-bg);
-
-    &:focus{
-        box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-mark) 18%, transparent);
-        border-color: var(--admin-mark);
-    }
-}
-
-.admin-ck-tool{
-    border-style: solid;
-    background-color: var(--admin-surface);
-    border-color: transparent;
-
-    &[aria-pressed="true"]{
-        color: var(--admin-text);
-        border-color: var(--admin-border);
-    }
-}
-
-.admin-ck-tool.admin-ck-tool-main{
-    background-color: var(--admin-accent);
-    border-color: var(--admin-accent);
-    color: var(--admin-on-accent);
-
-    &:hover{
-        opacity: 0.88;
-    }
-}
-
-.admin-ck-photos .admin-ck-photo{
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-/* Report rows are cards too. */
-.admin-ck:not(.admin-ck-edit) .admin-ck-item{
-    padding: 12px 14px;
-
-    &.admin-ck-fix{
-        border-color: color-mix(in srgb, var(--admin-warn-text) 45%, var(--admin-border));
-    }
-}
-
-/* Sign-off card. */
-.admin-ck-submit{
-    padding: 4px 18px 20px;
-    border: 1px solid var(--admin-border);
-    border-radius: 12px;
-    background-color: var(--admin-surface);
-
-    .admin-ck-section-title{
-        padding-top: 14px;
-    }
-
-    .admin-ck-field input{
-        border-radius: 8px;
-    }
-
-    .admin-action{
-        border-radius: 22px;
-    }
-}
-
-.admin-ck-client{
-    border-radius: 12px;
-    transition: border-color 0.15s ease, background-color 0.15s ease;
-
-    &:hover{
-        border-color: var(--admin-subtle);
-        background-color: var(--admin-surface);
-    }
-}
-
-@media only screen and (max-width:750px){
-    .admin-ck-item{
-        padding: 14px;
-    }
-
-    .admin-ck-edit .admin-ck-item[data-state]{
-        padding-left: 14px;
-    }
-
-    .admin-ck-submit{
-        padding: 4px 14px 18px;
-
-        .admin-ck-field{
-            max-width: none;
-        }
-
-        .admin-action{
-            width: 100%;
-            justify-content: center;
-        }
-    }
-
-    .admin-ck-choices:not(.admin-ck-options) .admin-ck-choice{
-        height: 40px;
-        border-radius: 20px;
-    }
-
-    .admin-ck-choices:not(.admin-ck-options){
-        border-radius: 23px;
-    }
-
-    .admin-ck-tool.admin-ck-tool-main{
-        width: 100%;
-        justify-content: center;
-    }
-
-    .admin-ck-tools:has(.admin-ck-tool-main) .admin-ck-choices{
-        width: 100%;
-    }
-}
 
 /* ===== Inventory =====
    The Inventory tab (installer and admins; the "inventory" section of
@@ -4187,7 +3381,7 @@ body[data-role="user"] .admin-visit-actions{
     gap: 14px;
     padding: 18px;
     border: 1px solid var(--admin-border);
-    border-radius: 12px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-bg);
 }
 
@@ -4247,7 +3441,7 @@ body[data-role="user"] .admin-visit-actions{
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     padding: 3px;
-    border-radius: 21px;
+    border-radius: var(--admin-radius-pill);
     background-color: var(--admin-surface);
 }
 
@@ -4259,7 +3453,7 @@ body[data-role="user"] .admin-visit-actions{
     height: 36px;
     padding: 0 8px;
     border: none;
-    border-radius: 18px;
+    border-radius: var(--admin-radius-pill);
     background: none;
     color: var(--admin-muted);
     font-family: inherit;
@@ -4303,7 +3497,7 @@ body[data-role="user"] .admin-visit-actions{
     display: inline-flex;
     align-items: center;
     height: 48px;
-    border-radius: 24px;
+    border-radius: var(--admin-radius-pill);
     background-color: var(--admin-surface);
 }
 
@@ -4314,7 +3508,7 @@ body[data-role="user"] .admin-visit-actions{
     height: 48px;
     padding: 0;
     border: none;
-    border-radius: 24px;
+    border-radius: var(--admin-radius-pill);
     background: none;
     color: var(--admin-text);
     cursor: pointer;
@@ -4341,7 +3535,7 @@ body[data-role="user"] .admin-visit-actions{
     height: 40px;
     padding: 0;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--admin-radius-sm);
     background: none;
     color: var(--admin-text);
     font-family: inherit;
@@ -4392,7 +3586,7 @@ body[data-role="user"] .admin-visit-actions{
     }
 
     input{
-        border-radius: 8px;
+        border-radius: var(--admin-radius-sm);
         font-size: 15px;
     }
 }
@@ -4523,7 +3717,7 @@ body[data-role="user"] .admin-visit-actions{
     display: inline-flex;
     align-items: center;
     height: 36px;
-    border-radius: 18px;
+    border-radius: var(--admin-radius-pill);
     background-color: var(--admin-surface);
     cursor: default;
 }
@@ -4535,7 +3729,7 @@ body[data-role="user"] .admin-visit-actions{
     height: 36px;
     padding: 0;
     border: none;
-    border-radius: 18px;
+    border-radius: var(--admin-radius-pill);
     background: none;
     color: var(--admin-text);
     cursor: pointer;
@@ -4594,7 +3788,7 @@ body[data-role="user"] .admin-visit-actions{
 .admin-detail-title .admin-inv-thumb{
     width: 56px;
     height: 56px;
-    border-radius: 4px;
+    border-radius: var(--admin-radius-xs);
 }
 
 /* The open item's photo, like a social media profile picture: a square photo
@@ -4616,7 +3810,7 @@ body[data-role="user"] .admin-visit-actions{
     height: 112px;
     padding: 0;
     border: 4px solid var(--admin-bg);
-    border-radius: 6px;
+    border-radius: var(--admin-radius-sm);
     background-color: var(--admin-surface);
     box-shadow: 0 0 0 1px var(--admin-border), 0 4px 14px rgba(0, 0, 0, 0.12);
     overflow: hidden;
@@ -4730,13 +3924,13 @@ body[data-role="user"] .admin-visit-actions{
     /* Bigger targets for thumbs. */
     .admin-inv-quick{
         height: 40px;
-        border-radius: 20px;
+        border-radius: var(--admin-radius-pill);
     }
 
     .admin-inv-quick-btn{
         width: 40px;
         height: 40px;
-        border-radius: 20px;
+        border-radius: var(--admin-radius-pill);
     }
 
     .admin-inv-avatar{
@@ -4755,7 +3949,7 @@ body[data-role="user"] .admin-visit-actions{
 
     .admin-thumb{
         aspect-ratio: 1 / 1;
-        border-radius: 10px;
+        border-radius: var(--admin-radius-sm);
         overflow: hidden;
     }
 }
@@ -4816,7 +4010,7 @@ body[data-role="user"] .admin-visit-actions{
 .admin-inv-log-note{
     margin-top: 6px;
     padding: 6px 10px;
-    border-radius: 6px;
+    border-radius: var(--admin-radius-sm);
     background-color: var(--admin-surface);
     font-size: 13px;
     line-height: 1.45;
@@ -4911,7 +4105,7 @@ body[data-role="user"] .admin-visit-actions{
     flex-direction: column;
     gap: 4px;
     padding: 14px;
-    border-radius: 12px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-surface);
 
     &.admin-inv-tile-low{
@@ -5095,7 +4289,7 @@ body[data-role="user"] .admin-visit-actions{
 
     li{
         padding: 3px 8px;
-        border-radius: 4px;
+        border-radius: var(--admin-radius-sm);
         background-color: var(--admin-surface);
         font-size: 12px;
     }
@@ -5210,11 +4404,11 @@ body[data-role="user"] .admin-visit-actions{
 
     .admin-inv-mode{
         height: 40px;
-        border-radius: 20px;
+        border-radius: var(--admin-radius-pill);
     }
 
     .admin-inv-modes{
-        border-radius: 23px;
+        border-radius: var(--admin-radius-pill);
     }
 
 
@@ -5454,7 +4648,7 @@ body[data-role="user"] .admin-visit-actions{
         margin-top: 16px;
         height: 48px;
         border: none;
-        border-radius: 4px;
+        border-radius: var(--admin-radius-sm);
         background-color: #1A1A1A;
         color: #FFFFFF;
         font-family: inherit;
@@ -5609,7 +4803,7 @@ body[data-role="user"] .admin-visit-actions{
         height: 38px;
         padding: 0 12px;
         border: none;
-        border-radius: 8px;
+        border-radius: var(--admin-radius-sm);
         background: none;
         box-shadow: none;
         color: var(--admin-text);
@@ -5708,7 +4902,7 @@ body[data-role="user"] .admin-visit-actions{
         margin: -6px 0 -6px -8px;
         padding: 6px 8px;
         border: none;
-        border-radius: 8px;
+        border-radius: var(--admin-radius-sm);
         background: none;
         color: inherit;
         font: inherit;
@@ -5773,7 +4967,7 @@ body[data-role="user"] .admin-visit-actions{
         height: 34px;
         padding: 0;
         border: none;
-        border-radius: 8px;
+        border-radius: var(--admin-radius-sm);
         background: none;
         color: var(--admin-muted);
         cursor: pointer;
@@ -5925,7 +5119,7 @@ body[data-role="user"] .admin-visit-actions{
     margin-top: 28px;
     padding: 20px;
     border: 1px solid var(--admin-border);
-    border-radius: 12px;
+    border-radius: var(--admin-radius-md);
 }
 
 .admin-settings-avatar{
@@ -5983,7 +5177,7 @@ body[data-role="user"] .admin-visit-actions{
     width: 100%;
     padding: 14px 16px;
     border: 1px solid var(--admin-border);
-    border-radius: 12px;
+    border-radius: var(--admin-radius-md);
     background: none;
     color: var(--admin-text);
     font: inherit;
@@ -6045,7 +5239,7 @@ body[data-role="user"] .admin-visit-actions{
     margin: 0 0 12px -6px;
     padding: 4px 8px 4px 2px;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--admin-radius-sm);
     background: none;
     color: var(--admin-mark);
     font: inherit;
@@ -6074,7 +5268,7 @@ body[data-role="user"] .admin-visit-actions{
     padding: 0 12px;
     box-sizing: border-box;
     border: 1px solid var(--admin-border);
-    border-radius: 8px;
+    border-radius: var(--admin-radius-sm);
     background-color: var(--admin-field);
     color: var(--admin-text);
     font-family: inter;
@@ -6109,7 +5303,7 @@ body[data-role="user"] .admin-visit-actions{
     margin-top: 20px;
     padding: 4px 20px;
     border: 1px solid var(--admin-border);
-    border-radius: 12px;
+    border-radius: var(--admin-radius-md);
 }
 
 /* The supplier's items: one row each, with an x to unlink. */
@@ -6159,7 +5353,7 @@ body[data-role="user"] .admin-visit-actions{
     height: 30px;
     padding: 0;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--admin-radius-sm);
     background: none;
     color: var(--admin-muted);
     cursor: pointer;
@@ -6196,7 +5390,7 @@ body[data-role="user"] .admin-visit-actions{
     overflow-y: auto;
     padding: 0 12px;
     border: 1px solid var(--admin-border);
-    border-radius: 10px;
+    border-radius: var(--admin-radius-md);
 
     .admin-empty{
         margin: 12px 0;
@@ -6259,7 +5453,7 @@ body[data-role="user"] .admin-visit-actions{
         display: block;
         margin: 16px 0;
         padding: 14px 14px 6px;
-        border-radius: 12px;
+        border-radius: var(--admin-radius-md);
         background-color: var(--admin-warn-bg);
     }
 
@@ -6363,7 +5557,7 @@ body[data-role="user"] .admin-visit-actions{
         &:focus-visible{
             outline: 2px solid var(--admin-mark);
             outline-offset: 4px;
-            border-radius: 4px;
+            border-radius: var(--admin-radius-xs);
         }
     }
 
@@ -6441,7 +5635,7 @@ body[data-role="user"] .admin-visit-actions{
         align-items: baseline;
         gap: 6px;
         padding: 8px 14px;
-        border-radius: 18px;
+        border-radius: var(--admin-radius-pill);
         scroll-snap-align: start;
 
         .admin-stat-value{
@@ -6459,7 +5653,7 @@ body[data-role="user"] .admin-visit-actions{
         display: flex;
         flex-direction: column;
         gap: 0;
-        border-radius: 8px;
+        border-radius: var(--admin-radius-md);
         background-color: var(--admin-bg);
         overflow: hidden;
     }
@@ -6531,7 +5725,7 @@ body[data-role="user"] .admin-visit-actions{
 .admin-waitlist-order{
     gap: 10px;
     padding: 16px;
-    border-radius: 8px;
+    border-radius: var(--admin-radius-md);
     background-color: var(--admin-surface);
 }
 
@@ -6547,11 +5741,546 @@ body[data-role="user"] .admin-visit-actions{
     }
 }
 
-/* Checklist files linked from the Ocular Visit request ("Import from Ocular
-   Visit"): PDFs as a tile that opens the file, and a small "From visit" tag
-   on anything linked rather than uploaded here. */
-.admin-ck-photo.admin-ck-photo-pdf{
+
+
+/* ===== Installer checklist form =====
+   One checklist per job (the "installer checklist" section of admin.js): the
+   job's details, the Site inspection / Commissioning tabs, the items, and a
+   Save bar pinned to the bottom. Then the read-only report (View access) and
+   the printed report. Colours come from the admin tokens, so dark mode
+   follows. */
+.admin-ck-form{
+    display: grid;
+    gap: 18px;
+    padding-top: 4px;
+}
+
+.admin-ck-job{
+    padding: 18px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-md);
+}
+
+.admin-ck-heading{
+    margin: 0 0 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--admin-subtle);
+}
+
+/* Client name, with suggestions from Ocular Visits under it. */
+.admin-ck-name{
     position: relative;
+}
+
+.admin-ck-suggest{
+    position: absolute;
+    top: 72px;
+    left: 0;
+    right: 0;
+    z-index: 6;
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-md);
+    background-color: var(--admin-bg);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.admin-ck-suggestion{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: var(--admin-radius-sm);
+    background: none;
+    color: var(--admin-text);
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover, &:focus-visible{
+        outline: none;
+        background-color: var(--admin-surface);
+    }
+
+    .admin-badge{
+        flex: 0 0 auto;
+    }
+}
+
+.admin-ck-suggestion-info{
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+
+    strong{
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    span{
+        overflow: hidden;
+        font-size: 12px;
+        color: var(--admin-muted);
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+.admin-ck-linked{
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--admin-active-text);
+
+    .material-symbols-rounded{
+        font-size: 16px;
+    }
+}
+
+.admin-ck-unlink{
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--admin-muted);
+    font-family: inherit;
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* System type: a segmented control. */
+.admin-ck-systems{
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 3px;
+    padding: 3px;
+    border-radius: var(--admin-radius-md);
+    background-color: var(--admin-surface);
+}
+
+.admin-ck-system{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    min-height: 46px;
+    padding: 6px 8px;
+    border: none;
+    border-radius: var(--admin-radius-sm);
+    background: none;
+    color: var(--admin-muted);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover{
+        color: var(--admin-text);
+    }
+
+    &[aria-checked="true"]{
+        background-color: var(--admin-bg);
+        color: var(--admin-text);
+        font-weight: 600;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    }
+
+    &:focus-visible{
+        outline: 2px solid var(--admin-mark);
+        outline-offset: 2px;
+    }
+}
+
+.admin-ck-system-soon{
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--admin-subtle);
+}
+
+/* Site inspection / Commissioning. */
+.admin-ck-tabs{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.admin-ck-tab{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    height: 50px;
+    padding: 0 14px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-md);
+    background: none;
+    color: var(--admin-muted);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    .material-symbols-rounded{
+        font-size: 20px;
+    }
+
+    &:hover{
+        color: var(--admin-text);
+    }
+
+    &[aria-selected="true"]{
+        border-color: var(--admin-text);
+        box-shadow: inset 0 0 0 1px var(--admin-text);
+        color: var(--admin-text);
+        font-weight: 600;
+    }
+
+    &:focus-visible{
+        outline: 2px solid var(--admin-mark);
+        outline-offset: 2px;
+    }
+}
+
+.admin-ck-tab-name{
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-ck-tab-count{
+    margin-left: auto;
+    padding: 2px 8px;
+    border-radius: var(--admin-radius-pill);
+    background-color: var(--admin-surface);
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+
+    &:empty{
+        display: none;
+    }
+}
+
+.admin-ck-tab-done .admin-ck-tab-count{
+    background-color: var(--admin-active-bg);
+    color: var(--admin-active-text);
+}
+
+/* Items: a flat list like Apple Reminders. A hollow circle that fills in
+   once the item is done, the item's text beside it with its hint underneath,
+   any answer controls lined up under the text, and a hairline between items
+   that starts where the text does. */
+.admin-ck-panel{
+    display: grid;
+    gap: 0;
+    padding: 0 0 0 4px;
+}
+
+.admin-ck-item{
+    --ck-indent: 36px;
+    position: relative;
+    display: grid;
+    gap: 10px;
+    padding: 13px 0 14px;
+    background: none;
+
+    /* The answer controls sit under the text, not under the circle. */
+    > :not(.admin-ck-item-head){
+        margin-left: var(--ck-indent);
+    }
+
+    &::after{
+        content: "";
+        position: absolute;
+        left: var(--ck-indent);
+        right: 0;
+        bottom: 0;
+        height: 1px;
+        background-color: var(--admin-border);
+    }
+
+    &:last-child::after{
+        display: none;
+    }
+}
+
+/* When Note is an item's only button (ticks, typed answers), it sits at the
+   right end of the item's first line instead of on a line of its own. */
+.admin-ck-item:has(> .admin-ck-tools > .admin-ck-tool:only-child){
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 12px;
+
+    > *{
+        grid-column: 1 / -1;
+    }
+
+    > .admin-ck-item-head{
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    > .admin-ck-tools{
+        grid-column: 2;
+        grid-row: 1;
+        align-self: start;
+        margin: -5px 0 0;
+    }
+}
+
+.admin-ck-item-head{
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    min-width: 0;
+}
+
+.admin-ck-tick{
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    box-sizing: border-box;
+    border: 1.5px solid var(--admin-tick-ring);
+    border-radius: 50%;
+    color: transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+
+    .material-symbols-rounded{
+        font-size: 15px;
+        font-weight: 700;
+    }
+}
+
+.admin-ck-item[data-done="true"] .admin-ck-tick{
+    border-color: var(--admin-mark);
+    background-color: var(--admin-mark);
+    color: #FFFFFF;
+}
+
+.admin-ck-label{
+    min-width: 0;
+    padding-top: 1px;
+}
+
+.admin-ck-text{
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.3;
+}
+
+.admin-ck-hint{
+    margin-top: 3px;
+    font-size: 14px;
+    line-height: 1.35;
+    color: var(--admin-muted);
+}
+
+/* A tick item: the whole line is the button. */
+.admin-ck-check{
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    color: inherit;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &:focus-visible{
+        outline: 2px solid var(--admin-mark);
+        outline-offset: 4px;
+        border-radius: var(--admin-radius-xs);
+    }
+}
+
+.admin-ck-input{
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 340px;
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background-color: var(--admin-field);
+    color: var(--admin-text);
+    font-family: inter;
+    font-size: 16px;
+
+    &:focus{
+        outline: none;
+        border-color: var(--admin-accent);
+    }
+}
+
+/* A typed answer directly in an item fills the space after the indent. */
+.admin-ck-item > .admin-ck-input{
+    justify-self: stretch;
+    width: auto;
+    min-width: 0;
+}
+
+/* AC and DC cable lengths. */
+.admin-ck-lengths{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 20px;
+}
+
+.admin-ck-length{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 1 200px;
+
+    .admin-ck-input{
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+.admin-ck-length-key{
+    flex: 0 0 24px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--admin-subtle);
+}
+
+.admin-ck-length-unit{
+    font-size: 13px;
+    color: var(--admin-muted);
+}
+
+/* Set answers (e.g. shading): pills. */
+.admin-ck-choices{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.admin-ck-choice{
+    height: 38px;
+    padding: 0 18px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-pill);
+    background: none;
+    color: var(--admin-text);
+    font-family: inter;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &[aria-checked="true"]{
+        border-color: var(--admin-mark);
+        background-color: var(--admin-mark);
+        color: #FFFFFF;
+    }
+
+    &:focus-visible{
+        outline: 2px solid var(--admin-mark);
+        outline-offset: 2px;
+    }
+}
+
+/* Add photo / Add screenshot: a small blue tinted pill. Import from Ocular
+   Visit and Note: quiet text buttons. */
+.admin-ck-tools{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.admin-ck-tool{
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 32px;
+    padding: 0 10px;
+    border: none;
+    border-radius: var(--admin-radius-pill);
+    background: none;
+    color: var(--admin-muted);
+    font-family: inter;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    .material-symbols-rounded{
+        font-size: 17px;
+        color: var(--admin-subtle);
+    }
+
+    &:hover{
+        background-color: var(--admin-surface);
+        color: var(--admin-text);
+    }
+
+    &:focus-within, &:focus-visible{
+        outline: 2px solid var(--admin-mark);
+        outline-offset: 2px;
+    }
+
+    /* The item's answer (Add photo / Add screenshot): blue. */
+    &.admin-ck-tool-main{
+        padding: 0 12px;
+        background-color: var(--admin-mark-tint);
+        color: var(--admin-mark);
+
+        .material-symbols-rounded{
+            color: inherit;
+        }
+
+        &:hover{
+            background-color: var(--admin-mark-tint-hover);
+        }
+    }
+}
+
+.admin-ck-note{
+    box-sizing: border-box;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--admin-border);
+    border-radius: var(--admin-radius-sm);
+    background-color: var(--admin-field);
+    color: var(--admin-text);
+    font-family: inter;
+    font-size: 14px;
+    line-height: 1.45;
+    resize: vertical;
+
+    &:focus{
+        outline: none;
+        border-color: var(--admin-accent);
+    }
+}
+
+.admin-ck-form .admin-ck-photo{
+    cursor: zoom-in;
+}
+
+/* A PDF linked from the visit request: a tile that opens the file; anything
+   linked rather than uploaded here gets a small "From visit" tag. */
+.admin-ck-photo.admin-ck-photo-pdf{
     display: grid;
     place-content: center;
     justify-items: center;
@@ -6564,16 +6293,12 @@ body[data-role="user"] .admin-visit-actions{
     .material-symbols-rounded{
         font-size: 30px;
     }
-
-    .admin-ck-photo-label{
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--admin-muted);
-    }
 }
 
-.admin-ck-photo{
-    position: relative;
+.admin-ck-photo-label{
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--admin-muted);
 }
 
 .admin-ck-photo-linked{
@@ -6581,7 +6306,7 @@ body[data-role="user"] .admin-visit-actions{
     left: 4px;
     bottom: 4px;
     padding: 2px 6px;
-    border-radius: 8px;
+    border-radius: var(--admin-radius-xs);
     background-color: rgba(0, 0, 0, 0.6);
     color: #FFFFFF;
     font-size: 10px;
@@ -6589,14 +6314,393 @@ body[data-role="user"] .admin-visit-actions{
     pointer-events: none;
 }
 
-.admin-ck-tool.admin-ck-tool-import[hidden]{
-    display: none;
+/* MAU5000 Elite / MSU4000 Elite, until their checklists exist. */
+.admin-ck-soon{
+    display: grid;
+    justify-items: center;
+    gap: 6px;
+    padding: 32px 20px;
+    border: 1px dashed var(--admin-border);
+    border-radius: var(--admin-radius-md);
+    color: var(--admin-muted);
+    font-size: 13px;
+    line-height: 1.45;
+    text-align: center;
+
+    .material-symbols-rounded{
+        font-size: 32px;
+        color: var(--admin-subtle);
+    }
+
+    strong{
+        font-size: 15px;
+        color: var(--admin-text);
+    }
+}
+
+/* Save bar, pinned to the bottom while the checklist scrolls. Sticky offsets
+   count from inside the scroll container's padding, so on desktop it cancels
+   --main-pad-bottom (like the pane header's --main-pad-top). */
+.admin-ck-bar{
+    position: sticky;
+    bottom: calc(-1 * var(--main-pad-bottom, 0px));
+    z-index: 4;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px 16px;
+    padding: 12px 0 14px;
+    border-top: 1px solid var(--admin-border);
+    background-color: var(--admin-bg);
+}
+
+.admin-ck-bar-text{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+
+    .admin-action-error:empty{
+        display: none;
+    }
+}
+
+.admin-ck-status{
+    font-size: 13px;
+    color: var(--admin-muted);
+
+    &[data-state="dirty"]{
+        color: var(--admin-warn-text);
+        font-weight: 500;
+    }
+
+    &[data-state="ok"]{
+        color: var(--admin-active-text);
+    }
+}
+
+.admin-ck-bar-buttons{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .admin-action{
+        height: 40px;
+        padding: 0 16px;
+
+        &:disabled{
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+    }
+
+    .admin-action-primary{
+        min-width: 110px;
+        justify-content: center;
+    }
+}
+
+.admin-ck-delete{
+    display: contents;
+}
+
+/* The read-only report (View access). */
+.admin-ck-report{
+    display: grid;
+    gap: 18px;
+
+    .admin-details{
+        margin: 0;
+    }
+}
+
+.admin-ck-report-tab{
+    display: grid;
+    gap: 0;
+}
+
+.admin-ck-report-title{
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--admin-subtle);
+}
+
+.admin-ck-report-answer, .admin-ck-report-note, .admin-ck-report .admin-attachment-grid{
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.admin-ck-report-answer{
+    font-size: 13px;
+}
+
+.admin-ck-item[data-done="false"] .admin-ck-report-answer{
+    color: var(--admin-subtle);
+}
+
+.admin-ck-report-note{
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--admin-muted);
+    white-space: pre-wrap;
+}
+
+.admin-ck-report .admin-attachment-grid{
+    grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
 }
 
 @media only screen and (max-width:750px){
-    .admin-ck-tools:has(.admin-ck-tool-main) .admin-ck-tool-import{
-        width: 100%;
-        justify-content: center;
-        height: 40px;
+    .admin-ck-job{
+        padding: 14px;
     }
+
+    .admin-ck-system{
+        font-size: 12px;
+    }
+
+    /* Two tabs side by side: no icons, so the names fit. */
+    .admin-ck-tab{
+        padding: 0 10px;
+
+        > .material-symbols-rounded{
+            display: none;
+        }
+    }
+
+    .admin-ck-tool{
+        height: 36px;
+    }
+
+    .admin-ck-length{
+        flex: 1 1 130px;
+    }
+
+    /* Print, Delete and Save share one row. */
+    .admin-ck-bar{
+        padding-top: 10px;
+    }
+
+    .admin-ck-bar-buttons{
+        flex-wrap: nowrap;
+        gap: 6px;
+        width: 100%;
+
+        .admin-action{
+            flex: 1 1 0;
+            min-width: 0;
+            padding: 0 8px;
+            justify-content: center;
+        }
+    }
+}
+
+/* The printed report (Print report, printChecklist() in admin.js): only it
+   prints, black on white whatever the colour scheme. */
+.admin-print{
+    display: none;
+}
+
+@media print{
+    @page{
+        size: A4;
+        margin: 14mm 15mm;
+    }
+
+    body > :not(.admin-print){
+        display: none !important;
+    }
+
+    body{
+        background: #FFFFFF !important;
+    }
+
+    .admin-print{
+        display: block;
+        color: #111111;
+        font-family: inter, Arial, sans-serif;
+        font-size: 10.5pt;
+        line-height: 1.4;
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
+}
+
+.admin-print-head{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #DDDDDD;
+}
+
+.admin-print-logo{
+    width: auto;
+    height: 11px;
+}
+
+.admin-print-ref{
+    font-size: 8pt;
+    color: #777777;
+}
+
+.admin-print-title{
+    margin: 16px 0 10px;
+    font-size: 15pt;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+/* The job: two columns of label over value, in a light box. */
+.admin-print-facts{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 20px;
+    margin: 0;
+    padding: 10px 12px;
+    border: 1px solid #E2E2E2;
+    border-radius: 6px;
+    background-color: #F7F7F8;
+    break-inside: avoid;
+
+    dt{
+        font-size: 7.5pt;
+        font-weight: 500;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
+        color: #777777;
+    }
+
+    dd{
+        margin: 1px 0 0;
+        font-size: 9.5pt;
+        font-weight: 500;
+    }
+}
+
+.admin-print-fact-wide{
+    grid-column: 1 / -1;
+}
+
+.admin-print-section{
+    margin-top: 18px;
+
+    h2{
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0;
+        padding-bottom: 5px;
+        border-bottom: 1.5px solid #111111;
+        font-size: 11pt;
+        font-weight: 700;
+        break-after: avoid;
+    }
+}
+
+.admin-print-count{
+    font-size: 8.5pt;
+    font-weight: 500;
+    color: #666666;
+}
+
+/* One item: mark, text and answer on a line; note and photos underneath,
+   lined up with the text. */
+.admin-print-item{
+    display: grid;
+    grid-template-columns: 14px minmax(0, 1fr) auto;
+    column-gap: 8px;
+    align-items: baseline;
+    padding: 5px 0;
+    border-bottom: 1px solid #EBEBEB;
+    font-size: 9.5pt;
+    break-inside: avoid;
+}
+
+.admin-print-mark{
+    font-weight: 700;
+    color: #AAAAAA;
+}
+
+.admin-print-item[data-done="true"] .admin-print-mark{
+    color: #18794E;
+}
+
+.admin-print-text{
+    font-weight: 500;
+}
+
+.admin-print-answer{
+    max-width: 260px;
+    text-align: right;
+    font-weight: 500;
+}
+
+.admin-print-item[data-done="false"] .admin-print-answer{
+    font-weight: 400;
+    color: #999999;
+}
+
+.admin-print-note, .admin-print-photos{
+    grid-column: 2 / -1;
+}
+
+.admin-print-note{
+    margin-top: 3px;
+    font-size: 8.5pt;
+    color: #555555;
+    white-space: pre-wrap;
+}
+
+/* Photos: five to a row, all the same size. */
+.admin-print-photos{
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 6px;
+    margin-top: 6px;
+
+    img{
+        display: block;
+        width: 100%;
+        aspect-ratio: 4 / 3;
+        border: 1px solid #E2E2E2;
+        border-radius: 4px;
+        object-fit: cover;
+    }
+}
+
+.admin-print-file{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    aspect-ratio: 4 / 3;
+    box-sizing: border-box;
+    padding: 6px 8px;
+    border: 1px solid #E2E2E2;
+    border-radius: 4px;
+    background-color: #F7F7F8;
+    font-size: 7.5pt;
+    color: #555555;
+    overflow-wrap: anywhere;
+
+    strong{
+        font-size: 9pt;
+        color: #B42318;
+    }
+}
+
+.admin-print-soon{
+    margin-top: 18px;
+    color: #555555;
+}
+
+.admin-print-foot{
+    margin-top: 16px;
+    font-size: 7.5pt;
+    color: #999999;
+    text-align: center;
 }

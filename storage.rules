@@ -14,15 +14,15 @@ service firebase.storage {
     // Files attached to "Schedule a Visit" requests (HPH RENEWABLE/schedule-a-visit/).
     // Anyone may upload a new image or PDF of up to 10 MB into a request's
     // folder (staff too, when adding a bill for a client). Ocular Visits users
-    // view them (and so do checklist editors, for the Site Visit checklist's
-    // "Import from Ocular Visit"); Edit removes them while editing a request,
+    // view them (and so do checklist editors, for the checklist's "Import from
+    // Ocular Visit"); Edit removes them while editing a request,
     // and its files go with a deleted request. Nobody can replace a file.
     match /visitRequests/{requestId}/{fileName} {
       allow create: if resource == null
                     && request.resource.size <= 10 * 1024 * 1024
                     && (request.resource.contentType.matches('image/.*')
                         || request.resource.contentType == 'application/pdf');
-      allow get: if can('visits', 1) || can('inspection', 2) || can('installation', 2);
+      allow get: if can('visits', 1) || canChecklists(2);
       allow delete: if can('visits', 2);
       allow list, update: if false;
     }
@@ -41,23 +41,28 @@ service firebase.storage {
       // Ocular Visits users too: a sign-up's bills are linked from its Ocular
       // Visits entry (syncWaitlistToVisits in admin.js), and checklist editors
       // may import them from there.
-      allow get: if can('waitlist', 1) || can('visits', 1)
-                 || can('inspection', 2) || can('installation', 2);
+      allow get: if can('waitlist', 1) || can('visits', 1) || canChecklists(2);
       allow delete: if can('waitlist', 2);
       allow list, update: if false;
     }
 
-    // Photos on installer checklist items (jobChecklists/<checklist id>/).
+    // Photos on installer checklist items (checklists/<checklist id>/).
     // Checklist editors add an image of up to 10 MB and remove them; anyone
-    // who can see a checklist page views them. Nobody can replace a file.
-    match /jobChecklists/{checklistId}/{fileName} {
-      allow create: if (can('inspection', 2) || can('installation', 2))
+    // who can see the Checklists page views them. Nobody can replace a file.
+    match /checklists/{checklistId}/{fileName} {
+      allow create: if canChecklists(2)
                     && resource == null
                     && request.resource.size <= 10 * 1024 * 1024
                     && request.resource.contentType.matches('image/.*');
-      allow get: if can('inspection', 1) || can('installation', 1);
-      allow delete: if can('inspection', 2) || can('installation', 2);
+      allow get: if canChecklists(1);
+      allow delete: if canChecklists(2);
       allow list, update: if false;
+    }
+
+    // Photos from the earlier checklists (jobChecklists/<id>/): owners only.
+    match /jobChecklists/{checklistId}/{fileName} {
+      allow get, delete: if isOwner();
+      allow create, list, update: if false;
     }
 
     // Photos of inventory items (inventory/<item id>/). Inventory editors add
@@ -91,7 +96,7 @@ service firebase.storage {
       return request.auth.token.email == 'inquiries@hphtechsolutions.com'
           ? {'visits': 2, 'waitlist': 2, 'installs': 2, 'inventory': 2, 'wishlist': 2}.get(page, 0)
         : request.auth.token.email == 'hphrenewable@gmail.com'
-          ? {'inspection': 2, 'installation': 2, 'inventory': 2}.get(page, 0)
+          ? {'checklists': 2, 'inventory': 2}.get(page, 0)
         : 0;
     }
 
@@ -104,6 +109,12 @@ service firebase.storage {
 
     function can(page, level) {
       return isOwner() || (signedInWithEmail() && accessLevel(page) >= level);
+    }
+
+    // The Checklists page, or (entries from before it) Inspection or
+    // Commissioning. Keep in step with /firestore.rules.
+    function canChecklists(level) {
+      return can('checklists', level) || can('inspection', level) || can('installation', level);
     }
   }
 }

@@ -1543,6 +1543,19 @@ body.menu-open{
 
 /* ===== Product tags (mega panel and phone menu) =====
    "For <head unit>" pills after the extension batteries. */
+/* A tagged link stays on one line, so its tag sits beside the name and the
+   column keeps room for both instead of dropping the tag underneath. */
+.mega-link:has(.product-tag), .menu-link:has(.product-tag){
+    white-space: nowrap;
+}
+
+/* So the mega panel's columns still fit on narrower screens: their 132px gaps
+   shrink (to 32px at the narrowest) instead of pushing the last column out of
+   view. !important because the base rule is nested deep, as in the dark blocks. */
+.mega-content{
+    gap: clamp(32px, calc((100vw - 1100px) / 2), 132px) !important;
+}
+
 .product-tag{
     display: inline-block;
     margin-left: 6px;

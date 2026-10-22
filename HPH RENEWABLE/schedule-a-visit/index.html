@@ -279,6 +279,15 @@
         <!-- Handled by visit-form.js: answers go to Firestore (visitRequests),
              files to Cloud Storage. Field names must match firestore.rules. -->
         <form class="visit-form" novalidate>
+            <!-- Three screens (visit-form.js shows one at a time): details, the
+                 electricity bill, then the roof's pinned location and sending. -->
+            <ol class="visit-steps">
+                <li class="visit-steps-item" data-step="1" aria-current="step"><span class="visit-steps-num">1</span><span class="visit-steps-name">Your details</span></li>
+                <li class="visit-steps-item" data-step="2"><span class="visit-steps-num">2</span><span class="visit-steps-name">Electricity bill</span></li>
+                <li class="visit-steps-item" data-step="3"><span class="visit-steps-num">3</span><span class="visit-steps-name">Roof location</span></li>
+            </ol>
+
+            <section class="visit-panel" data-step="1" aria-label="Step 1 of 3: Your details">
             <div class="visit-grid">
                 <label class="visit-field">
                     <span class="visit-label">Full name</span>
@@ -312,6 +321,8 @@
                 <label class="visit-field visit-span">
                     <span class="visit-label">Property address</span>
                     <input type="text" name="address" autocomplete="street-address" placeholder="Street, barangay, city" required maxlength="300">
+                    <!-- Google Places suggestions while typing (visit-form.js; needs the key in ../maps-config.js). -->
+                    <ul class="visit-address-suggest" role="listbox" aria-label="Address suggestions" hidden></ul>
                     <span class="visit-hint"></span>
                 </label>
 
@@ -350,11 +361,10 @@
                     <span class="visit-label">When do you use the most electricity?</span>
                     <select name="usagePattern">
                         <option value="">Not sure</option>
-                        <option value="Flat">Flat (about the same all day)</option>
+                        <option value="Balanced">Balanced (about the same all day)</option>
                         <option value="Mostly Day">Mostly Day (morning to afternoon)</option>
                         <option value="Middle of Day">Middle of Day (around noon)</option>
                         <option value="Mostly Night">Mostly Night (after dark)</option>
-                        <option value="Evening Peak">Evening Peak (early evening)</option>
                     </select>
                     <span class="visit-hint"></span>
                 </label>
@@ -369,6 +379,20 @@
                     <span class="visit-hint"></span>
                 </label>
 
+                <!-- Aircons: how many (−/+), then a capacity for each (rows drawn by
+                     visit-form.js). Saved as `aircons`, a list such as ["1 HP", "1.5 HP"]. -->
+                <div class="visit-field visit-span visit-aircons">
+                    <span class="visit-label" id="visit-aircon-label">How many aircons do you use? <span class="visit-optional">(optional)</span></span>
+                    <span class="visit-field-note">Choose how many, then the capacity of each one. It's usually on the unit's sticker, in HP.</span>
+                    <div class="visit-stepper">
+                        <button type="button" class="visit-step" data-step="-1" aria-label="Fewer aircons"><span class="material-symbols-rounded">remove</span></button>
+                        <input type="number" class="visit-aircon-count" value="0" min="0" max="10" inputmode="numeric" aria-labelledby="visit-aircon-label">
+                        <button type="button" class="visit-step" data-step="1" aria-label="More aircons"><span class="material-symbols-rounded">add</span></button>
+                    </div>
+                    <ol class="visit-aircon-list"></ol>
+                    <span class="visit-hint"></span>
+                </div>
+
                 <label class="visit-field visit-span">
                     <span class="visit-label">Referral code <span class="visit-optional">(optional)</span></span>
                     <input type="text" name="referralCode" autocomplete="off" maxlength="50" placeholder="e.g. HPH-ABC01, from the person who referred you">
@@ -380,9 +404,13 @@
                     <textarea name="message" rows="4" maxlength="2000" placeholder="Anything we should know before the visit?"></textarea>
                     <span class="visit-hint"></span>
                 </label>
+            </div>
+            </section>
 
+            <section class="visit-panel" data-step="2" aria-label="Step 2 of 3: Electricity bill" hidden>
+            <h2 class="visit-panel-title">Your latest electricity bill <span class="visit-optional">(recommended)</span></h2>
+            <div class="visit-grid">
                 <div class="visit-field visit-span">
-                    <span class="visit-label">Your latest electricity bill <span class="visit-optional">(recommended)</span></span>
                     <span class="visit-field-note">We use it to estimate your electricity usage so we can give you an accurate quote. Please make sure the “Your Monthly Consumption” graph is visible.</span>
                     <label class="visit-upload">
                         <input type="file" name="files" accept="image/*,application/pdf" multiple>
@@ -396,6 +424,26 @@
                     <span class="visit-hint"></span>
                 </div>
             </div>
+            </section>
+
+            <!-- A map screenshot with the roof pinned, so HPH can assess the roof
+                 before the visit. Saved as `roofPhotos`. -->
+            <section class="visit-panel" data-step="3" aria-label="Step 3 of 3: Roof location" hidden>
+            <h2 class="visit-panel-title">Pinned location of your roof <span class="visit-optional">(recommended)</span></h2>
+            <div class="visit-grid">
+                <div class="visit-field visit-span">
+                    <span class="visit-field-note">A screenshot from Google Maps (satellite view) with a pin on your roof. It helps us assess your roof before the visit.</span>
+                    <label class="visit-upload">
+                        <input type="file" name="roofFiles" accept="image/*" multiple>
+                        <span class="material-symbols-rounded visit-upload-icon">add_location_alt</span>
+                        <span class="visit-upload-text visit-upload-text-pointer">Drag and drop your roof screenshot here, or <span class="visit-upload-browse">click to browse</span></span>
+                        <span class="visit-upload-text visit-upload-text-touch">Tap to add a screenshot of your roof's pinned location</span>
+                        <span class="visit-upload-sub">Image · up to 2 screenshots · 10 MB each</span>
+                    </label>
+                    <ul class="visit-file-list"></ul>
+                    <span class="visit-hint"></span>
+                </div>
+            </div>
 
             <!-- Spam trap: hidden from people, often filled in by bots. -->
             <input type="text" name="website" class="visit-trap" tabindex="-1" autocomplete="off" aria-hidden="true">
@@ -404,10 +452,16 @@
                 <input type="checkbox" name="consent" required>
                 <span>I agree to HPH Renewable using these details to arrange my visit, as described in the <a href="../legal-policies/privacy-policy/index.html" target="_blank" rel="noopener">Privacy Policy</a>.</span>
             </label>
+            </section>
 
             <p class="visit-error" role="alert" hidden></p>
 
-            <button type="submit" class="visit-submit">Request a Visit</button>
+            <!-- Back / Next between the screens; Request a Visit on the last one. -->
+            <div class="visit-nav">
+                <button type="button" class="visit-back" hidden><span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>Back</button>
+                <button type="button" class="visit-submit visit-next">Next</button>
+                <button type="submit" class="visit-submit visit-send" hidden>Request a Visit</button>
+            </div>
         </form>
 
         <div class="visit-success" hidden>

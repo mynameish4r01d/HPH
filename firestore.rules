@@ -11,15 +11,17 @@ service cloud.firestore {
     //   - Everyone else is a user with a level per page in staffRoles/{email}
     //     (`access`), set by the owners in the Accounts section: 'view' (1),
     //     'edit' (2) or 'delete' (3, edit + delete); a page left out is off.
-    //     Pages: visits, waitlist, feedback, nda, installs, inspection,
-    //     installation, inventory, wishlist (ACCESS_PAGES in admin.js).
+    //     Pages: visits, waitlist, feedback, nda, installs, checklists,
+    //     inventory, wishlist (ACCESS_PAGES in admin.js). Entries from before
+    //     the one Checklists page may still have inspection / installation
+    //     instead; canChecklists() takes either.
     //   - The original Team Workspace and installer emails keep their old
     //     access (legacyLevel()) until they're given an entry.
     // can(page, level) checks this.
 
     // "Schedule a Visit" requests from the website (HPH RENEWABLE/schedule-a-visit/).
     // Anyone may submit a well-formed request. Ocular Visits users read them
-    // (and so do checklist editors, to pick a client); Edit moves them through
+    // (and so do checklist editors, to link a client); Edit moves them through
     // the pipeline, corrects their details and adds requests by hand; Edit +
     // delete also deletes. Owners also import from OpenSolar. Installs editors
     // create an install's own Ocular Visits entry.
@@ -30,7 +32,7 @@ service cloud.firestore {
         || (can('visits', 2) && can('waitlist', 1) && isValidWaitlistVisit(requestId, request.resource.data))
         || (can('visits', 2) && isValidStaffVisit(request.resource.data))
         || (isOwner() && isValidOpenSolarVisit(requestId, request.resource.data));
-      allow read: if can('visits', 1) || can('inspection', 2) || can('installation', 2);
+      allow read: if can('visits', 1) || canChecklists(2);
       allow update: if (isOwner() && (isValidStatusChange() || isValidOpenSolarSync()))
         || (can('visits', 2)
             && (isValidStageChange(['new', 'contacted', 'scheduled', 'visited', 'quoted', 'installing', 'installed'])
@@ -48,23 +50,36 @@ service cloud.firestore {
       allow update: if false;
     }
 
-    // Installer checklists (HPH RENEWABLE/admin/, the Inspection and
-    // Commissioning pages; type 'inspection' or 'installation', which is also
-    // the page). One document per job and checklist type; the content lives in
-    // admin/checklist-templates.js. Edit starts one and fills it in while it's
-    // "in_progress", but only its creator can change it; submitting it locks
-    // it. Owners reopen a submitted one; Edit + delete deletes.
+    // Installer checklist (HPH RENEWABLE/admin/, Checklists page): one per job,
+    // with Site inspection and Commissioning tabs; the content lives in
+    // admin/checklist-templates.js. Checklists users read them; Edit starts and
+    // fills in any checklist (no locking) and deletes ones they started; Edit +
+    // delete deletes any.
+    match /checklists/{checklistId} {
+      allow read: if canChecklists(1);
+      allow create: if canChecklists(2)
+        && isValidChecklist(request.resource.data)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.createdBy == request.auth.token.email
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.token.email;
+      allow update: if canChecklists(2)
+        && isValidChecklist(request.resource.data)
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.version == resource.data.version
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.updatedBy == request.auth.token.email;
+      allow delete: if canChecklists(3)
+        || (canChecklists(2) && resource.data.createdBy == request.auth.token.email);
+    }
+
+    // Checklists from the earlier version (separate Site Visit and
+    // Installation checklists). The admin page no longer shows them; owners
+    // may still read and delete them.
     match /jobChecklists/{checklistId} {
-      allow read: if can(resource.data.type, 1);
-      allow create: if can(request.resource.data.type, 2) && isValidChecklistCreate(request.resource.data);
-      allow update: if (can(resource.data.type, 2)
-            && resource.data.status == 'in_progress'
-            && resource.data.createdBy == request.auth.token.email
-            && isValidChecklistUpdate(resource.data, request.resource.data))
-        || (isOwner()
-            && resource.data.status == 'submitted'
-            && isValidChecklistReopen(resource.data, request.resource.data));
-      allow delete: if can(resource.data.type, 3);
+      allow read, delete: if isOwner();
+      allow create, update: if false;
     }
 
     // Inventory (HPH RENEWABLE/admin/, Inventory page): stock on hand. Every
@@ -309,7 +324,7 @@ service cloud.firestore {
       return request.auth.token.email == 'inquiries@hphtechsolutions.com'
           ? {'visits': 2, 'waitlist': 2, 'installs': 2, 'inventory': 2, 'wishlist': 2}.get(page, 0)
         : request.auth.token.email == 'hphrenewable@gmail.com'
-          ? {'inspection': 2, 'installation': 2, 'inventory': 2}.get(page, 0)
+          ? {'checklists': 2, 'inventory': 2}.get(page, 0)
         : 0;
     }
 
@@ -325,6 +340,12 @@ service cloud.firestore {
       return isOwner() || (signedInWithEmail() && accessLevel(page) >= level);
     }
 
+    // The Checklists page, or (entries from before it) Inspection or
+    // Commissioning.
+    function canChecklists(level) {
+      return can('checklists', level) || can('inspection', level) || can('installation', level);
+    }
+
     // A staffRoles entry (see /staffRoles above): a name and a level per page.
     function isValidAccess(email) {
       let data = request.resource.data;
@@ -337,7 +358,7 @@ service cloud.firestore {
         && data.keys().hasAll(['name', 'access', 'createdAt', 'createdBy', 'updatedAt', 'updatedBy'])
         && isText(data.name, 0, 100)
         && data.access is map
-        && data.access.keys().hasOnly(['visits', 'waitlist', 'feedback', 'nda', 'installs',
+        && data.access.keys().hasOnly(['visits', 'waitlist', 'feedback', 'nda', 'installs', 'checklists',
                                        'inspection', 'installation', 'inventory', 'wishlist'])
         && data.access.values().hasOnly(['view', 'edit', 'delete'])
         && data.updatedAt == request.time
@@ -537,7 +558,7 @@ service cloud.firestore {
       return data.diff(resource.data).affectedKeys()
                .hasOnly(['name', 'phone', 'email', 'address', 'propertyType', 'product',
                          'monthlyBill', 'preferredDate', 'preferredTime', 'referralCode',
-                         'usagePattern',
+                         'usagePattern', 'addressPlace',
                          'message', 'attachments', 'editedAt', 'editedBy'])
         && isText(data.name, 1, 100)
         && (data.phone == '' || isText(data.phone, 7, 30))
@@ -551,6 +572,8 @@ service cloud.firestore {
         && isText(data.message, 0, 2000)
         && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
         && (!('usagePattern' in data) || isUsagePattern(data.usagePattern))
+        // Changing the address drops its Google Maps place (addressPlace).
+        && (!('addressPlace' in data) || isAddressPlace(data.addressPlace))
         && data.attachments is list
         && data.attachments.size() <= 10
         && data.editedAt == request.time
@@ -718,7 +741,7 @@ service cloud.firestore {
         // Bills added or removed while editing (see /storage.rules), max 10.
         && (!('attachments' in data) || (data.attachments is list && data.attachments.size() <= 10))
         && isText(data.name, 1, 100)
-        && isText(data.phone, 7, 30)
+        && (data.phone == '' || isText(data.phone, 7, 30))
         && isText(data.email, 0, 200)
         && isText(data.address, 5, 300)
         && isText(data.message, 0, 2000)
@@ -748,21 +771,45 @@ service cloud.firestore {
 
     // "When do you use the most electricity?" on the Schedule a Visit form
     // (blank = "Not sure"). Keep in step with schedule-a-visit/index.html and
-    // EDIT_FIELDS in admin.js.
+    // EDIT_FIELDS in admin.js. "Flat" (the old name for "Balanced") and
+    // "Evening Peak" (no longer offered) are kept so older requests and cached
+    // copies of the form still validate.
+    // "How many aircons do you use?": one capacity per aircon, up to 10. Keep
+    // in step with AIRCON_SIZES in schedule-a-visit/visit-form.js and admin.js.
+    function isAirconList(value) {
+      return value is list && value.size() <= 10
+        && value.hasOnly(['Not sure', '0.5 HP', '0.75 HP', '1 HP', '1.5 HP', '2 HP', '2.5 HP', '3 HP']);
+    }
+
+    // The Google Maps place picked from the address suggestions on Schedule a
+    // Visit: { id, lat, lng } (the admin page opens directions to it).
+    function isAddressPlace(place) {
+      return place is map
+        && place.keys().hasOnly(['id', 'lat', 'lng'])
+        && place.keys().hasAll(['id', 'lat', 'lng'])
+        && isText(place.id, 0, 300)
+        && place.lat is number && place.lat >= -90 && place.lat <= 90
+        && place.lng is number && place.lng >= -180 && place.lng <= 180;
+    }
+
     function isUsagePattern(value) {
-      return value in ['', 'Flat', 'Mostly Day', 'Middle of Day', 'Mostly Night', 'Evening Peak'];
+      return value in ['', 'Balanced', 'Flat', 'Mostly Day', 'Middle of Day', 'Mostly Night', 'Evening Peak'];
     }
 
     function isValidVisitRequest(data) {
       let fields = ['name', 'phone', 'email', 'address', 'propertyType', 'product',
                     'monthlyBill', 'preferredDate', 'preferredTime', 'message',
                     'attachments', 'consent', 'sourcePage', 'status', 'createdAt'];
-      // referralCode and usagePattern are optional so requests from a cached
-      // older form still go through.
-      return data.keys().hasOnly(fields.concat(['referralCode', 'usagePattern']))
+      // referralCode, usagePattern, aircons, roofPhotos and addressPlace are
+      // optional so requests from a cached older form still go through.
+      return data.keys().hasOnly(fields.concat(['referralCode', 'usagePattern', 'aircons', 'roofPhotos', 'addressPlace']))
+        && (!('addressPlace' in data) || isAddressPlace(data.addressPlace))
         && data.keys().hasAll(fields)
         && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
         && (!('usagePattern' in data) || isUsagePattern(data.usagePattern))
+        && (!('aircons' in data) || isAirconList(data.aircons))
+        // Roof screenshots' Cloud Storage paths (see /storage.rules), max 2.
+        && (!('roofPhotos' in data) || (data.roofPhotos is list && data.roofPhotos.size() <= 2))
         && isText(data.name, 1, 100)
         && (data.phone == '' || isText(data.phone, 7, 30))
         && isText(data.email, 0, 200)
@@ -791,10 +838,13 @@ service cloud.firestore {
                     'monthlyBill', 'preferredDate', 'preferredTime', 'message',
                     'attachments', 'consent', 'sourcePage', 'status', 'createdAt',
                     'source', 'createdBy'];
-      return data.keys().hasOnly(fields.concat(['referralCode', 'usagePattern']))
+      return data.keys().hasOnly(fields.concat(['referralCode', 'usagePattern', 'aircons', 'roofPhotos', 'addressPlace']))
         && data.keys().hasAll(fields)
         && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
         && (!('usagePattern' in data) || isUsagePattern(data.usagePattern))
+        && (!('aircons' in data) || isAirconList(data.aircons))
+        && (!('roofPhotos' in data) || (data.roofPhotos is list && data.roofPhotos.size() <= 2))
+        && (!('addressPlace' in data) || isAddressPlace(data.addressPlace))
         && isText(data.name, 1, 100)
         && (data.phone == '' || isText(data.phone, 7, 30))
         && isText(data.email, 0, 200)
@@ -828,7 +878,7 @@ service cloud.firestore {
         && (!('attachments' in data) || (data.attachments is list && data.attachments.size() <= 10))
         && isWaitlistOrder(data)
         && isText(data.name, 1, 100)
-        && isText(data.phone, 7, 30)
+        && (data.phone == '' || isText(data.phone, 7, 30))
         && isText(data.email, 0, 200)
         && isText(data.address, 5, 300)
         && isText(data.message, 0, 2000)
@@ -906,73 +956,23 @@ service cloud.firestore {
         && data.createdAt == request.time;
     }
 
-    // The counters a checklist keeps for the admin overview, so it needn't
-    // read every answer: they must add up.
-    function isChecklistCounts(data) {
-      return data.total is int && data.total >= 0 && data.total <= 150
-        && data.answered is int && data.answered >= 0 && data.answered <= data.total
-        && data.passed is int && data.passed >= 0
-        && data.fixes is int && data.fixes >= 0
-        && data.na is int && data.na >= 0
-        && data.passed + data.fixes + data.na == data.answered;
-    }
-
-    // A new checklist: nothing answered yet.
-    function isValidChecklistCreate(data) {
-      let fields = ['type', 'visitId', 'clientName', 'address', 'items', 'total',
-                    'answered', 'passed', 'fixes', 'na', 'status', 'version',
+    // An installer checklist (see /checklists above): the job's details, its
+    // system type (SYSTEMS in checklist-templates.js; kWp only for the micro
+    // inverter, blank allowed), the visit request it's linked to (or ''), and
+    // the answers, a map of item id to answer.
+    function isValidChecklist(data) {
+      let fields = ['clientName', 'address', 'system', 'kwp', 'visitId', 'items', 'version',
                     'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
       return data.keys().hasOnly(fields)
         && data.keys().hasAll(fields)
-        && data.type in ['inspection', 'installation']
-        && isText(data.visitId, 0, 100)
         && isText(data.clientName, 1, 100)
         && isText(data.address, 0, 300)
-        && data.items is map && data.items.size() == 0
-        && isChecklistCounts(data) && data.answered == 0
-        && data.status == 'in_progress'
-        && isText(data.version, 1, 40)
-        && data.createdBy == request.auth.token.email
-        && data.updatedBy == request.auth.token.email
-        && data.createdAt == request.time
-        && data.updatedAt == request.time;
-    }
-
-    // Saving answers, or submitting (which needs everything answered and a
-    // name). The job's details never change.
-    function isValidChecklistUpdate(before, data) {
-      let base = ['type', 'visitId', 'clientName', 'address', 'items', 'total',
-                  'answered', 'passed', 'fixes', 'na', 'status', 'version',
-                  'createdAt', 'createdBy', 'updatedAt', 'updatedBy'];
-      return data.keys().hasOnly(base.concat(['signedOffBy', 'submittedAt']))
-        && data.keys().hasAll(base)
-        && data.type == before.type
-        && data.visitId == before.visitId
-        && data.clientName == before.clientName
-        && data.address == before.address
-        && data.version == before.version
-        && data.createdAt == before.createdAt
-        && data.createdBy == before.createdBy
-        && data.items is map && data.items.size() <= 150
-        && isChecklistCounts(data)
-        && data.updatedBy == request.auth.token.email
-        && data.updatedAt == request.time
-        && ((data.status == 'in_progress'
-              && !('signedOffBy' in data) && !('submittedAt' in data))
-            || (data.status == 'submitted'
-              && data.answered == data.total
-              && isText(data.signedOffBy, 2, 100)
-              && data.submittedAt == request.time));
-    }
-
-    // An admin reopening a submitted checklist: only the status and the
-    // sign-off change.
-    function isValidChecklistReopen(before, data) {
-      return data.diff(before).affectedKeys()
-          .hasOnly(['status', 'signedOffBy', 'submittedAt', 'updatedAt', 'updatedBy'])
-        && data.status == 'in_progress'
-        && data.updatedAt == request.time
-        && data.updatedBy == request.auth.token.email;
+        && data.system in ['mx2250', 'mau5000', 'msu4000']
+        && (data.kwp == null
+            || (data.system == 'mx2250' && data.kwp is number && data.kwp > 0 && data.kwp <= 1000))
+        && isText(data.visitId, 0, 100)
+        && data.items is map && data.items.size() <= 60
+        && isText(data.version, 1, 40);
     }
 
     // An NDA response: name and email required, "agree" or "disagree", the date

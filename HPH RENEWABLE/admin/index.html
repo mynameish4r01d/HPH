@@ -155,18 +155,12 @@
                             <span class="admin-tab-label">Installs</span>
                             <span class="admin-tab-count" data-count="installs"></span>
                         </button>
-                        <!-- Installer checklists. The installer account sees these as Site Visit
-                             and Installation; admins as Inspection and Commissioning (so
-                             "Installation" isn't confused with Installs). -->
-                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="inspection">
+                        <!-- Installer checklist: one per job, with Site inspection and
+                             Commissioning tabs (the "installer checklist" section of admin.js). -->
+                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="checklists">
                             <span class="material-symbols-rounded admin-tab-icon">fact_check</span>
-                            <span class="admin-tab-label"><span class="admin-tab-short">Inspection</span><span class="admin-tab-full">Site Visit</span></span>
-                            <span class="admin-tab-count" data-count="inspection"></span>
-                        </button>
-                        <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="installation">
-                            <span class="material-symbols-rounded admin-tab-icon">construction</span>
-                            <span class="admin-tab-label"><span class="admin-tab-short">Commissioning</span><span class="admin-tab-full">Installation</span></span>
-                            <span class="admin-tab-count" data-count="installation"></span>
+                            <span class="admin-tab-label">Checklists</span>
+                            <span class="admin-tab-count" data-count="checklists"></span>
                         </button>
                         <!-- Installer and admins: stock on hand (see the "inventory" section of admin.js). -->
                         <button type="button" class="admin-tab" role="tab" aria-selected="false" data-tab="inventory">
@@ -360,8 +354,8 @@
                         <div class="admin-pipeline-groups"></div>
                     </section>
 
-                    <!-- Installer checklists (admins): how far each job's inspection and
-                         commissioning checklists are. Filled in by admin.js. -->
+                    <!-- Installer checklists (admins): how far each job's site inspection
+                         and commissioning are. Filled in by admin.js. -->
                     <section class="admin-checklists" aria-label="Installer checklists" data-collapse="checklists" hidden>
                         <div class="admin-portfolio-head">
                             <span class="admin-portfolio-title">Installer checklists</span>
@@ -515,8 +509,8 @@
                     </button>
                 </div>
 
-                <!-- Inspection and Commissioning tabs: start a checklist for a job
-                     (the picker opens on the right). -->
+                <!-- Checklists page: start a checklist for a job (the form opens on
+                     the right). -->
                 <div class="admin-install-actions admin-checklist-actions" hidden>
                     <button type="button" class="admin-action admin-action-primary admin-start-checklist">
                         <span class="material-symbols-rounded">add_task</span>
@@ -560,6 +554,8 @@
                     <p class="admin-wish-total" role="status"></p>
                 </div>
 
+                <!-- On phones these two share one row (see .admin-entry-actions-row). -->
+                <div class="admin-entry-actions-row">
                 <!-- Ocular Visits and Waitlist, admins and the team account: add one by
                      hand (e.g. from a phone call); the form opens on the right. -->
                 <div class="admin-install-actions admin-add-entry-actions" hidden>
@@ -579,6 +575,7 @@
                     <input type="file" class="admin-opensolar-file" accept=".csv,text/csv" hidden>
                     <p class="admin-import-status admin-opensolar-status" role="status" hidden></p>
                 </div>
+                </div>
 
                 <!-- How many entries the list shows, and a CSV export of them. -->
                 <div class="admin-list-bar">
@@ -595,8 +592,7 @@
                     <div class="admin-list" data-list="waitlist" hidden></div>
                     <div class="admin-list" data-list="feedback" hidden></div>
                     <div class="admin-list" data-list="installs" hidden></div>
-                    <div class="admin-list" data-list="inspection" hidden></div>
-                    <div class="admin-list" data-list="installation" hidden></div>
+                    <div class="admin-list" data-list="checklists" hidden></div>
                     <div class="admin-list" data-list="nda" hidden></div>
                     <div class="admin-list" data-list="inventory" hidden></div>
                     <div class="admin-list" data-list="wishlist" hidden></div>

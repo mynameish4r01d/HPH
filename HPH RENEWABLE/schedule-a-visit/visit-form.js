@@ -1,7 +1,10 @@
-// "Schedule a Visit" form.
+// "Schedule a Visit" form, in three screens (steps): the visitor's details,
+// then the electricity bill, then the roof's pinned location, the consent box
+// and sending. Next checks the current screen's fields before moving on.
 //
 // Saves each request to Firestore (collection: visitRequests) and any
-// attached files to Cloud Storage under visitRequests/<request id>/. View
+// attached files (bills, and roof screenshots as roof-…) to Cloud Storage under
+// visitRequests/<request id>/. View
 // them in the Firebase console: Firestore → visitRequests, Storage →
 // visitRequests. Security rules: /firestore.rules and /storage.rules.
 //
@@ -11,6 +14,7 @@
 import { firebaseConfig } from "../firebase-config.js";
 import { tidyName, tidyAddress, tidyOnBlur } from "../text-format.js";
 import { findReferrer } from "../referral-codes.js";
+import { GOOGLE_MAPS_API_KEY } from "../maps-config.js";
 
 const FIREBASE_VERSION = "12.3.0";
 const COLLECTION = "visitRequests";
@@ -18,6 +22,9 @@ const SUBMIT_TIMEOUT_MS = 90000;
 
 // Uploads — keep in step with /storage.rules and /firestore.rules.
 const MAX_FILES = 3;
+// Roof screenshots (images only).
+const MAX_ROOF_FILES = 2;
+const ROOF_TYPE = /^image\/.+$/;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ACCEPTED_TYPE = /^(image\/.+|application\/pdf)$/;
 // Photos bigger than this (JPEG/PNG/WebP) are shrunk in the browser before
@@ -26,6 +33,12 @@ const ACCEPTED_TYPE = /^(image\/.+|application\/pdf)$/;
 const SHRINK_OVER_BYTES = 2 * 1024 * 1024;
 const SHRINK_MAX_EDGE = 2400;
 const SHRINKABLE_TYPE = /^image\/(jpeg|png|webp)$/;
+
+// "How many aircons do you use?": up to MAX_AIRCONS, each with one of these
+// capacities. Keep in step with isAirconList() in /firestore.rules and
+// AIRCON_SIZES in admin/admin.js.
+const MAX_AIRCONS = 10;
+const AIRCON_SIZES = ["Not sure", "0.5 HP", "0.75 HP", "1 HP", "1.5 HP", "2 HP", "2.5 HP", "3 HP"];
 
 // "Interested in": Micro Inverter, Battery, or both. Product pages link here
 // with ?product=<name>; that pre-ticks the matching interest.
@@ -42,16 +55,7 @@ const isConfigured = Boolean(firebaseConfig && firebaseConfig.projectId && !fire
 const form = document.querySelector(".visit-form");
 const success = document.querySelector(".visit-success");
 const error = form.querySelector(".visit-error");
-const button = form.querySelector(".visit-submit");
-const fileInput = form.querySelector('[name="files"]');
-const fileList = form.querySelector(".visit-file-list");
-
-// Files chosen so far. Each pick adds to this list (a file input on its own
-// replaces the previous pick), so bills can be added one at a time.
-// `sourceKeys` remembers each original file (name, size, date) so picking the
-// same one twice is ignored even after it was shrunk and renamed.
-let chosenFiles = [];
-let sourceKeys = [];
+const button = form.querySelector(".visit-send");
 const sourceKey = (f) => `${f.name}|${f.size}|${f.lastModified}`;
 
 const product = new URLSearchParams(window.location.search).get("product");
@@ -148,9 +152,9 @@ async function shrinkImage(file) {
     }
 }
 
-function fileProblem(files) {
-    if (files.length > MAX_FILES) return `Please choose up to ${MAX_FILES} files.`;
-    if (files.some((f) => !ACCEPTED_TYPE.test(fileType(f)))) return "Only images or PDF files can be uploaded.";
+function fileProblem(files, { max, accept, typeError }) {
+    if (files.length > max) return `Please choose up to ${max} files.`;
+    if (files.some((f) => !accept.test(fileType(f)))) return typeError;
     if (files.some((f) => f.size > MAX_FILE_BYTES)) return "Each file must be 10 MB or smaller.";
     return "";
 }
@@ -165,8 +169,11 @@ function validateField(input) {
     const field = input.closest(".visit-field");
     if (!field) return input.checkValidity();
 
-    if (input === fileInput) return setFieldError(field, fileProblem(chosenFiles));
+    const uploader = uploaders.find((u) => u.input === input);
+    if (uploader) return setFieldError(field, fileProblem(uploader.files, uploader));
     if (input === referralInput) return checkReferral();
+    // The aircon count and capacities always hold a valid choice.
+    if (field.classList.contains("visit-aircons")) return true;
 
     let message = "";
     if (input.validity.valueMissing) {
@@ -183,18 +190,26 @@ function validateField(input) {
     return setFieldError(field, message);
 }
 
-function validateForm() {
+// Checks the fields inside `scope` (one screen, or the whole form), and the
+// consent box if it's there. Shows the screen with the first problem and
+// puts the cursor in it.
+function validateForm(scope = form) {
     let firstInvalid = null;
 
-    form.querySelectorAll(".visit-field input, .visit-field select, .visit-field textarea").forEach((input) => {
+    scope.querySelectorAll(".visit-field input, .visit-field select, .visit-field textarea").forEach((input) => {
         if (!validateField(input) && !firstInvalid) firstInvalid = input;
     });
 
-    const consent = form.querySelector('[name="consent"]');
-    consent.closest(".visit-consent").classList.toggle("visit-invalid", !consent.checked);
-    if (!consent.checked && !firstInvalid) firstInvalid = consent;
+    const consent = scope.querySelector('[name="consent"]');
+    if (consent) {
+        consent.closest(".visit-consent").classList.toggle("visit-invalid", !consent.checked);
+        if (!consent.checked && !firstInvalid) firstInvalid = consent;
+    }
 
-    if (firstInvalid) firstInvalid.focus();
+    if (firstInvalid) {
+        showStep(Number(firstInvalid.closest(".visit-panel").dataset.step), { scroll: false });
+        firstInvalid.focus();
+    }
     return !firstInvalid;
 }
 
@@ -203,101 +218,353 @@ form.addEventListener("input", (e) => {
     if (field && field.classList.contains("visit-invalid")) validateField(e.target);
 });
 
-function renderFileList() {
-    fileList.replaceChildren(...chosenFiles.map((file, index) => {
-        const item = document.createElement("li");
-        const name = document.createElement("span");
-        name.className = "visit-file-name";
-        name.textContent = file.name;
-        const size = document.createElement("span");
-        size.className = "visit-file-size";
-        size.textContent = formatSize(file.size);
-        const remove = document.createElement("button");
-        remove.type = "button";
-        remove.className = "visit-file-remove";
-        remove.setAttribute("aria-label", `Remove ${file.name}`);
-        remove.innerHTML = '<span class="material-symbols-rounded">close</span>';
-        remove.addEventListener("click", () => {
-            chosenFiles.splice(index, 1);
-            sourceKeys.splice(index, 1);
-            renderFileList();
-            validateField(fileInput);
-        });
-        item.append(name, size, remove);
-        return item;
-    }));
-    fileInput.closest(".visit-upload").hidden = chosenFiles.length >= MAX_FILES;
-}
+// An upload box: files picked or dropped are added to `files` (a file input
+// on its own replaces the previous pick, so they can be added one at a time),
+// large photos are shrunk, and each listed file has a remove button.
+// `sourceKeys` remembers each original file (name, size, date) so picking the
+// same one twice is ignored even after it was shrunk and renamed.
+function makeUploader(input, { max, accept, typeError }) {
+    const field = input.closest(".visit-field");
+    const list = field.querySelector(".visit-file-list");
+    const dropZone = input.closest(".visit-upload");
+    const up = { input, max, accept, typeError, files: [] };
+    let sourceKeys = [];
 
-// Adds picked or dropped files (up to MAX_FILES in total), shrinking large photos.
-async function addFiles(picked) {
-    if (!picked.length) return;
-
-    const room = MAX_FILES - chosenFiles.length;
-    const fresh = picked.filter((f) => !sourceKeys.includes(sourceKey(f)));
-    const adding = fresh.slice(0, room);
-
-    const uploadField = fileInput.closest(".visit-field");
-    const sub = uploadField.querySelector(".visit-upload-sub");
-    const subText = sub.textContent;
-    sub.textContent = "Preparing photos…";
-    const prepared = await Promise.all(adding.map(shrinkImage));
-    sub.textContent = subText;
-
-    chosenFiles = chosenFiles.concat(prepared);
-    sourceKeys = sourceKeys.concat(adding.map(sourceKey));
-    renderFileList();
-
-    if (fresh.length > room) {
-        setFieldError(uploadField, `You can add up to ${MAX_FILES} files. Remove one to add another.`);
-    } else {
-        validateField(fileInput);
+    function render() {
+        list.replaceChildren(...up.files.map((file, index) => {
+            const item = document.createElement("li");
+            const name = document.createElement("span");
+            name.className = "visit-file-name";
+            name.textContent = file.name;
+            const size = document.createElement("span");
+            size.className = "visit-file-size";
+            size.textContent = formatSize(file.size);
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.className = "visit-file-remove";
+            remove.setAttribute("aria-label", `Remove ${file.name}`);
+            remove.innerHTML = '<span class="material-symbols-rounded">close</span>';
+            remove.addEventListener("click", () => {
+                up.files.splice(index, 1);
+                sourceKeys.splice(index, 1);
+                render();
+                validateField(input);
+            });
+            item.append(name, size, remove);
+            return item;
+        }));
+        dropZone.hidden = up.files.length >= max;
     }
+
+    // Adds picked or dropped files (up to `max` in total), shrinking large photos.
+    async function addFiles(picked) {
+        if (!picked.length) return;
+        const room = max - up.files.length;
+        const fresh = picked.filter((f) => !sourceKeys.includes(sourceKey(f)));
+        const adding = fresh.slice(0, room);
+
+        const sub = field.querySelector(".visit-upload-sub");
+        const subText = sub.textContent;
+        sub.textContent = "Preparing photos…";
+        const prepared = await Promise.all(adding.map(shrinkImage));
+        sub.textContent = subText;
+
+        up.files = up.files.concat(prepared);
+        sourceKeys = sourceKeys.concat(adding.map(sourceKey));
+        render();
+        updateNext();
+
+        if (fresh.length > room) setFieldError(field, `You can add up to ${max} files. Remove one to add another.`);
+        else validateField(input);
+    }
+
+    input.addEventListener("change", () => {
+        const picked = Array.from(input.files);
+        // Clear the input so the same file can be picked again after removing it.
+        input.value = "";
+        addFiles(picked);
+    });
+
+    // Drag and drop onto the upload box. dragDepth counts enter/leave pairs,
+    // since moving over the box's own children fires them too.
+    let dragDepth = 0;
+    dropZone.addEventListener("dragenter", (e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        dragDepth++;
+        dropZone.classList.add("visit-upload-dragover");
+    });
+    dropZone.addEventListener("dragover", (e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+    });
+    dropZone.addEventListener("dragleave", () => {
+        dragDepth = Math.max(0, dragDepth - 1);
+        if (!dragDepth) dropZone.classList.remove("visit-upload-dragover");
+    });
+    dropZone.addEventListener("drop", (e) => {
+        if (!hasFiles(e)) return;
+        e.preventDefault();
+        dragDepth = 0;
+        dropZone.classList.remove("visit-upload-dragover");
+        addFiles(Array.from(e.dataTransfer.files));
+    });
+
+    return up;
 }
 
-fileInput.addEventListener("change", () => {
-    const picked = Array.from(fileInput.files);
-    // Clear the input so the same file can be picked again after removing it.
-    fileInput.value = "";
-    addFiles(picked);
-});
-
-// Drag and drop onto the upload box. dragDepth counts enter/leave pairs,
-// since moving over the box's own children fires them too.
-const dropZone = fileInput.closest(".visit-upload");
-let dragDepth = 0;
 const hasFiles = (e) => Array.from((e.dataTransfer && e.dataTransfer.types) || []).includes("Files");
 
-dropZone.addEventListener("dragenter", (e) => {
-    if (!hasFiles(e)) return;
-    e.preventDefault();
-    dragDepth++;
-    dropZone.classList.add("visit-upload-dragover");
+// The electricity bill (images or PDFs) and the roof screenshot (images).
+const billUploader = makeUploader(form.querySelector('[name="files"]'), {
+    max: MAX_FILES, accept: ACCEPTED_TYPE, typeError: "Only images or PDF files can be uploaded.",
 });
-
-dropZone.addEventListener("dragover", (e) => {
-    if (!hasFiles(e)) return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "copy";
+const roofUploader = makeUploader(form.querySelector('[name="roofFiles"]'), {
+    max: MAX_ROOF_FILES, accept: ROOF_TYPE, typeError: "Please add a screenshot or photo (an image file).",
 });
-
-dropZone.addEventListener("dragleave", () => {
-    dragDepth = Math.max(0, dragDepth - 1);
-    if (!dragDepth) dropZone.classList.remove("visit-upload-dragover");
-});
-
-dropZone.addEventListener("drop", (e) => {
-    if (!hasFiles(e)) return;
-    e.preventDefault();
-    dragDepth = 0;
-    dropZone.classList.remove("visit-upload-dragover");
-    addFiles(Array.from(e.dataTransfer.files));
-});
+const uploaders = [billUploader, roofUploader];
 
 // A file dropped just outside the box would otherwise make the browser leave
 // the page to open it (losing the form), so ignore drops elsewhere.
 window.addEventListener("dragover", (e) => { if (hasFiles(e)) e.preventDefault(); });
 window.addEventListener("drop", (e) => { if (hasFiles(e)) e.preventDefault(); });
+
+
+// ---------------------------------------------------- address suggestions
+
+// Google Places suggests addresses (in the Philippines) as the visitor types.
+// Picking one fills the box and remembers the place (`addressPlace`: its id
+// and coordinates), which the admin page uses to open Google Maps directions.
+// Typing over a picked address forgets the place. Without a key in
+// ../maps-config.js, or if Google can't be reached, it's a plain text box.
+const ADDRESS_MIN_CHARS = 3;
+const ADDRESS_DELAY_MS = 250;
+const mapsReady = Boolean(GOOGLE_MAPS_API_KEY) && !GOOGLE_MAPS_API_KEY.startsWith("YOUR_");
+const addressInput = form.querySelector('[name="address"]');
+const addressList = form.querySelector(".visit-address-suggest");
+let addressPlace = null;
+let placesPromise = null;
+let placesSession = null;
+let addressTimer = 0;
+let addressQuery = 0;
+let addressActive = -1;
+
+// The Maps JavaScript API with its Places library, loaded the first time
+// it's needed.
+function loadPlaces() {
+    if (!placesPromise) {
+        placesPromise = new Promise((resolve, reject) => {
+            const callback = `hphMapsReady${Date.now()}`;
+            window[callback] = () => {
+                delete window[callback];
+                window.google.maps.importLibrary("places").then(resolve, reject);
+            };
+            const script = document.createElement("script");
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&v=weekly&loading=async&callback=${callback}`;
+            script.async = true;
+            script.onerror = () => reject(new Error("Google Maps didn't load"));
+            document.head.append(script);
+        }).catch((err) => {
+            placesPromise = null;
+            throw err;
+        });
+    }
+    return placesPromise;
+}
+
+function closeSuggestions() {
+    addressList.hidden = true;
+    addressList.replaceChildren();
+    addressActive = -1;
+    addressInput.removeAttribute("aria-activedescendant");
+}
+
+function markSuggestion(index) {
+    const options = addressList.querySelectorAll(".visit-address-option");
+    addressActive = options.length ? (index + options.length) % options.length : -1;
+    options.forEach((option, i) => option.setAttribute("aria-selected", String(i === addressActive)));
+    if (addressActive >= 0) addressInput.setAttribute("aria-activedescendant", options[addressActive].id);
+}
+
+async function showSuggestions() {
+    const text = addressInput.value.trim();
+    const query = ++addressQuery;
+    if (text.length < ADDRESS_MIN_CHARS) return closeSuggestions();
+    try {
+        const places = await loadPlaces();
+        placesSession = placesSession || new places.AutocompleteSessionToken();
+        const { suggestions } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+            input: text,
+            sessionToken: placesSession,
+            includedRegionCodes: ["ph"],
+        });
+        // A newer keystroke has its own request.
+        if (query !== addressQuery || document.activeElement !== addressInput) return;
+        const predictions = suggestions.map((s) => s.placePrediction).filter(Boolean).slice(0, 5);
+        if (!predictions.length) return closeSuggestions();
+        addressList.replaceChildren(...predictions.map((prediction, i) => {
+            const option = document.createElement("li");
+            option.className = "visit-address-option";
+            option.id = `visit-address-option-${i}`;
+            option.setAttribute("role", "option");
+            const main = document.createElement("span");
+            main.className = "visit-address-main";
+            main.textContent = prediction.mainText ? prediction.mainText.toString() : prediction.text.toString();
+            const sub = document.createElement("span");
+            sub.className = "visit-address-sub";
+            sub.textContent = prediction.secondaryText ? prediction.secondaryText.toString() : "";
+            option.append(main, sub);
+            // mousedown, so it's picked before the box loses focus.
+            option.addEventListener("mousedown", (e) => {
+                e.preventDefault();
+                pickSuggestion(prediction);
+            });
+            return option;
+        }), Object.assign(document.createElement("li"), { className: "visit-address-credit", textContent: "Powered by Google" }));
+        addressList.querySelector(".visit-address-credit").setAttribute("aria-hidden", "true");
+        addressList.hidden = false;
+        markSuggestion(-1);
+        addressList.predictions = predictions;
+    } catch (err) {
+        console.warn("Schedule a Visit: address suggestions unavailable", err);
+        closeSuggestions();
+    }
+}
+
+async function pickSuggestion(prediction) {
+    closeSuggestions();
+    addressInput.value = prediction.text.toString().slice(0, 300);
+    try {
+        const place = prediction.toPlace();
+        await place.fetchFields({ fields: ["formattedAddress", "location"] });
+        if (place.formattedAddress) addressInput.value = place.formattedAddress.slice(0, 300);
+        addressPlace = place.location
+            ? { id: String(place.id || "").slice(0, 300), lat: place.location.lat(), lng: place.location.lng() }
+            : null;
+    } catch (err) {
+        console.warn("Schedule a Visit: couldn't look up that address", err);
+        addressPlace = null;
+    }
+    // The next search starts a new session.
+    placesSession = null;
+    validateField(addressInput);
+}
+
+if (mapsReady) {
+    addressInput.setAttribute("autocomplete", "off");
+    addressInput.setAttribute("role", "combobox");
+    addressInput.setAttribute("aria-autocomplete", "list");
+    addressInput.addEventListener("input", () => {
+        // Typed over a picked address: it's no longer that place.
+        addressPlace = null;
+        clearTimeout(addressTimer);
+        addressTimer = setTimeout(showSuggestions, ADDRESS_DELAY_MS);
+    });
+    addressInput.addEventListener("keydown", (e) => {
+        if (addressList.hidden) return;
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            markSuggestion(addressActive + (e.key === "ArrowDown" ? 1 : -1));
+        } else if (e.key === "Enter" && addressActive >= 0) {
+            // Picks the suggestion instead of going to the next screen.
+            e.preventDefault();
+            pickSuggestion(addressList.predictions[addressActive]);
+        } else if (e.key === "Escape") {
+            closeSuggestions();
+        }
+    });
+    addressInput.addEventListener("blur", () => setTimeout(closeSuggestions, 150));
+}
+
+
+
+// ----------------------------------------------------------------- aircons
+
+// How many aircons (−/+ or typed, 0 to MAX_AIRCONS), then one capacity
+// dropdown per aircon. Each row's choice is remembered (`airconChoices`), so
+// lowering the count and raising it again brings it back.
+const airconField = form.querySelector(".visit-aircons");
+const airconCount = airconField.querySelector(".visit-aircon-count");
+const airconList = airconField.querySelector(".visit-aircon-list");
+const [airconLess, airconMore] = airconField.querySelectorAll(".visit-step");
+const airconChoices = [];
+
+function airconSizes() {
+    return Array.from(airconList.querySelectorAll("select"), (select) => select.value);
+}
+
+function setAircons(count) {
+    const n = Math.max(0, Math.min(MAX_AIRCONS, Number.isFinite(count) ? Math.round(count) : 0));
+    airconCount.value = String(n);
+    airconLess.disabled = n === 0;
+    airconMore.disabled = n === MAX_AIRCONS;
+    airconList.replaceChildren(...Array.from({ length: n }, (_, i) => {
+        const item = document.createElement("li");
+        const label = document.createElement("label");
+        label.className = "visit-aircon";
+        const name = document.createElement("span");
+        name.className = "visit-aircon-name";
+        name.textContent = `Aircon ${i + 1}`;
+        const select = document.createElement("select");
+        select.setAttribute("aria-label", `Capacity of aircon ${i + 1}`);
+        for (const size of AIRCON_SIZES) select.append(new Option(size, size));
+        select.value = airconChoices[i] || AIRCON_SIZES[0];
+        select.addEventListener("change", () => { airconChoices[i] = select.value; });
+        label.append(name, select);
+        item.append(label);
+        return item;
+    }));
+}
+
+airconLess.addEventListener("click", () => setAircons(Number(airconCount.value) - 1));
+airconMore.addEventListener("click", () => setAircons(Number(airconCount.value) + 1));
+airconCount.addEventListener("change", () => setAircons(Number(airconCount.value)));
+setAircons(0);
+
+
+
+// ------------------------------------------------------------------- steps
+
+const panels = Array.from(form.querySelectorAll(".visit-panel"));
+const stepItems = Array.from(form.querySelectorAll(".visit-steps-item"));
+const backButton = form.querySelector(".visit-back");
+const nextButton = form.querySelector(".visit-next");
+let step = 1;
+
+function showStep(n, { scroll = true } = {}) {
+    step = Math.max(1, Math.min(panels.length, n));
+    panels.forEach((panel) => { panel.hidden = Number(panel.dataset.step) !== step; });
+    stepItems.forEach((item) => {
+        const k = Number(item.dataset.step);
+        item.classList.toggle("visit-steps-done", k < step);
+        if (k === step) item.setAttribute("aria-current", "step");
+        else item.removeAttribute("aria-current");
+    });
+    backButton.hidden = step === 1;
+    nextButton.hidden = step === panels.length;
+    button.hidden = step !== panels.length;
+    error.hidden = true;
+    updateNext();
+    // Each screen starts like the first: at the top of the page, so the
+    // heading and step indicator aren't hidden under the fixed navigation.
+    if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+// The upload screens are optional: "Skip" until something is added.
+function updateNext() {
+    const uploader = { 2: billUploader, 3: roofUploader }[step];
+    nextButton.textContent = uploader && !uploader.files.length ? "Skip for now" : "Next";
+}
+
+function goNext() {
+    if (validateForm(panels[step - 1])) showStep(step + 1);
+}
+
+nextButton.addEventListener("click", goNext);
+backButton.addEventListener("click", () => showStep(step - 1));
+form.addEventListener("change", updateNext);
+form.addEventListener("click", (e) => { if (e.target.closest(".visit-file-remove")) setTimeout(updateNext); });
 
 
 
@@ -335,6 +602,11 @@ function showError(message) {
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
     error.hidden = true;
+    // Enter in a field before the last screen means Next, not send.
+    if (step < panels.length) {
+        goNext();
+        return;
+    }
     if (!validateForm()) return;
 
     const data = new FormData(form);
@@ -352,9 +624,11 @@ form.addEventListener("submit", async (e) => {
         return;
     }
 
-    const files = chosenFiles;
+    const files = billUploader.files;
+    const roofFiles = roofUploader.files;
+    const aircons = airconSizes();
     button.disabled = true;
-    button.textContent = files.length ? "Uploading…" : "Sending…";
+    button.textContent = files.length || roofFiles.length ? "Uploading…" : "Sending…";
 
     try {
         const { firestore, storage, db, bucket } = await loadFirebase();
@@ -367,20 +641,28 @@ form.addEventListener("submit", async (e) => {
                 await storage.uploadBytes(storage.ref(bucket, path), file, { contentType: fileType(file) });
                 attachments.push(path);
             }
+            const roofPhotos = [];
+            for (const [i, file] of roofFiles.entries()) {
+                const path = `${COLLECTION}/${requestRef.id}/roof-${i + 1}-${safeFileName(file.name)}`;
+                await storage.uploadBytes(storage.ref(bucket, path), file, { contentType: fileType(file) });
+                roofPhotos.push(path);
+            }
 
             await firestore.setDoc(requestRef, {
                 name: tidyName(value("name")),
                 phone: value("phone"),
                 email: value("email"),
                 address: tidyAddress(value("address")),
+                // The Google Maps place picked from the suggestions, if any.
+                ...(addressPlace ? { addressPlace } : {}),
                 propertyType: value("propertyType"),
                 // Saved in the `product` field (see /firestore.rules):
                 // "Micro Inverter", "Battery", "Micro Inverter + Battery",
                 // or "Not sure yet" when neither is ticked.
                 product: data.getAll("interest").join(" + ") || "Not sure yet",
                 monthlyBill: value("monthlyBill"),
-                // "Flat", "Mostly Day", "Middle of Day", "Mostly Night",
-                // "Evening Peak", or blank for "Not sure".
+                // "Balanced", "Mostly Day", "Middle of Day", "Mostly Night",
+                // or blank for "Not sure".
                 usagePattern: value("usagePattern"),
                 // No date field any more: HPH arranges the visit date with the
                 // client. Kept blank so /firestore.rules stays unchanged.
@@ -392,6 +674,10 @@ form.addEventListener("submit", async (e) => {
                 // form only submits blank or a valid code.
                 referralCode: value("referralCode") ? findReferrer(value("referralCode")).code : "",
                 attachments,
+                // Aircon capacities, one per aircon, and the roof screenshots;
+                // left out when there are none (both optional in the rules).
+                ...(aircons.length ? { aircons } : {}),
+                ...(roofPhotos.length ? { roofPhotos } : {}),
                 consent: true,
                 sourcePage: decodeURIComponent(window.location.pathname).slice(0, 300),
                 status: "new",

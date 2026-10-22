@@ -606,6 +606,276 @@ body.menu-open{
     }
 }
 
+/* Address suggestions (Google Places) under the address box. */
+.visit-field:has(.visit-address-suggest){
+    position: relative;
+}
+
+.visit-address-suggest{
+    position: absolute;
+    top: 72px;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    margin: 0;
+    padding: 4px;
+    list-style: none;
+    border: 1px solid var(--visit-border);
+    border-radius: 8px;
+    background-color: var(--visit-field);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.12);
+}
+
+.visit-address-option{
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 9px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover, &[aria-selected="true"]{
+        background-color: var(--visit-surface);
+    }
+}
+
+.visit-address-main{
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--visit-text);
+}
+
+.visit-address-sub{
+    font-size: 12px;
+    color: var(--visit-muted);
+
+    &:empty{
+        display: none;
+    }
+}
+
+.visit-address-credit{
+    padding: 6px 10px 4px;
+    font-size: 11px;
+    text-align: right;
+    color: var(--visit-subtle);
+}
+
+/* The form's three screens (visit-form.js shows one at a time): a step
+   indicator on top, the screen, then Back / Next (or Request a Visit). */
+.visit-steps{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 0 0 28px;
+    padding: 0;
+    list-style: none;
+}
+
+.visit-steps-item{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 10px;
+    border-top: 3px solid var(--visit-border);
+    font-size: 13px;
+    color: var(--visit-subtle);
+
+    /* The current screen, and the ones done. */
+    &[aria-current="step"], &.visit-steps-done{
+        border-top-color: var(--visit-accent);
+        color: var(--visit-text);
+    }
+
+    &[aria-current="step"]{
+        font-weight: 600;
+    }
+}
+
+.visit-steps-num{
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--visit-border);
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+
+    .visit-steps-item[aria-current="step"] &, .visit-steps-done &{
+        border-color: var(--visit-accent);
+        background-color: var(--visit-accent);
+        color: var(--visit-on-accent);
+    }
+}
+
+.visit-panel-title{
+    margin: 0 0 8px;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    color: var(--visit-text);
+
+    .visit-optional{
+        font-size: 14px;
+        font-weight: 400;
+    }
+}
+
+.visit-nav{
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+
+    .visit-submit{
+        flex: 1;
+        margin-top: 0;
+    }
+}
+
+.visit-back{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 48px;
+    padding: 0 20px;
+    border: 1px solid var(--visit-border);
+    border-radius: 4px;
+    background: none;
+    color: var(--visit-text);
+    font-family: inter;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+
+    .material-symbols-rounded{
+        font-size: 18px;
+    }
+}
+
+/* Aircons: a −/+ stepper (as on Join the Waitlist), then one capacity
+   dropdown per aircon, two to a row. */
+.visit-stepper{
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--visit-border);
+    border-radius: 4px;
+    overflow: hidden;
+
+    input{
+        width: 52px;
+        height: 42px;
+        padding: 0;
+        border: none;
+        border-left: 1px solid var(--visit-border);
+        border-right: 1px solid var(--visit-border);
+        background: none;
+        color: var(--visit-text);
+        font-family: inter;
+        font-size: 16px;
+        font-variant-numeric: tabular-nums;
+        text-align: center;
+        outline: none;
+        -moz-appearance: textfield;
+        appearance: textfield;
+
+        &::-webkit-inner-spin-button, &::-webkit-outer-spin-button{
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        &:focus{
+            box-shadow: inset 0 0 0 2px rgba(125, 129, 135, 0.35);
+        }
+    }
+
+    .visit-step{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 42px;
+        height: 42px;
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--visit-text);
+        cursor: pointer;
+
+        .material-symbols-rounded{
+            font-size: 20px;
+        }
+
+        &:disabled{
+            color: var(--visit-border);
+            cursor: default;
+        }
+    }
+}
+
+.visit-aircon-list{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 16px;
+    margin: 4px 0 0;
+    padding: 0;
+    list-style: none;
+
+    &:empty{
+        display: none;
+    }
+}
+
+.visit-aircon{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    select{
+        flex: 1;
+        min-width: 0;
+        min-height: 44px;
+        box-sizing: border-box;
+        padding: 0 36px 0 12px;
+        border: 1px solid var(--visit-border);
+        border-radius: 4px;
+        background-color: var(--visit-field);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%237D8187' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 14px center;
+        color: var(--visit-text);
+        font-family: inter;
+        font-size: 16px;
+        outline: none;
+        -webkit-appearance: none;
+        appearance: none;
+
+        &:focus{
+            border-color: var(--visit-accent);
+            box-shadow: 0 0 0 3px rgba(125, 129, 135, 0.18);
+        }
+    }
+}
+
+.visit-aircon-name{
+    flex: 0 0 64px;
+    font-size: 13px;
+    color: var(--visit-muted);
+}
+
+@media only screen and (max-width:750px){
+    .visit-aircon-list{
+        grid-template-columns: 1fr;
+    }
+
+    /* Phones: just the numbers, with the current step's name. */
+    .visit-steps-item:not([aria-current="step"]) .visit-steps-name{
+        display: none;
+    }
+}
+
 /* Short explanation under a field's label (e.g. why we ask for bills). */
 .visit-field-note{
     margin-top: -2px;
@@ -1453,6 +1723,19 @@ body.menu-open{
 
 /* ===== Product tags (mega panel and phone menu) =====
    "For <head unit>" pills after the extension batteries. */
+/* A tagged link stays on one line, so its tag sits beside the name and the
+   column keeps room for both instead of dropping the tag underneath. */
+.mega-link:has(.product-tag), .menu-link:has(.product-tag){
+    white-space: nowrap;
+}
+
+/* So the mega panel's columns still fit on narrower screens: their 132px gaps
+   shrink (to 32px at the narrowest) instead of pushing the last column out of
+   view. !important because the base rule is nested deep, as in the dark blocks. */
+.mega-content{
+    gap: clamp(32px, calc((100vw - 1100px) / 2), 132px) !important;
+}
+
 .product-tag{
     display: inline-block;
     margin-left: 6px;
