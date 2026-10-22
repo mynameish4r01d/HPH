@@ -426,22 +426,24 @@
             </div>
             </section>
 
-            <!-- A map screenshot with the roof pinned, so HPH can assess the roof
-                 before the visit. Saved as `roofPhotos`. -->
+            <!-- A live satellite map (visit-form.js): the pin stays in the middle
+                 and the visitor moves the map until it's on their roof. Saved as
+                 `roofPin` ({ lat, lng }). -->
             <section class="visit-panel" data-step="3" aria-label="Step 3 of 3: Roof location" hidden>
-            <h2 class="visit-panel-title">Pinned location of your roof <span class="visit-optional">(recommended)</span></h2>
+            <h2 class="visit-panel-title">Pin your roof <span class="visit-optional">(recommended)</span></h2>
             <div class="visit-grid">
-                <div class="visit-field visit-span">
-                    <span class="visit-field-note">A screenshot from Google Maps (satellite view) with a pin on your roof. It helps us assess your roof before the visit.</span>
-                    <label class="visit-upload">
-                        <input type="file" name="roofFiles" accept="image/*" multiple>
-                        <span class="material-symbols-rounded visit-upload-icon">add_location_alt</span>
-                        <span class="visit-upload-text visit-upload-text-pointer">Drag and drop your roof screenshot here, or <span class="visit-upload-browse">click to browse</span></span>
-                        <span class="visit-upload-text visit-upload-text-touch">Tap to add a screenshot of your roof's pinned location</span>
-                        <span class="visit-upload-sub">Image · up to 2 screenshots · 10 MB each</span>
-                    </label>
-                    <ul class="visit-file-list"></ul>
-                    <span class="visit-hint"></span>
+                <div class="visit-field visit-span visit-roof">
+                    <span class="visit-field-note">Move the map until the pin sits on your roof, or tap your roof. It helps us assess your roof before the visit.</span>
+                    <div class="visit-roof-map-wrap">
+                        <div class="visit-roof-map" aria-label="Satellite map of your property"></div>
+                        <span class="material-symbols-rounded visit-roof-pin" aria-hidden="true">location_on</span>
+                        <p class="visit-roof-loading">Loading the map…</p>
+                    </div>
+                    <div class="visit-roof-bar">
+                        <button type="button" class="visit-roof-btn visit-roof-locate"><span class="material-symbols-rounded" aria-hidden="true">my_location</span>Use my current location</button>
+                        <button type="button" class="visit-roof-btn visit-roof-confirm" hidden><span class="material-symbols-rounded" aria-hidden="true">check</span>The pin is on my roof</button>
+                    </div>
+                    <span class="visit-roof-status" role="status"></span>
                 </div>
             </div>
 

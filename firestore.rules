@@ -796,14 +796,28 @@ service cloud.firestore {
       return value in ['', 'Balanced', 'Flat', 'Mostly Day', 'Middle of Day', 'Mostly Night', 'Evening Peak'];
     }
 
+    // The roof's spot, pinned on the Schedule a Visit page's satellite map;
+    // adjusted is false when the visitor left the pin where the map opened
+    // (on their address).
+    function isRoofPin(pin) {
+      return pin is map
+        && pin.keys().hasOnly(['lat', 'lng', 'adjusted'])
+        && pin.keys().hasAll(['lat', 'lng'])
+        && (!('adjusted' in pin) || pin.adjusted is bool)
+        && pin.lat is number && pin.lat >= -90 && pin.lat <= 90
+        && pin.lng is number && pin.lng >= -180 && pin.lng <= 180;
+    }
+
     function isValidVisitRequest(data) {
       let fields = ['name', 'phone', 'email', 'address', 'propertyType', 'product',
                     'monthlyBill', 'preferredDate', 'preferredTime', 'message',
                     'attachments', 'consent', 'sourcePage', 'status', 'createdAt'];
-      // referralCode, usagePattern, aircons, roofPhotos and addressPlace are
-      // optional so requests from a cached older form still go through.
-      return data.keys().hasOnly(fields.concat(['referralCode', 'usagePattern', 'aircons', 'roofPhotos', 'addressPlace']))
+      // referralCode, usagePattern, aircons, roofPhotos (older forms' roof
+      // screenshots), roofPin and addressPlace are optional so requests from a
+      // cached older form still go through.
+      return data.keys().hasOnly(fields.concat(['referralCode', 'usagePattern', 'aircons', 'roofPhotos', 'roofPin', 'addressPlace']))
         && (!('addressPlace' in data) || isAddressPlace(data.addressPlace))
+        && (!('roofPin' in data) || isRoofPin(data.roofPin))
         && data.keys().hasAll(fields)
         && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
         && (!('usagePattern' in data) || isUsagePattern(data.usagePattern))

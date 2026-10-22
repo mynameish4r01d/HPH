@@ -26,6 +26,7 @@ import { firebaseConfig } from "../firebase-config.js";
 import { CHECKLISTS, CHECKLIST_TABS, CHECKLIST_VERSION, SYSTEMS } from "./checklist-templates.js";
 import { findReferrer } from "../referral-codes.js";
 import { tidyName, tidyAddress } from "../text-format.js";
+import { GOOGLE_MAPS_API_KEY } from "../maps-config.js";
 
 const FIREBASE_VERSION = "12.3.0";
 // Owners: permanent admins, fixed in code so nobody can be locked out. Keep
@@ -1910,17 +1911,101 @@ function renderVisit(v) {
     appendStage("visits", v, list, details);
     addAttachments(details, paths);
     addAttachments(details, roofPaths, "Roof location");
+    addRoofMap(details, v.roofPin);
     return details;
 }
 
-// Google Maps directions to a visit request's address: to the exact place
-// picked from the address suggestions (addressPlace) when there is one, else
-// to the typed address. On a phone it opens the Google Maps app.
+// The roof pinned on the Schedule a Visit page's satellite map (`roofPin`;
+// adjusted: false means the visitor left the pin where the map opened, on
+// their address): a small satellite map with the pin in its middle, loaded when the entry is
+// opened, and a link to Google Maps. Older requests have roof screenshots
+// (roofPhotos) instead, shown with the attachments.
+let mapsPromise = null;
+
+function loadMaps() {
+    if (!mapsPromise) {
+        mapsPromise = new Promise((resolve, reject) => {
+            const callback = `hphAdminMapsReady${Date.now()}`;
+            window[callback] = () => {
+                delete window[callback];
+                resolve(window.google.maps);
+            };
+            const script = document.createElement("script");
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&v=weekly&loading=async&callback=${callback}`;
+            script.async = true;
+            script.onerror = () => reject(new Error("Google Maps didn't load"));
+            document.head.append(script);
+        }).catch((err) => {
+            mapsPromise = null;
+            throw err;
+        });
+    }
+    return mapsPromise.then((maps) => maps.importLibrary("maps"));
+}
+
+function roofPinUrl(pin) {
+    const url = new URL("https://www.google.com/maps/search/");
+    url.searchParams.set("api", "1");
+    url.searchParams.set("query", `${pin.lat},${pin.lng}`);
+    return url.toString();
+}
+
+function hasRoofPin(v) {
+    const pin = v.roofPin;
+    return Boolean(pin && Number.isFinite(pin.lat) && Number.isFinite(pin.lng));
+}
+
+function addRoofMap(details, pin) {
+    if (!hasRoofPin({ roofPin: pin })) return;
+    const box = el("div", "admin-attachments admin-roof");
+    const link = el("a", "admin-roof-link", "Open in Google Maps");
+    link.href = roofPinUrl(pin);
+    link.target = "_blank";
+    link.rel = "noopener";
+    const label = el("span", "admin-attachments-label", `Roof location (${pin.adjusted === false ? "address, not adjusted by the client" : "pinned by the client"}) · `);
+    label.append(link);
+    const wrap = el("div", "admin-roof-map-wrap");
+    const map = el("div", "admin-roof-map");
+    wrap.append(map, el("span", "material-symbols-rounded admin-roof-pin", "location_on"));
+    box.append(label, wrap);
+    details.append(box);
+    let loaded = false;
+    details.addEventListener("toggle", async () => {
+        if (!details.open || loaded) return;
+        loaded = true;
+        if (!GOOGLE_MAPS_API_KEY || GOOGLE_MAPS_API_KEY.startsWith("YOUR_")) return wrap.remove();
+        try {
+            const { Map } = await loadMaps();
+            // The pin is drawn in the middle, so the map can't be dragged off
+            // it; the zoom buttons zoom around the middle.
+            new Map(map, {
+                center: { lat: pin.lat, lng: pin.lng },
+                zoom: 19,
+                mapTypeId: "satellite",
+                tilt: 0,
+                disableDefaultUI: true,
+                zoomControl: true,
+                clickableIcons: false,
+                gestureHandling: "none",
+            });
+        } catch (err) {
+            console.warn("Admin: the roof map couldn't load", err);
+            wrap.remove();
+        }
+    });
+}
+
+// Google Maps directions to a visit request's address: to the pinned roof
+// (roofPin) when there is one, else the exact place picked from the address
+// suggestions (addressPlace), else the typed address. On a phone it opens the
+// Google Maps app.
 function directionsUrl(v) {
     const place = v.addressPlace;
     const url = new URL("https://www.google.com/maps/dir/");
     url.searchParams.set("api", "1");
-    if (place && Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
+    if (hasRoofPin(v)) {
+        url.searchParams.set("destination", `${v.roofPin.lat},${v.roofPin.lng}`);
+    } else if (place && Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
         url.searchParams.set("destination", `${place.lat},${place.lng}`);
         if (place.id) url.searchParams.set("destination_place_id", place.id);
     } else if ((v.address || "").trim()) {
@@ -2260,6 +2345,7 @@ const CSV_COLUMNS = {
         ["Updated by", (v) => v.stageUpdatedBy || v.completedBy],
         ["Attachments", (v) => (Array.isArray(v.attachments) ? v.attachments.length : 0)],
         ["Roof screenshots", (v) => serialList(v.roofPhotos).length],
+        ["Roof pin", (v) => (hasRoofPin(v) ? `${v.roofPin.lat}, ${v.roofPin.lng}${v.roofPin.adjusted === false ? " (address, not adjusted)" : ""}` : "")],
         ["Request ID", (v) => v.id],
     ],
     waitlist: [

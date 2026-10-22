@@ -3,8 +3,8 @@
 // and sending. Next checks the current screen's fields before moving on.
 //
 // Saves each request to Firestore (collection: visitRequests) and any
-// attached files (bills, and roof screenshots as roof-…) to Cloud Storage under
-// visitRequests/<request id>/. View
+// attached bills to Cloud Storage under visitRequests/<request id>/. The roof
+// is pinned on a live satellite map and saved as `roofPin`. View
 // them in the Firebase console: Firestore → visitRequests, Storage →
 // visitRequests. Security rules: /firestore.rules and /storage.rules.
 //
@@ -22,9 +22,6 @@ const SUBMIT_TIMEOUT_MS = 90000;
 
 // Uploads — keep in step with /storage.rules and /firestore.rules.
 const MAX_FILES = 3;
-// Roof screenshots (images only).
-const MAX_ROOF_FILES = 2;
-const ROOF_TYPE = /^image\/.+$/;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const ACCEPTED_TYPE = /^(image\/.+|application\/pdf)$/;
 // Photos bigger than this (JPEG/PNG/WebP) are shrunk in the browser before
@@ -316,14 +313,11 @@ function makeUploader(input, { max, accept, typeError }) {
 
 const hasFiles = (e) => Array.from((e.dataTransfer && e.dataTransfer.types) || []).includes("Files");
 
-// The electricity bill (images or PDFs) and the roof screenshot (images).
+// The electricity bill (images or PDFs).
 const billUploader = makeUploader(form.querySelector('[name="files"]'), {
     max: MAX_FILES, accept: ACCEPTED_TYPE, typeError: "Only images or PDF files can be uploaded.",
 });
-const roofUploader = makeUploader(form.querySelector('[name="roofFiles"]'), {
-    max: MAX_ROOF_FILES, accept: ROOF_TYPE, typeError: "Please add a screenshot or photo (an image file).",
-});
-const uploaders = [billUploader, roofUploader];
+const uploaders = [billUploader];
 
 // A file dropped just outside the box would otherwise make the browser leave
 // the page to open it (losing the form), so ignore drops elsewhere.
@@ -344,21 +338,21 @@ const mapsReady = Boolean(GOOGLE_MAPS_API_KEY) && !GOOGLE_MAPS_API_KEY.startsWit
 const addressInput = form.querySelector('[name="address"]');
 const addressList = form.querySelector(".visit-address-suggest");
 let addressPlace = null;
-let placesPromise = null;
+let mapsPromise = null;
 let placesSession = null;
 let addressTimer = 0;
 let addressQuery = 0;
 let addressActive = -1;
 
-// The Maps JavaScript API with its Places library, loaded the first time
-// it's needed.
-function loadPlaces() {
-    if (!placesPromise) {
-        placesPromise = new Promise((resolve, reject) => {
+// The Maps JavaScript API, loaded the first time it's needed (for address
+// suggestions or the roof map), then the library asked for.
+function loadMaps(library) {
+    if (!mapsPromise) {
+        mapsPromise = new Promise((resolve, reject) => {
             const callback = `hphMapsReady${Date.now()}`;
             window[callback] = () => {
                 delete window[callback];
-                window.google.maps.importLibrary("places").then(resolve, reject);
+                resolve(window.google.maps);
             };
             const script = document.createElement("script");
             script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(GOOGLE_MAPS_API_KEY)}&v=weekly&loading=async&callback=${callback}`;
@@ -366,11 +360,11 @@ function loadPlaces() {
             script.onerror = () => reject(new Error("Google Maps didn't load"));
             document.head.append(script);
         }).catch((err) => {
-            placesPromise = null;
+            mapsPromise = null;
             throw err;
         });
     }
-    return placesPromise;
+    return mapsPromise.then((maps) => maps.importLibrary(library));
 }
 
 function closeSuggestions() {
@@ -392,7 +386,7 @@ async function showSuggestions() {
     const query = ++addressQuery;
     if (text.length < ADDRESS_MIN_CHARS) return closeSuggestions();
     try {
-        const places = await loadPlaces();
+        const places = await loadMaps("places");
         placesSession = placesSession || new places.AutocompleteSessionToken();
         const { suggestions } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
             input: text,
@@ -479,6 +473,140 @@ if (mapsReady) {
 
 
 
+// ---------------------------------------------------------------- roof pin
+
+// Step 3 is a live satellite map with a pin fixed in its middle: the visitor
+// moves the map (or taps their roof, or uses their current location) until
+// the pin is on their roof. The map opens on the address from step 1: the
+// picked suggestion's spot, else a search for the typed address, else the
+// whole Philippines. Saved as `roofPin` ({ lat, lng, adjusted }) once they've
+// placed it (adjusted: true), or, if they leave it where it opened on their
+// address, that spot (adjusted: false). Without a key, or if Google can't be reached, the step is just
+// its note and can be skipped.
+const ROOF_ZOOM = 20;
+const ROOF_SEARCH_ZOOM = 19;
+const PH_VIEW = { center: { lat: 12.88, lng: 121.77 }, zoom: 6 };
+const roofField = form.querySelector(".visit-roof");
+const roofMapEl = roofField.querySelector(".visit-roof-map");
+const roofLoading = roofField.querySelector(".visit-roof-loading");
+const roofLocate = roofField.querySelector(".visit-roof-locate");
+const roofConfirm = roofField.querySelector(".visit-roof-confirm");
+const roofStatus = roofField.querySelector(".visit-roof-status");
+let roofMap = null;
+let roofPinned = false;
+// The map is on the visitor's address (not the whole Philippines).
+let roofFound = false;
+// What the map was last centred on, so going back and changing the address
+// moves it (until the roof is pinned).
+let roofCentredOn = "";
+
+function setRoofStatus(text, pinned = false) {
+    roofStatus.textContent = text;
+    roofStatus.classList.toggle("visit-roof-pinned", pinned);
+}
+
+function pinRoof(text = "✓ Roof pinned. Move the map again if the pin isn't on your roof.") {
+    roofPinned = true;
+    roofConfirm.hidden = true;
+    setRoofStatus(text, true);
+}
+
+function roofOff() {
+    roofField.classList.add("visit-roof-off");
+    roofField.querySelector(".visit-field-note").textContent = "The map isn't available right now. You can skip this step: we'll find your roof from your address.";
+}
+
+// Where the pin points: the middle of the map.
+function roofPinValue() {
+    const centre = roofMap.getCenter();
+    const round = (n) => Math.round(n * 1e7) / 1e7;
+    return { lat: round(centre.lat()), lng: round(centre.lng()), adjusted: roofPinned };
+}
+
+function foundAddress() {
+    roofFound = true;
+    setRoofStatus("The pin is on your address. Move the map if it isn't on your roof.");
+}
+
+async function centreRoofMap() {
+    const text = addressInput.value.trim();
+    const key = addressPlace ? `place:${addressPlace.id}:${addressPlace.lat},${addressPlace.lng}` : `text:${text}`;
+    if (roofPinned || key === roofCentredOn) return;
+    roofCentredOn = key;
+    if (addressPlace) {
+        roofMap.setCenter({ lat: addressPlace.lat, lng: addressPlace.lng });
+        roofMap.setZoom(ROOF_ZOOM);
+        foundAddress();
+        return;
+    }
+    roofFound = false;
+    setRoofStatus("Find your home on the map, then put the pin on your roof.");
+    roofMap.setCenter(PH_VIEW.center);
+    roofMap.setZoom(PH_VIEW.zoom);
+    if (!text) return;
+    try {
+        const { Place } = await loadMaps("places");
+        const { places } = await Place.searchByText({ textQuery: text, fields: ["location"], region: "ph", maxResultCount: 1 });
+        // They've moved the map or changed the address in the meantime.
+        if (roofPinned || roofCentredOn !== key || !places.length || !places[0].location) return;
+        roofMap.setCenter(places[0].location);
+        roofMap.setZoom(ROOF_SEARCH_ZOOM);
+        foundAddress();
+    } catch (err) {
+        console.warn("Schedule a Visit: couldn't find the address on the map", err);
+    }
+}
+
+async function showRoofMap() {
+    if (!mapsReady) return roofOff();
+    try {
+        const { Map } = await loadMaps("maps");
+        if (!roofMap) {
+            roofMap = new Map(roofMapEl, {
+                ...PH_VIEW,
+                mapTypeId: "satellite",
+                tilt: 0,
+                disableDefaultUI: true,
+                zoomControl: true,
+                clickableIcons: false,
+                // One finger moves the map on phones; this step is all about the map.
+                gestureHandling: "greedy",
+            });
+            roofMap.addListener("dragend", () => pinRoof());
+            roofMap.addListener("click", (e) => {
+                roofMap.panTo(e.latLng);
+                pinRoof();
+            });
+            roofLoading.hidden = true;
+            roofConfirm.hidden = false;
+        }
+        await centreRoofMap();
+    } catch (err) {
+        console.warn("Schedule a Visit: the roof map couldn't load", err);
+        roofOff();
+    }
+}
+
+roofConfirm.addEventListener("click", () => pinRoof("✓ Roof pinned."));
+
+if (!navigator.geolocation) roofLocate.hidden = true;
+roofLocate.addEventListener("click", () => {
+    if (!roofMap) return;
+    roofLocate.disabled = true;
+    setRoofStatus("Finding your location…");
+    navigator.geolocation.getCurrentPosition((position) => {
+        roofLocate.disabled = false;
+        roofMap.setCenter({ lat: position.coords.latitude, lng: position.coords.longitude });
+        roofMap.setZoom(ROOF_ZOOM);
+        pinRoof("✓ Pinned at your current location. Move the map if the pin isn't on your roof.");
+    }, () => {
+        roofLocate.disabled = false;
+        setRoofStatus(roofPinned ? "We couldn't get your location. Your pin is where you left it." : "We couldn't get your location. Move the map to your roof instead.", roofPinned);
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+});
+
+
+
 // ----------------------------------------------------------------- aircons
 
 // How many aircons (−/+ or typed, 0 to MAX_AIRCONS), then one capacity
@@ -546,15 +674,15 @@ function showStep(n, { scroll = true } = {}) {
     button.hidden = step !== panels.length;
     error.hidden = true;
     updateNext();
+    if (step === 3) showRoofMap();
     // Each screen starts like the first: at the top of the page, so the
     // heading and step indicator aren't hidden under the fixed navigation.
     if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// The upload screens are optional: "Skip" until something is added.
+// The bill screen is optional: "Skip" until something is added.
 function updateNext() {
-    const uploader = { 2: billUploader, 3: roofUploader }[step];
-    nextButton.textContent = uploader && !uploader.files.length ? "Skip for now" : "Next";
+    nextButton.textContent = step === 2 && !billUploader.files.length ? "Skip for now" : "Next";
 }
 
 function goNext() {
@@ -625,10 +753,9 @@ form.addEventListener("submit", async (e) => {
     }
 
     const files = billUploader.files;
-    const roofFiles = roofUploader.files;
     const aircons = airconSizes();
     button.disabled = true;
-    button.textContent = files.length || roofFiles.length ? "Uploading…" : "Sending…";
+    button.textContent = files.length ? "Uploading…" : "Sending…";
 
     try {
         const { firestore, storage, db, bucket } = await loadFirebase();
@@ -640,12 +767,6 @@ form.addEventListener("submit", async (e) => {
                 const path = `${COLLECTION}/${requestRef.id}/${i + 1}-${safeFileName(file.name)}`;
                 await storage.uploadBytes(storage.ref(bucket, path), file, { contentType: fileType(file) });
                 attachments.push(path);
-            }
-            const roofPhotos = [];
-            for (const [i, file] of roofFiles.entries()) {
-                const path = `${COLLECTION}/${requestRef.id}/roof-${i + 1}-${safeFileName(file.name)}`;
-                await storage.uploadBytes(storage.ref(bucket, path), file, { contentType: fileType(file) });
-                roofPhotos.push(path);
             }
 
             await firestore.setDoc(requestRef, {
@@ -674,10 +795,10 @@ form.addEventListener("submit", async (e) => {
                 // form only submits blank or a valid code.
                 referralCode: value("referralCode") ? findReferrer(value("referralCode")).code : "",
                 attachments,
-                // Aircon capacities, one per aircon, and the roof screenshots;
-                // left out when there are none (both optional in the rules).
+                // Aircon capacities, one per aircon, and the roof's pin; left
+                // out when there are none (both optional in the rules).
                 ...(aircons.length ? { aircons } : {}),
-                ...(roofPhotos.length ? { roofPhotos } : {}),
+                ...((roofPinned || roofFound) && roofMap ? { roofPin: roofPinValue() } : {}),
                 consent: true,
                 sourcePage: decodeURIComponent(window.location.pathname).slice(0, 300),
                 status: "new",
