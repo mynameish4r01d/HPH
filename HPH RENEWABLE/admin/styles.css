@@ -201,6 +201,26 @@ a:link{
     margin: 60px auto 0;
 }
 
+/* "Back to HPH Renewable" above the sign-in heading. */
+.admin-back-site{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--admin-muted);
+    text-decoration: none;
+
+    .material-symbols-rounded{
+        font-size: 18px;
+    }
+
+    &:hover{
+        color: var(--admin-text);
+    }
+}
+
 .admin-login-form{
     display: grid;
     gap: 20px;

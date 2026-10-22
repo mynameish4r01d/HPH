@@ -32,9 +32,11 @@
 <body>
 
     <header class="admin-bar">
-        <!-- Just the logo: the page speaks for itself. -->
+        <!-- Just the logo: the page speaks for itself. Phones: signed in, it opens
+             the Overview (or a user's first page); see the "phone menu" section
+             of admin.js. The sign-in screen has its own link back to the website. -->
         <div class="admin-brand">
-            <a href="../home/index.html" class="admin-logo">
+            <a href="#" class="admin-logo" aria-label="HPH Renewable admin: go to the Overview">
                 <img src="../global-elements/HPH Renewable Black.png" alt="HPH Renewable" class="img">
             </a>
         </div>
@@ -72,6 +74,10 @@
              in ADMIN_EMAILS (admin.js) and in isAdmin() (/firestore.rules,
              /storage.rules) can see submissions. -->
         <section class="admin-login" hidden>
+            <a href="../home/index.html" class="admin-back-site">
+                <span class="material-symbols-rounded" aria-hidden="true">arrow_back</span>
+                Back to HPH Renewable
+            </a>
             <h1 class="admin-title">Admin sign in</h1>
             <p class="admin-intro">Sign in to view ocular site visit requests, waitlist sign-ups and customer feedback.</p>
 

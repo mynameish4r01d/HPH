@@ -1007,6 +1007,17 @@ function markMenuTab() {
 }
 
 burger.addEventListener("click", () => setMenu(!menu.classList.contains("open")));
+
+// The top bar's logo (phones): the Overview for admins, a user's first page,
+// and nothing on the sign-in screen (it has "Back to HPH Renewable").
+document.querySelector(".admin-bar .admin-logo").addEventListener("click", (e) => {
+    e.preventDefault();
+    if (!role) return;
+    setMenu(false);
+    if (role === "admin") setView("overview");
+    else selectTab(visiblePages()[0]);
+    window.scrollTo({ top: 0 });
+});
 menu.querySelector(".admin-menu-signout").addEventListener("click", () => { setMenu(false); authSdk.signOut(auth); });
 document.addEventListener("keydown", (e) => { if (e.key === "Escape" && menu.classList.contains("open")) setMenu(false); });
 // Leaving the phone layout (e.g. rotating) closes it.
