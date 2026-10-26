@@ -23,3 +23,23 @@ const BY_KEY = new Map(SALES_TEAM.map((person) => [squash(person.code), person])
 export function findReferrer(text) {
     return BY_KEY.get(squash(text)) || null;
 }
+
+// Salespeople whose name or code contains every word typed, e.g. "andrew
+// deguia" or "mpm" (case, spaces and punctuation ignored). Used by the
+// "Schedule a Visit" form's referral suggestions.
+const words = (text) => String(text || "").toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+const HAYSTACK = SALES_TEAM.map((person) => ({ person, text: `${person.name}${person.code}`.toLowerCase().replace(/[^a-z0-9]/g, "") }));
+
+export function searchReferrers(text) {
+    const typed = words(text);
+    if (!typed.length) return [];
+    return HAYSTACK.filter((entry) => typed.every((word) => entry.text.includes(word))).map((entry) => entry.person);
+}
+
+// A person typed by name instead of code: only when at least two words were
+// typed (first and last name) and exactly one person fits.
+export function findReferrerByName(text) {
+    if (words(text).length < 2) return null;
+    const matches = searchReferrers(text);
+    return matches.length === 1 ? matches[0] : null;
+}

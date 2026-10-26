@@ -13,7 +13,7 @@
 
 import { firebaseConfig } from "../firebase-config.js";
 import { tidyName, tidyAddress, tidyOnBlur } from "../text-format.js";
-import { findReferrer } from "../referral-codes.js";
+import { findReferrer, findReferrerByName, searchReferrers } from "../referral-codes.js";
 import { GOOGLE_MAPS_API_KEY } from "../maps-config.js";
 
 const FIREBASE_VERSION = "12.3.0";
@@ -68,15 +68,69 @@ tidyOnBlur(form.querySelector('[name="address"]'), tidyAddress);
 // (../referral-codes.js). A valid one shows whose it is. Referral links can
 // carry ?ref=<code>; pre-fill and check it.
 const referralInput = form.querySelector('[name="referralCode"]');
+const referralList = form.querySelector(".visit-referral-suggest");
+let referralActive = -1;
+
+// A typed code, or a salesperson's full name.
+const resolveReferrer = (text) => findReferrer(text) || findReferrerByName(text);
+
+function closeReferralList() {
+    referralList.hidden = true;
+    referralList.replaceChildren();
+    referralActive = -1;
+}
+
+function markReferral(index) {
+    const options = referralList.querySelectorAll(".visit-address-option");
+    referralActive = options.length ? (index + options.length) % options.length : -1;
+    options.forEach((option, i) => option.setAttribute("aria-selected", String(i === referralActive)));
+}
+
+// Suggestions: people whose name or code contains what's been typed. Picking
+// one fills in their code.
+function showReferralList() {
+    const text = referralInput.value.trim();
+    const matches = text && !findReferrer(text) ? searchReferrers(text).slice(0, 5) : [];
+    if (!matches.length) return closeReferralList();
+    referralList.replaceChildren(...matches.map((person) => {
+        const option = document.createElement("li");
+        option.className = "visit-address-option";
+        option.setAttribute("role", "option");
+        const main = document.createElement("span");
+        main.className = "visit-address-main";
+        main.textContent = person.name;
+        const sub = document.createElement("span");
+        sub.className = "visit-address-sub";
+        sub.textContent = person.code;
+        option.append(main, sub);
+        // mousedown, so it's picked before the box loses focus.
+        option.addEventListener("mousedown", (e) => {
+            e.preventDefault();
+            pickReferral(person);
+        });
+        option.person = person;
+        return option;
+    }));
+    referralList.hidden = false;
+    markReferral(-1);
+}
+
+function pickReferral(person) {
+    referralInput.value = person.code;
+    closeReferralList();
+    checkReferral();
+}
 
 function checkReferral() {
     const field = referralInput.closest(".visit-field");
     const hint = field.querySelector(".visit-hint");
     const text = referralInput.value.trim();
-    const person = text ? findReferrer(text) : null;
+    const person = text ? resolveReferrer(text) : null;
     hint.classList.toggle("visit-hint-ok", Boolean(person));
     if (!text) return setFieldError(field, "");
     if (person) {
+        // A name typed in full becomes the code, which is what's saved.
+        if (referralInput.value.trim() !== person.code && document.activeElement !== referralInput) referralInput.value = person.code;
         field.classList.remove("visit-invalid");
         hint.textContent = `✓ Referred by ${person.name}`;
         return true;
@@ -93,7 +147,8 @@ if (referral) {
 // visitor leaves the field (not on every keystroke).
 referralInput.addEventListener("input", () => {
     const field = referralInput.closest(".visit-field");
-    if (findReferrer(referralInput.value) || !referralInput.value.trim() || field.classList.contains("visit-invalid")) {
+    showReferralList();
+    if (resolveReferrer(referralInput.value) || !referralInput.value.trim() || field.classList.contains("visit-invalid")) {
         checkReferral();
     } else {
         // Mid-typing: drop an earlier "✓ Referred by …" without an error yet.
@@ -102,7 +157,23 @@ referralInput.addEventListener("input", () => {
         hint.classList.remove("visit-hint-ok");
     }
 });
-referralInput.addEventListener("blur", checkReferral);
+referralInput.addEventListener("blur", () => {
+    closeReferralList();
+    checkReferral();
+});
+referralInput.addEventListener("keydown", (e) => {
+    if (referralList.hidden) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+        e.preventDefault();
+        markReferral(referralActive + (e.key === "ArrowDown" ? 1 : -1));
+    } else if (e.key === "Enter" && referralActive >= 0) {
+        // Picks the suggestion instead of going to the next screen.
+        e.preventDefault();
+        pickReferral(referralList.children[referralActive].person);
+    } else if (e.key === "Escape") {
+        closeReferralList();
+    }
+});
 
 
 // -------------------------------------------------------------- validation
@@ -839,7 +910,7 @@ form.addEventListener("submit", async (e) => {
                 // Upper-cased so "juan01" and "JUAN01" group together in the admin page.
                 // The official spelling (e.g. "hph mpm01" → "HPH-MPM01"); the
                 // form only submits blank or a valid code.
-                referralCode: value("referralCode") ? findReferrer(value("referralCode")).code : "",
+                referralCode: value("referralCode") ? resolveReferrer(value("referralCode")).code : "",
                 attachments,
                 // Aircon capacities, one per aircon, and the roof's pin; left
                 // out when there are none (both optional in the rules).

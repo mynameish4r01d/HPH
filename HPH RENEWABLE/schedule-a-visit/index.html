@@ -398,7 +398,9 @@
 
                 <label class="visit-field visit-span">
                     <span class="visit-label">Referral code <span class="visit-optional">(optional)</span></span>
-                    <input type="text" name="referralCode" autocomplete="off" maxlength="50" placeholder="e.g. HPH-ABC01, from the person who referred you">
+                    <input type="text" name="referralCode" autocomplete="off" maxlength="50" placeholder="Type the name of the person who referred you" role="combobox" aria-autocomplete="list">
+                    <!-- Matching salespeople by name or code (visit-form.js). -->
+                    <ul class="visit-address-suggest visit-referral-suggest" role="listbox" aria-label="Referral suggestions" hidden></ul>
                     <span class="visit-hint"></span>
                 </label>
 

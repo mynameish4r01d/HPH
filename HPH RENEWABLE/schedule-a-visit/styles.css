@@ -886,7 +886,6 @@ body.menu-open{
 
     .visit-no-aircon{
         flex: 1 1 100%;
-        padding: 12px 14px;
     }
 
     .visit-roof-bar .visit-roof-btn{
@@ -1908,9 +1907,11 @@ body.menu-open{
 }
 
 .visit-no-aircon{
-    padding: 8px 14px;
+    box-sizing: border-box;
+    height: 44px; /* the counter beside it: 42px field + borders */
+    padding: 0 16px;
     border: 1px solid var(--visit-border);
-    border-radius: 999px;
+    border-radius: 4px;
     background-color: var(--visit-field);
     color: var(--visit-text);
     font: inherit;
