@@ -870,9 +870,43 @@ body.menu-open{
         grid-template-columns: 1fr;
     }
 
-    /* Phones: just the numbers, with the current step's name. */
-    .visit-steps-item:not([aria-current="step"]) .visit-steps-name{
-        display: none;
+    /* Phones: number above its name, all three names visible. */
+    .visit-steps{
+        gap: 6px;
+        margin-bottom: 24px;
+    }
+
+    .visit-steps-item{
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+        font-size: 12px;
+        line-height: 1.25;
+    }
+
+    .visit-no-aircon{
+        flex: 1 1 100%;
+        padding: 12px 14px;
+    }
+
+    .visit-roof-bar .visit-roof-btn{
+        flex: 1 1 100%;
+        justify-content: center;
+        padding: 12px 14px;
+    }
+
+    .visit-nav{
+        position: sticky;
+        bottom: 0;
+        margin-inline: -24px;
+        padding: 12px 24px calc(12px + env(safe-area-inset-bottom));
+        background-color: var(--visit-field);
+        border-top: 1px solid var(--visit-border);
+        z-index: 5;
+    }
+
+    .visit-bill-field{
+        gap: 18px;
     }
 }
 
@@ -959,14 +993,14 @@ body.menu-open{
    under it), then Use my current location / The pin is on my roof. */
 .visit-roof-map-wrap{
     position: relative;
-    height: 380px;
+    height: 560px;
     border: 1px solid var(--visit-border);
     border-radius: 6px;
     overflow: hidden;
     background-color: var(--visit-surface);
 
     @media (max-width: 750px){
-        height: 320px;
+        height: 480px;
     }
 }
 
@@ -1863,4 +1897,50 @@ body.menu-open{
         background-color: #3A1416;
         color: #FF6961;
     }
+}
+
+/* "I don't use air-conditioning" beside the aircon counter. */
+.visit-aircon-row{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+}
+
+.visit-no-aircon{
+    padding: 8px 14px;
+    border: 1px solid var(--visit-border);
+    border-radius: 999px;
+    background-color: var(--visit-field);
+    color: var(--visit-text);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+
+    &:hover{
+        border-color: var(--visit-accent);
+    }
+
+    &[aria-pressed="true"]{
+        border-color: var(--visit-accent);
+        background-color: var(--visit-accent);
+        color: var(--visit-on-accent);
+    }
+}
+
+/* Meralco bill photo guide: a short looping video, with room around it. */
+.visit-bill-field{
+    gap: 24px;
+}
+
+.visit-bill-video{
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--visit-border);
+    border-radius: 16px;
+    background-color: var(--visit-surface);
+    margin-block: 4px;
 }

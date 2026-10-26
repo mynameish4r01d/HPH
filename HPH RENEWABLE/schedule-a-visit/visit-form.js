@@ -81,7 +81,7 @@ function checkReferral() {
         hint.textContent = `✓ Referred by ${person.name}`;
         return true;
     }
-    return setFieldError(field, "That referral code doesn't exist. Please check it, or leave it blank.");
+    return setFieldError(field, "That is not a real referral code. Please check it, or leave it blank.");
 }
 
 const referral = new URLSearchParams(window.location.search).get("ref");
@@ -167,10 +167,22 @@ function validateField(input) {
     if (!field) return input.checkValidity();
 
     const uploader = uploaders.find((u) => u.input === input);
-    if (uploader) return setFieldError(field, fileProblem(uploader.files, uploader));
+    if (uploader) {
+        return setFieldError(field, uploader.files.length || !uploader.required
+            ? fileProblem(uploader.files, uploader)
+            : "Please upload your latest electricity bill.");
+    }
     if (input === referralInput) return checkReferral();
-    // The aircon count and capacities always hold a valid choice.
-    if (field.classList.contains("visit-aircons")) return true;
+    // At least one of Solar / Battery.
+    if (input.name === "interest") {
+        return setFieldError(field, form.querySelector('[name="interest"]:checked') ? "" : "Please pick Solar, Battery or both.");
+    }
+    // The capacities always hold a valid choice; the count needs an answer,
+    // even if it's "I don't use air-conditioning".
+    if (field.classList.contains("visit-aircons")) {
+        return setFieldError(field, Number(airconCount.value) > 0 || noAirconButton.getAttribute("aria-pressed") === "true"
+            ? "" : "Please choose how many aircons you use, or tap “I don't use air-conditioning”.");
+    }
 
     let message = "";
     if (input.validity.valueMissing) {
@@ -197,6 +209,12 @@ function validateForm(scope = form) {
         if (!validateField(input) && !firstInvalid) firstInvalid = input;
     });
 
+    // The roof must be pinned (unless the map can't be shown at all).
+    if (scope.contains(roofField) && !roofFilled()) {
+        setFieldError(roofField, "Please move the map until the pin is on your roof, then tap “The pin is on my roof”.");
+        if (!firstInvalid) firstInvalid = roofConfirm.hidden ? roofLocate : roofConfirm;
+    }
+
     const consent = scope.querySelector('[name="consent"]');
     if (consent) {
         consent.closest(".visit-consent").classList.toggle("visit-invalid", !consent.checked);
@@ -220,11 +238,11 @@ form.addEventListener("input", (e) => {
 // large photos are shrunk, and each listed file has a remove button.
 // `sourceKeys` remembers each original file (name, size, date) so picking the
 // same one twice is ignored even after it was shrunk and renamed.
-function makeUploader(input, { max, accept, typeError }) {
+function makeUploader(input, { max, accept, typeError, required = false }) {
     const field = input.closest(".visit-field");
     const list = field.querySelector(".visit-file-list");
     const dropZone = input.closest(".visit-upload");
-    const up = { input, max, accept, typeError, files: [] };
+    const up = { input, max, accept, typeError, required, files: [] };
     let sourceKeys = [];
 
     function render() {
@@ -315,7 +333,7 @@ const hasFiles = (e) => Array.from((e.dataTransfer && e.dataTransfer.types) || [
 
 // The electricity bill (images or PDFs).
 const billUploader = makeUploader(form.querySelector('[name="files"]'), {
-    max: MAX_FILES, accept: ACCEPTED_TYPE, typeError: "Only images or PDF files can be uploaded.",
+    max: MAX_FILES, accept: ACCEPTED_TYPE, typeError: "Only images or PDF files can be uploaded.", required: true,
 });
 const uploaders = [billUploader];
 
@@ -507,9 +525,13 @@ function setRoofStatus(text, pinned = false) {
 
 function pinRoof(text = "✓ Roof pinned. Move the map again if the pin isn't on your roof.") {
     roofPinned = true;
+    setFieldError(roofField, "");
     roofConfirm.hidden = true;
     setRoofStatus(text, true);
 }
+
+// The roof step is done once the pin is placed; with no map there's nothing to ask.
+const roofFilled = () => roofField.classList.contains("visit-roof-off") || roofPinned;
 
 function roofOff() {
     roofField.classList.add("visit-roof-off");
@@ -531,8 +553,13 @@ function foundAddress() {
 async function centreRoofMap() {
     const text = addressInput.value.trim();
     const key = addressPlace ? `place:${addressPlace.id}:${addressPlace.lat},${addressPlace.lng}` : `text:${text}`;
-    if (roofPinned || key === roofCentredOn) return;
+    if (key === roofCentredOn) return;
+    // The address changed since the map was last placed: start over on it,
+    // even if the old spot was pinned.
     roofCentredOn = key;
+    roofPinned = false;
+    roofConfirm.hidden = !roofMap;
+    setFieldError(roofField, "");
     if (addressPlace) {
         roofMap.setCenter({ lat: addressPlace.lat, lng: addressPlace.lng });
         roofMap.setZoom(ROOF_ZOOM);
@@ -616,15 +643,18 @@ const airconField = form.querySelector(".visit-aircons");
 const airconCount = airconField.querySelector(".visit-aircon-count");
 const airconList = airconField.querySelector(".visit-aircon-list");
 const [airconLess, airconMore] = airconField.querySelectorAll(".visit-step");
+const noAirconButton = airconField.querySelector(".visit-no-aircon");
 const airconChoices = [];
 
 function airconSizes() {
     return Array.from(airconList.querySelectorAll("select"), (select) => select.value);
 }
 
-function setAircons(count) {
+function setAircons(count, { none = false } = {}) {
     const n = Math.max(0, Math.min(MAX_AIRCONS, Number.isFinite(count) ? Math.round(count) : 0));
     airconCount.value = String(n);
+    noAirconButton.setAttribute("aria-pressed", String(none && n === 0));
+    if (airconField.classList.contains("visit-invalid")) validateField(airconCount);
     airconLess.disabled = n === 0;
     airconMore.disabled = n === MAX_AIRCONS;
     airconList.replaceChildren(...Array.from({ length: n }, (_, i) => {
@@ -646,6 +676,7 @@ function setAircons(count) {
 }
 
 airconLess.addEventListener("click", () => setAircons(Number(airconCount.value) - 1));
+noAirconButton.addEventListener("click", () => setAircons(0, { none: noAirconButton.getAttribute("aria-pressed") !== "true" }));
 airconMore.addEventListener("click", () => setAircons(Number(airconCount.value) + 1));
 airconCount.addEventListener("change", () => setAircons(Number(airconCount.value)));
 setAircons(0);
@@ -660,8 +691,23 @@ const backButton = form.querySelector(".visit-back");
 const nextButton = form.querySelector(".visit-next");
 let step = 1;
 
-function showStep(n, { scroll = true } = {}) {
+// The browser's Back / Forward buttons move between the screens. Each screen
+// is a history entry; Forward only goes as far as screens already completed.
+let furthestStep = 1;
+history.replaceState({ visitStep: 1 }, "");
+window.addEventListener("popstate", (e) => {
+    const target = e.state && e.state.visitStep ? e.state.visitStep : 1;
+    showStep(Math.min(target, furthestStep), { scroll: true, push: false });
+    if (target > furthestStep) history.replaceState({ visitStep: step }, "");
+});
+
+function showStep(n, { scroll = true, push = false } = {}) {
+    const previous = step;
     step = Math.max(1, Math.min(panels.length, n));
+    if (push && step !== previous) {
+        furthestStep = Math.max(furthestStep, step);
+        history.pushState({ visitStep: step }, "");
+    }
     panels.forEach((panel) => { panel.hidden = Number(panel.dataset.step) !== step; });
     stepItems.forEach((item) => {
         const k = Number(item.dataset.step);
@@ -680,17 +726,17 @@ function showStep(n, { scroll = true } = {}) {
     if (scroll) window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-// The bill screen is optional: "Skip" until something is added.
 function updateNext() {
-    nextButton.textContent = step === 2 && !billUploader.files.length ? "Skip for now" : "Next";
+    nextButton.textContent = "Next";
 }
 
 function goNext() {
-    if (validateForm(panels[step - 1])) showStep(step + 1);
+    if (validateForm(panels[step - 1])) showStep(step + 1, { push: true });
 }
 
 nextButton.addEventListener("click", goNext);
-backButton.addEventListener("click", () => showStep(step - 1));
+// Same as the browser's Back button, so the history stays in step.
+backButton.addEventListener("click", () => history.back());
 form.addEventListener("change", updateNext);
 form.addEventListener("click", (e) => { if (e.target.closest(".visit-file-remove")) setTimeout(updateNext); });
 

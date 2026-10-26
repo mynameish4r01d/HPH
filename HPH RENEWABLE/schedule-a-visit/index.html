@@ -296,14 +296,14 @@
                 </label>
 
                 <label class="visit-field">
-                    <span class="visit-label">Mobile number <span class="visit-optional">(optional)</span></span>
-                    <input type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="09XX XXX XXXX" pattern="[0-9+\(\)\-\s]{7,30}" maxlength="30">
+                    <span class="visit-label">Mobile number</span>
+                    <input type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="09XX XXX XXXX" pattern="[0-9+\(\)\-\s]{7,30}" required maxlength="30">
                     <span class="visit-hint"></span>
                 </label>
 
                 <label class="visit-field">
-                    <span class="visit-label">Email <span class="visit-optional">(optional)</span></span>
-                    <input type="email" name="email" autocomplete="email" maxlength="200">
+                    <span class="visit-label">Email address</span>
+                    <input type="email" name="email" autocomplete="email" required maxlength="200">
                     <span class="visit-hint"></span>
                 </label>
 
@@ -347,8 +347,8 @@
 
                 <label class="visit-field">
                     <span class="visit-label">Average monthly electric bill</span>
-                    <select name="monthlyBill">
-                        <option value="">Prefer not to say</option>
+                    <select name="monthlyBill" required>
+                        <option value="" disabled selected>Select one</option>
                         <option value="Below ₱3,000">Below ₱3,000</option>
                         <option value="₱3,000 – ₱6,000">₱3,000 – ₱6,000</option>
                         <option value="₱6,000 – ₱10,000">₱6,000 – ₱10,000</option>
@@ -359,8 +359,8 @@
 
                 <label class="visit-field">
                     <span class="visit-label">When do you use the most electricity?</span>
-                    <select name="usagePattern">
-                        <option value="">Not sure</option>
+                    <select name="usagePattern" required>
+                        <option value="" disabled selected>Select one</option>
                         <option value="Balanced">Balanced (about the same all day)</option>
                         <option value="Mostly Day">Mostly Day (morning to afternoon)</option>
                         <option value="Middle of Day">Middle of Day (around noon)</option>
@@ -370,8 +370,8 @@
                 </label>
 
                 <label class="visit-field">
-                    <span class="visit-label">Preferred time</span>
-                    <select name="preferredTime">
+                    <span class="visit-label">Preferred time to visit</span>
+                    <select name="preferredTime" required>
                         <option value="Any time">Any time</option>
                         <option value="Morning (9AM – 12PM)">Morning (9AM – 12PM)</option>
                         <option value="Afternoon (1PM – 5PM)">Afternoon (1PM – 5PM)</option>
@@ -382,12 +382,15 @@
                 <!-- Aircons: how many (−/+), then a capacity for each (rows drawn by
                      visit-form.js). Saved as `aircons`, a list such as ["1 HP", "1.5 HP"]. -->
                 <div class="visit-field visit-span visit-aircons">
-                    <span class="visit-label" id="visit-aircon-label">How many aircons do you use? <span class="visit-optional">(optional)</span></span>
+                    <span class="visit-label" id="visit-aircon-label">How many aircons do you use?</span>
                     <span class="visit-field-note">Choose how many, then the capacity of each one. It's usually on the unit's sticker, in HP.</span>
+                    <div class="visit-aircon-row">
                     <div class="visit-stepper">
                         <button type="button" class="visit-step" data-step="-1" aria-label="Fewer aircons"><span class="material-symbols-rounded">remove</span></button>
                         <input type="number" class="visit-aircon-count" value="0" min="0" max="10" inputmode="numeric" aria-labelledby="visit-aircon-label">
                         <button type="button" class="visit-step" data-step="1" aria-label="More aircons"><span class="material-symbols-rounded">add</span></button>
+                    </div>
+                    <button type="button" class="visit-no-aircon" aria-pressed="false">I don't use air-conditioning</button>
                     </div>
                     <ol class="visit-aircon-list"></ol>
                     <span class="visit-hint"></span>
@@ -408,10 +411,14 @@
             </section>
 
             <section class="visit-panel" data-step="2" aria-label="Step 2 of 3: Electricity bill" hidden>
-            <h2 class="visit-panel-title">Your latest electricity bill <span class="visit-optional">(recommended)</span></h2>
+            <h2 class="visit-panel-title">Your latest electricity bill</h2>
             <div class="visit-grid">
-                <div class="visit-field visit-span">
+                <div class="visit-field visit-span visit-bill-field">
                     <span class="visit-field-note">We use it to estimate your electricity usage so we can give you an accurate quote. Please make sure the “Your Monthly Consumption” graph is visible.</span>
+
+                    <!-- Photo guide video: elements/bill-guide.mp4 (muted, loops; hidden if the file is missing). -->
+                    <video class="visit-bill-video" src="elements/bill-guide.mp4" autoplay muted loop playsinline preload="metadata" aria-label="How to take a clear photo of your electricity bill" onerror="this.hidden = true"></video>
+
                     <label class="visit-upload">
                         <input type="file" name="files" accept="image/*,application/pdf" multiple>
                         <span class="material-symbols-rounded visit-upload-icon">upload_file</span>
@@ -430,10 +437,10 @@
                  and the visitor moves the map until it's on their roof. Saved as
                  `roofPin` ({ lat, lng }). -->
             <section class="visit-panel" data-step="3" aria-label="Step 3 of 3: Roof location" hidden>
-            <h2 class="visit-panel-title">Pin your roof <span class="visit-optional">(recommended)</span></h2>
+            <h2 class="visit-panel-title">Pin your roof</h2>
             <div class="visit-grid">
                 <div class="visit-field visit-span visit-roof">
-                    <span class="visit-field-note">Move the map until the pin sits on your roof, or tap your roof. It helps us assess your roof before the visit.</span>
+                    <span class="visit-field-note">Move the map until the pin sits on your roof, or tap your roof. It helps us assess your roof before the visit. Tap “The pin is on my roof” when you're done.</span>
                     <div class="visit-roof-map-wrap">
                         <div class="visit-roof-map" aria-label="Satellite map of your property"></div>
                         <span class="material-symbols-rounded visit-roof-pin" aria-hidden="true">location_on</span>
@@ -444,6 +451,7 @@
                         <button type="button" class="visit-roof-btn visit-roof-confirm" hidden><span class="material-symbols-rounded" aria-hidden="true">check</span>The pin is on my roof</button>
                     </div>
                     <span class="visit-roof-status" role="status"></span>
+                    <span class="visit-hint"></span>
                 </div>
             </div>
 

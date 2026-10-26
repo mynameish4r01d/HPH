@@ -1600,7 +1600,7 @@ a:link{
    middle of a fixed satellite map. */
 .admin-roof-map-wrap{
     position: relative;
-    height: 260px;
+    height: 420px;
     margin-top: 8px;
     border-radius: var(--admin-radius-md);
     overflow: hidden;

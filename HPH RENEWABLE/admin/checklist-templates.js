@@ -24,15 +24,16 @@
 //   - "text": a short answer is typed in (`placeholder` optional).
 //   - "lengths": AC and DC cable lengths, in meters, are both filled in.
 //   - "choice": one of `options` is picked. `allowPhoto: true` adds optional
-//     photos.
+//     photos; `photoRequired: true` makes a photo needed too.
 //   - "check": it's ticked.
-// Every item can also have a note.
+// Every item can also have a note. `showNote: true` shows the note box from
+// the start (`notePlaceholder` optional) instead of behind a Note button.
 //
 // Answers are saved in Firestore collection `checklists` (see admin.js and
 // /firestore.rules); each checklist records the CHECKLIST_VERSION it was
 // started on.
 
-export const CHECKLIST_VERSION = "2026-10-mx2250";
+export const CHECKLIST_VERSION = "2026-10-mx2250-2";
 
 // The job's system type. `kwp: true` asks for the system size in kWp.
 export const SYSTEMS = [
@@ -56,6 +57,10 @@ export const CHECKLISTS = {
             { id: "panel-board", type: "photo", text: "Panel board", label: "Add photo" },
             { id: "mi-box", type: "photo", text: "MI Box location", label: "Add photo" },
             {
+                id: "ac-route", type: "photo", text: "AC cable wiring location plan", label: "Add photo",
+                hint: "From the inverters down to the MI Box, and how the cables run from there",
+            },
+            {
                 id: "meralco-bill", type: "photo", text: "Meralco bill", label: "Add photo", fromVisit: true,
                 hint: "The “Your Monthly Consumption” graph must be clearly visible",
             },
@@ -63,10 +68,20 @@ export const CHECKLISTS = {
                 id: "roof-pin", type: "photo", text: "Roof with pinned location", label: "Add screenshot",
                 hint: "A map screenshot with the roof pinned",
             },
+            {
+                id: "lift-location", type: "choice", text: "Location to lift PV panels",
+                hint: "A photo of where the panels can be carried up, and whether a PV lifter is needed",
+                options: ["No PV lifter needed", "PV lifter needed"], allowPhoto: true, photoRequired: true,
+            },
             { id: "cable-estimate", type: "lengths", text: "Estimated AC and DC cable length" },
             {
                 id: "shading", type: "choice", text: "Possible shading from surrounding structures or trees",
                 options: ["None", "Some", "Heavy"], allowPhoto: true,
+            },
+            {
+                id: "repairs", type: "choice", text: "Will there be any repair?",
+                options: ["No", "Yes"], showNote: true,
+                notePlaceholder: "What needs repairing, e.g. drill a hole, then fill it up",
             },
         ],
         commissioning: [

@@ -4941,7 +4941,8 @@ function itemDone(item, answer) {
         case "photo": return Array.isArray(answer.photos) && answer.photos.length > 0;
         case "text": return Boolean((answer.v || "").trim());
         case "lengths": return Number.isFinite(answer.ac) && Number.isFinite(answer.dc);
-        case "choice": return item.options.includes(answer.v);
+        case "choice": return item.options.includes(answer.v)
+            && (!item.photoRequired || (Array.isArray(answer.photos) && answer.photos.length > 0));
         case "check": return answer.done === true;
         default: return false;
     }
@@ -5410,10 +5411,10 @@ function checklistForm(existing, header) {
         const note = el("textarea", "admin-ck-note");
         note.rows = 2;
         note.maxLength = 500;
-        note.placeholder = "Add a note";
+        note.placeholder = item.notePlaceholder || "Add a note";
         note.setAttribute("aria-label", `Note for: ${item.text}`);
         note.value = answerOf(item.id).note || "";
-        note.hidden = !note.value;
+        note.hidden = !note.value && !item.showNote;
         note.addEventListener("input", () => {
             setItem(item.id, { note: note.value.trim() ? note.value : "" });
             sync();
@@ -5503,8 +5504,8 @@ function checklistForm(existing, header) {
         const photoError = el("p", "admin-ck-error");
         const photos = el("ul", "admin-attachment-grid admin-ck-photos");
         if (item.type === "photo" || item.allowPhoto) {
-            const add = el("label", `admin-ck-tool${item.type === "photo" ? " admin-ck-tool-main" : ""}`);
-            add.append(el("span", "material-symbols-rounded", "photo_camera"), item.type === "photo" ? item.label || "Add photo" : "Photo (optional)");
+            const add = el("label", `admin-ck-tool${item.type === "photo" || item.photoRequired ? " admin-ck-tool-main" : ""}`);
+            add.append(el("span", "material-symbols-rounded", "photo_camera"), item.type === "photo" ? item.label || "Add photo" : item.photoRequired ? "Add photo" : "Photo (optional)");
             const fileInput = Object.assign(el("input"), { type: "file", accept: "image/*", multiple: true, hidden: true });
             add.append(fileInput);
             fileInput.addEventListener("change", async () => {
