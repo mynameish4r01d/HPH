@@ -220,11 +220,19 @@
                                 </div>
                                 <div class="model-stack-group" role="group" aria-label="Build your system">
                                     <div class="model-stack" data-kind="batteries">
-                                        <span class="model-stack-caption">B4000 batteries</span>
+                                        <span class="model-stack-caption">B4000 per unit</span>
                                         <div class="model-stack-stepper">
-                                            <button type="button" class="model-stack-btn" data-step="-1" aria-label="Remove a B4000 Elite battery"><span class="material-symbols-rounded">remove</span></button>
+                                            <button type="button" class="model-stack-btn" data-step="-1" aria-label="Remove a B4000 Elite battery from each head unit"><span class="material-symbols-rounded">remove</span></button>
                                             <span class="model-stack-label" aria-live="polite">0</span>
-                                            <button type="button" class="model-stack-btn" data-step="1" aria-label="Add a B4000 Elite battery underneath"><span class="material-symbols-rounded">add</span></button>
+                                            <button type="button" class="model-stack-btn" data-step="1" aria-label="Add a B4000 Elite battery under each head unit"><span class="material-symbols-rounded">add</span></button>
+                                        </div>
+                                    </div>
+                                    <div class="model-stack" data-kind="heads">
+                                        <span class="model-stack-caption">Head units</span>
+                                        <div class="model-stack-stepper">
+                                            <button type="button" class="model-stack-btn" data-step="-1" aria-label="Remove an MSU4000 Elite head unit"><span class="material-symbols-rounded">remove</span></button>
+                                            <span class="model-stack-label" aria-live="polite">1</span>
+                                            <button type="button" class="model-stack-btn" data-step="1" aria-label="Add an MSU4000 Elite head unit with its own batteries"><span class="material-symbols-rounded">add</span></button>
                                         </div>
                                     </div>
                                     <div class="model-stack-total">
@@ -537,11 +545,19 @@
                     </div>
                     <div class="model-stack-group" role="group" aria-label="Build your system">
                         <div class="model-stack" data-kind="batteries">
-                            <span class="model-stack-caption">B4000 batteries</span>
+                            <span class="model-stack-caption">B4000 per unit</span>
                             <div class="model-stack-stepper">
-                                <button type="button" class="model-stack-btn" data-step="-1" aria-label="Remove a B4000 Elite battery"><span class="material-symbols-rounded">remove</span></button>
+                                <button type="button" class="model-stack-btn" data-step="-1" aria-label="Remove a B4000 Elite battery from each head unit"><span class="material-symbols-rounded">remove</span></button>
                                 <span class="model-stack-label" aria-live="polite">0</span>
-                                <button type="button" class="model-stack-btn" data-step="1" aria-label="Add a B4000 Elite battery underneath"><span class="material-symbols-rounded">add</span></button>
+                                <button type="button" class="model-stack-btn" data-step="1" aria-label="Add a B4000 Elite battery under each head unit"><span class="material-symbols-rounded">add</span></button>
+                            </div>
+                        </div>
+                        <div class="model-stack" data-kind="heads">
+                            <span class="model-stack-caption">Head units</span>
+                            <div class="model-stack-stepper">
+                                <button type="button" class="model-stack-btn" data-step="-1" aria-label="Remove an MSU4000 Elite head unit"><span class="material-symbols-rounded">remove</span></button>
+                                <span class="model-stack-label" aria-live="polite">1</span>
+                                <button type="button" class="model-stack-btn" data-step="1" aria-label="Add an MSU4000 Elite head unit with its own batteries"><span class="material-symbols-rounded">add</span></button>
                             </div>
                         </div>
                         <div class="model-stack-total">
@@ -823,29 +839,35 @@
             });
         }
 
-        // 3D slide: stack 0–4 B4000 Elite batteries under the head unit. Each
-        // count is its own pre-built model (see CLAUDE.md), so AR shows the stack too.
-        // Each model also has an "add" and a "remove" animation (from one battery
-        // fewer / more), played once when it loads; its rest pose is the final stack.
-        const STACK_MAX = 4;
+        // 3D slide: 1–4 MSU4000 Elite head units side by side, each on 0–4 B4000
+        // Elite batteries (4 × 5 units = 80 kWh). Each combination is its own
+        // pre-built model (see CLAUDE.md), so AR shows the setup too. Each model has
+        // "add"/"remove" (one battery more/fewer per head unit) and "add-stack"/
+        // "remove-stack" (one head unit more/fewer) animations, played once when it
+        // loads; its rest pose is the finished setup.
+        const STACK_MAX = 4, HEADS_MAX = 4;
         const PRICES = { head: 120000, batt: 90000 }; // keep in sync with "Starting at" and join-waitlist data-price
-        const stackFile = (n) => `elements/msu4000elite-b4000x${n}.glb`;
+        const stackFile = (h, n) => `elements/msu4000elite${h > 1 ? `-h${h}` : ""}-b4000x${n}.glb`;
         const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
         const prefetched = new Set();
         // Capacity labels pinned beside each unit (model-viewer hotspots), shown
         // once a battery is stacked. Positions are in the stack files' metres:
         // the middle of the units' right side (x, z), so the label's dot sits on
         // the unit, the step between units and the centre of the bottom battery /
-        // of the head unit with no batteries.
-        const SPOTS = { x: 0.246, zHead: 0, zBatt: 0, step: 0.28, battY: 0.154, headY: 0.155, head: "MSU4000 Elite", batt: "B4000", headKwh: 4, battKwh: 4 };
-        document.querySelectorAll(".model-stack-group").forEach((ctrl) => {
-            const viewer = ctrl.parentElement.querySelector("model-viewer");
-            const label = ctrl.querySelector(".model-stack-label");
-            const totalNum = ctrl.querySelector(".model-stack-kwh-num"), totalBox = ctrl.querySelector(".model-stack-total");
-            const priceNum = ctrl.querySelector(".model-stack-price-num");
-            const slide = ctrl.parentElement;
-            const [minus, plus] = ctrl.querySelectorAll(".model-stack-btn");
-            let batteries = 0, pendingAnim = null, pendingCam = null;
+        // of the head unit with no batteries. With several head units the
+        // labels go on the rightmost stack; stacks are `pitch` apart, centred on 0.
+        const SPOTS = { pitch: 0.613, x: 0.246, zHead: 0, zBatt: 0, step: 0.28, battY: 0.154, headY: 0.155, head: "MSU4000 Elite", batt: "B4000", headKwh: 4, battKwh: 4 };
+        document.querySelectorAll(".model-stack-group").forEach((group) => {
+            const slide = group.parentElement;
+            const viewer = slide.querySelector("model-viewer");
+            const headCtrl = group.querySelector('[data-kind="heads"]'), battCtrl = group.querySelector('[data-kind="batteries"]');
+            const headLabel = headCtrl.querySelector(".model-stack-label"), label = battCtrl.querySelector(".model-stack-label");
+            const totalNum = group.querySelector(".model-stack-kwh-num"), totalBox = group.querySelector(".model-stack-total");
+            const priceNum = group.querySelector(".model-stack-price-num");
+            const [headMinus, headPlus] = headCtrl.querySelectorAll(".model-stack-btn");
+            const [minus, plus] = battCtrl.querySelectorAll(".model-stack-btn");
+            let heads = 1, batteries = 0, pendingAnim = null, pendingCam = null;
+            const stacked = () => heads > 1 || batteries > 0;
             viewer.animationCrossfadeDuration = 0; // switching add ↔ remove shouldn't blend the two
             // A stack is pulled back a little (150% of model-viewer's framing, vs its
             // default 105%) so it starts clear of the stepper and the hint. The max is
@@ -860,7 +882,9 @@
             // back where it was, then let it glide to the new framing.
             async function glideCamera(cam) {
                 const { theta, phi, radius } = cam.orbit, { x, y, z } = cam.target;
-                const goal = `${theta}rad ${phi}rad ${batteries ? 150 : 105}%`;
+                // During the tour, a step's own framing wins over the stack default.
+                const tourZoom = typeof featOn !== "undefined" && featOn ? stepZoom(FEATURES[featStep]) : undefined;
+                const goal = `${theta}rad ${phi}rad ${tourZoom ?? (stacked() ? 150 : 105)}%`;
                 if (reduceMotion.matches) { viewer.cameraOrbit = goal; return; }
                 viewer.cameraTarget = `${x}m ${y + (cam.plain ? PLAIN_TO_STACK_Y : 0)}m ${z}m`;
                 viewer.cameraOrbit = `${theta}rad ${phi}rad ${radius}m`;
@@ -901,15 +925,16 @@
             // and in the plain head-unit file. The Bottom view zooms in on it.
             const BOTTOM = { x: 0.19, z: 0, y: 0.004, plainY: -0.1525, radius: 1.6 };
             function bottomTarget() {
+                const cx = (heads - 1) / 2 * SPOTS.pitch;
                 const y = viewer.src.endsWith("/msu4000elite.glb") ? BOTTOM.plainY : BOTTOM.y;
-                return `${BOTTOM.x + 0.12}m ${y}m ${BOTTOM.z}m`; // connector left of centre, label room on the right
+                return `${cx + BOTTOM.x + 0.12}m ${y}m ${BOTTOM.z}m`; // connector left of centre, label room on the right
             }
             function portTarget() {
                 const mid = viewer.src.endsWith("/msu4000elite.glb") ? -0.002 : SPOTS.headY + batteries * SPOTS.step;
-                return `${PORTS.x}m ${mid + PORT_ZOOM.dy}m ${PORT_ZOOM.z}m`;
+                return `${PORTS.x + (heads - 1) / 2 * SPOTS.pitch}m ${mid + PORT_ZOOM.dy}m ${PORT_ZOOM.z}m`;
             }
             // Dimensions: a toggle (ruler button) that draws width, height and depth
-            // lines on the stack, with labels from the TSUN data sheets (MSU4000 Elite
+            // lines on the rightmost stack, with labels from the TSUN data sheets (MSU4000 Elite
             // 493 × 305 × 295 mm; each B4000 Elite adds 280 mm of height and is 220 mm
             // deep, so the head unit sets the depth). Invisible hotspots pin the line
             // ends to the model; the overlay redraws them whenever the camera moves.
@@ -962,7 +987,8 @@
                 slide.classList.toggle("dims-on", dimsOn);
                 if (!dimsOn) return;
                 const plain = viewer.src.endsWith("/msu4000elite.glb");
-                box = { x0: -DIMS.half, x1: DIMS.half, bottom: plain ? -0.157 : 0, top: plain ? 0.153 : 0.309 + 0.2805 * batteries };
+                const cx = (heads - 1) / 2 * SPOTS.pitch;
+                box = { x0: cx - DIMS.half, x1: cx + DIMS.half, bottom: plain ? -0.157 : 0, top: plain ? 0.153 : 0.309 + 0.2805 * batteries };
                 corner = "";
                 placeDims();
                 dimsBox.querySelector('[data-dim="w"]').textContent = `${cm(DIMS.wMm)} wide`;
@@ -1013,24 +1039,27 @@
                 const { theta, phi } = viewer.getCameraOrbit();
                 markView(null);
                 viewer.cameraTarget = "auto auto auto";
-                viewer.cameraOrbit = `${theta}rad ${Math.min(phi, Math.PI * 0.6)}rad ${dimsOn ? 170 : (batteries ? 150 : 105)}%`;
+                viewer.cameraOrbit = `${theta}rad ${Math.min(phi, Math.PI * 0.6)}rad ${dimsOn ? 170 : (stacked() ? 150 : 105)}%`;
                 showDims();
             });
             // Features mode: a short guided tour. Each step turns the camera to the part
             // it's about and explains one feature in the card. The wording comes from the
             // TSUN data sheet and the site's specs/FAQ, so keep them in sync.
             const FEATURES = [
-                { config: 0, fx: "charge", stat: { from: 0, to: 4, unit: "kWh" }, spin: true, title: "4 kWh of storage", text: "4,000 Wh of LiFePO\u2084 battery in the head unit \u2014 a safe, long-lasting chemistry.", theta: 35, phi: 74 },
-                { config: 4, animate: true, stat: { from: 4, to: 20, unit: "kWh" }, title: "Stack up to 20 kWh", text: "Add up to 4 B4000 Elite batteries underneath for 20 kWh.", theta: 20, phi: 82 },
-                { config: 0, showLeft: true, title: "4 MC4 solar inputs", text: "Connect solar panels straight to the 4 sets of MC4 connectors on its left side \u2014 the inverter is built in.", theta: -90, phi: 80 },
-                { config: 0, fx: "ring", stat: { from: 0, to: 10000, unit: "cycles" }, title: "10,000 charging cycles", text: "Designed for 10,000 charge cycles (at 25 \u00b0C) \u2014 about 27 years at one full cycle a day.", theta: -30, phi: 78 },
-                { config: 0, fx: "badge", title: "IP65 dust and water resistance", text: "Dust-tight and protected against water jets, and it works from \u221220 to 55 \u00b0C.", theta: 55, phi: 62, rain: true },
-                { config: 0, fx: "backup", stat: { from: 0, to: 10, unit: "ms", prefix: "\u2264 " }, title: "Backup in 10 ms or less", text: "When the grid goes down, its off-grid port switches to battery in 10 ms or less, with up to 2,500 W of backup power.", theta: 90, phi: 78 },
-                { config: 0, fx: "heat", title: "Silent, fan-free cooling", text: "Natural convection through its cooling fins \u2014 no fans to wear out or hum.", theta: 115, phi: 72 },
-                { config: 0, fx: "phone", title: "Monitor it from your phone", text: "Dual-band Wi-Fi (2.4 and 5 GHz) and Bluetooth connect it to the TSUN app, so you can check charge, solar and backup at a glance.", theta: -15, phi: 76 },
-                { config: 0, fx: "seal", stat: { from: 0, to: 10, unit: "years" }, title: "10-year warranty", text: "Backed by a 10-year warranty, with local support from HPH Renewable.", theta: 35, phi: 72 },
+                { config: { heads: 1, batteries: 0 }, fx: "charge", stat: { from: 0, to: 4, unit: "kWh" }, spin: true, title: "4 kWh of storage", text: "4,000 Wh of LiFePO\u2084 battery in the head unit \u2014 a safe, long-lasting chemistry.", theta: 35, phi: 74 },
+                { config: { heads: 1, batteries: 4 }, animate: true, stat: { from: 4, to: 20, unit: "kWh" }, title: "Stack up to 20 kWh", text: "Add up to 4 B4000 Elite batteries underneath for 20 kWh per stack.", theta: 20, phi: 82 },
+                { config: { heads: 4, batteries: 4 }, animate: true, zoom: { desktop: 72, phone: 100 }, stat: { from: 20, to: 80, unit: "kWh" }, title: "Grow to 80 kWh", text: "Run up to 4 MSU4000 Elite units side by side, each with its own batteries, for up to 80 kWh.", theta: 0, phi: 76 },
+                { config: { heads: 1, batteries: 0 }, showLeft: true, title: "4 MC4 solar inputs", text: "Connect solar panels straight to the 4 sets of MC4 connectors on its left side \u2014 the inverter is built in.", theta: -90, phi: 80 },
+                { config: { heads: 1, batteries: 0 }, fx: "ring", stat: { from: 0, to: 10000, unit: "cycles" }, title: "10,000 charging cycles", text: "Designed for 10,000 charge cycles (at 25 \u00b0C) \u2014 about 27 years at one full cycle a day.", theta: -30, phi: 78 },
+                { config: { heads: 1, batteries: 0 }, fx: "badge", title: "IP65 dust and water resistance", text: "Dust-tight and protected against water jets, and it works from \u221220 to 55 \u00b0C.", theta: 55, phi: 62, rain: true },
+                { config: { heads: 1, batteries: 0 }, fx: "backup", stat: { from: 0, to: 10, unit: "ms", prefix: "\u2264 " }, title: "Backup in 10 ms or less", text: "When the grid goes down, its off-grid port switches to battery in 10 ms or less, with up to 2,500 W of backup power.", theta: 90, phi: 78 },
+                { config: { heads: 1, batteries: 0 }, fx: "heat", title: "Silent, fan-free cooling", text: "Natural convection through its cooling fins \u2014 no fans to wear out or hum.", theta: 115, phi: 72 },
+                { config: { heads: 1, batteries: 0 }, fx: "phone", title: "Monitor it from your phone", text: "Dual-band Wi-Fi (2.4 and 5 GHz) and Bluetooth connect it to the TSUN app, so you can check charge, solar and backup at a glance.", theta: -15, phi: 76 },
+                { config: { heads: 1, batteries: 0 }, fx: "seal", stat: { from: 0, to: 10, unit: "years" }, title: "10-year warranty", text: "Backed by a 10-year warranty, with local support from HPH Renewable.", theta: 35, phi: 72 },
             ];
             const featBtn = slide.querySelector(".model-feature-btn"), card = slide.querySelector(".model-feature-card");
+            // A step's own framing, wider on phones (the four stacks need the width).
+            const stepZoom = (f) => f.zoom && (window.innerWidth > 750 ? f.zoom.desktop : f.zoom.phone);
             const dotsBox = card.querySelector(".model-feature-dots");
             FEATURES.forEach(() => dotsBox.append(document.createElement("i")));
             let featOn = false, featStep = 0;
@@ -1067,21 +1096,33 @@
                 };
                 tick();
             }
-            // The tour sets the batteries for each step: "build" (nothing to 4, one
-            // smooth animation in the 4-battery file) where the step animates and the
-            // stack grows, otherwise straight there. showSpots() resolves `settle`.
+            // The tour sets the stack for each step: adding batteries or head units one
+            // at a time with their animations where the step animates (and the stack
+            // grows), otherwise jumping straight there. showSpots() resolves `settle`
+            // once a load and its animation have finished.
             let tourRun = 0, settle = null, beforeTour = null;
             const settled = () => new Promise((r) => { settle = r; setTimeout(r, 7000); });
-            async function stackTo(n, animate) {
+            async function stackTo(c, animate) {
                 const mine = ++tourRun;
-                if (animate && batteries === 0 && n === 4) { batteries = 4; show(1, "build"); return; }
-                if (animate && n > batteries) {
-                    while (mine === tourRun && batteries < n) { batteries++; const w = settled(); show(1); await w; }
+                // The two tour steps have their own one-shot animations in the model
+                // files: "build" (one head unit, nothing to 4 batteries) and
+                // "build-stacks" (one full stack to 4).
+                if (animate && heads === 1 && batteries === 0 && c.heads === 1 && c.batteries === 4) {
+                    batteries = 4; show("batteries", 1, "build"); return;
                 }
-                if (mine === tourRun && batteries !== n) {
-                    batteries = n;
+                if (animate && heads === 1 && batteries === 4 && c.heads === 4 && c.batteries === 4) {
+                    heads = 4; show("heads", 1, "build-stacks"); return;
+                }
+                const grow = animate && c.heads >= heads && c.batteries >= batteries;
+                if (grow) {
+                    while (mine === tourRun && batteries < c.batteries) { batteries++; const w = settled(); show("batteries", 1); await w; }
+                    while (mine === tourRun && heads < c.heads) { heads++; const w = settled(); show("heads", 1); await w; }
+                }
+                if (mine === tourRun && (heads !== c.heads || batteries !== c.batteries)) {
+                    heads = c.heads;
+                    batteries = c.batteries;
                     const w = settled();
-                    show(0);
+                    show("batteries", 0);
                     await w;
                     return "jumped";
                 }
@@ -1145,7 +1186,7 @@
                 // The MC4 step shows the "MC4 ports" label, as the Left view does.
                 slide.classList.toggle("feature-spots-left", !!f.showLeft);
                 const step = featStep;
-                if (f.config !== undefined) stackTo(f.config, !!f.animate).then((r) => { if (r === "jumped" && featOn && featStep === step) applyCam(); });
+                if (f.config) stackTo(f.config, !!f.animate).then((r) => { if (r === "jumped" && featOn && featStep === step) applyCam(); });
                 card.querySelector(".model-feature-count").textContent = `${featStep + 1} of ${FEATURES.length}`;
                 card.querySelector(".model-feature-title").textContent = f.title;
                 card.querySelector(".model-feature-text").textContent = f.text;
@@ -1156,7 +1197,9 @@
                 }
                 const applyCam = () => {
                     viewer.cameraTarget = "auto auto auto";
-                    viewer.cameraOrbit = `${f.theta}deg ${f.phi}deg ${batteries ? 150 : 110}%`;
+                    // A step can set its own framing (80 kWh: just enough for all four stacks).
+                    const pct = stepZoom(f) ?? (stacked() ? 150 : 110);
+                    viewer.cameraOrbit = `${f.theta}deg ${f.phi}deg ${pct}%`;
                 };
                 applyCam();
             }
@@ -1170,17 +1213,17 @@
                 markView(null);
                 if (on) {
                     if (dimsOn) measureBtn.click(); // one overlay at a time
-                    beforeTour = batteries;
+                    beforeTour = { heads, batteries };
                     showFeature(0);
                 } else {
                     setRain(false);
                     playFx({});
                     slide.classList.remove("feature-spots-left");
-                    if (beforeTour !== null) stackTo(beforeTour, false); // back to the visitor's own setup
+                    if (beforeTour) stackTo(beforeTour, false); // back to the visitor's own setup
                 }
                 if (!on && !dimsOn) { // (the ruler sets its own view when it takes over)
                     viewer.cameraTarget = "auto auto auto";
-                    viewer.cameraOrbit = `35deg 72deg ${batteries ? 150 : 105}%`;
+                    viewer.cameraOrbit = `35deg 72deg ${stacked() ? 150 : 105}%`;
                 }
             }
             featBtn.addEventListener("click", () => setFeatures(!featOn));
@@ -1195,7 +1238,7 @@
                 }
                 viewer.cameraTarget = "auto auto auto";
                 viewer.fieldOfView = "auto";
-                viewer.cameraOrbit = `35deg 72deg ${dimsOn ? 170 : batteries ? 150 : 105}%`;
+                viewer.cameraOrbit = `35deg 72deg ${dimsOn ? 170 : stacked() ? 150 : 105}%`;
             });
             card.querySelector(".model-feature-close").addEventListener("click", () => setFeatures(false));
             card.querySelector(".model-feature-prev").addEventListener("click", () => showFeature(featStep - 1));
@@ -1206,18 +1249,19 @@
                 showDims();
                 const RIGHT = [0.7071, 0.7071], LEFT = [-0.866, 0.5];
                 const units = [];
-                if (batteries) {
-                    units.push({ x: SPOTS.x, y: SPOTS.headY + batteries * SPOTS.step, z: SPOTS.zHead, n: RIGHT, name: SPOTS.head, sub: `${SPOTS.headKwh} kWh` });
-                    for (let i = batteries - 1; i >= 0; i--) units.push({ x: SPOTS.x, y: SPOTS.battY + i * SPOTS.step, z: SPOTS.zBatt, n: RIGHT, name: SPOTS.batt, sub: `+${SPOTS.battKwh} kWh` });
+                const shift = (heads - 1) / 2 * SPOTS.pitch; // the rightmost stack's offset
+                if (stacked()) {
+                    units.push({ x: SPOTS.x + shift, y: SPOTS.headY + batteries * SPOTS.step, z: SPOTS.zHead, n: RIGHT, name: SPOTS.head, sub: `${SPOTS.headKwh} kWh` });
+                    for (let i = batteries - 1; i >= 0; i--) units.push({ x: SPOTS.x + shift, y: SPOTS.battY + i * SPOTS.step, z: SPOTS.zBatt, n: RIGHT, name: SPOTS.batt, sub: `+${SPOTS.battKwh} kWh` });
                 }
                 // Always shown (the ports are on the head unit), on the left, seen from
                 // the front and the left.
                 const plain = viewer.src.endsWith("/msu4000elite.glb");
                 const headMid = SPOTS.headY + batteries * SPOTS.step;
-                units.push({ x: MC4.x, y: plain ? MC4.plainY : headMid + MC4.dy, z: MC4.z, n: LEFT, left: true, name: "MC4 ports", sub: "4 sets", subExtra: " · solar input" });
-                for (const p of PORTS.list) units.push({ x: PORTS.x, y: plain ? p.plainY : headMid + p.dy, z: PORTS.z, n: [1, 0], port: true, name: p.name, sub: p.sub });
+                units.push({ x: MC4.x - shift, y: plain ? MC4.plainY : headMid + MC4.dy, z: MC4.z, n: LEFT, left: true, name: "MC4 ports", sub: "4 sets", subExtra: " · solar input" });
+                for (const p of PORTS.list) units.push({ x: PORTS.x + shift, y: plain ? p.plainY : headMid + p.dy, z: PORTS.z, n: [1, 0], port: true, name: p.name, sub: p.sub });
                 // The stacking connector under the bottom unit, seen from below.
-                units.push({ x: BOTTOM.x, y: plain ? BOTTOM.plainY : BOTTOM.y, z: BOTTOM.z, bottom: true, name: "Battery connector" });
+                units.push({ x: BOTTOM.x + shift, y: plain ? BOTTOM.plainY : BOTTOM.y, z: BOTTOM.z, bottom: true, name: "Battery connector" });
                 units.forEach((u, i) => {
                     const el = document.createElement("div");
                     // Which side's group it belongs to: front (unit and batteries), left
@@ -1295,24 +1339,30 @@
                     else showSpots();
                 } else if (mine === run) showSpots();
                 // Warm the cache for the next tap either way.
-                [batteries - 1, batteries + 1].filter((n) => n >= 0 && n <= STACK_MAX).map(stackFile).forEach((url) => {
+                [[heads, batteries - 1], [heads, batteries + 1], [heads - 1, batteries], [heads + 1, batteries]]
+                    .filter(([h, n]) => h >= 1 && h <= HEADS_MAX && n >= 0 && n <= STACK_MAX)
+                    .map(([h, n]) => stackFile(h, n)).forEach((url) => {
                     if (prefetched.has(url)) return;
                     prefetched.add(url);
                     fetch(url, { priority: "low" }).catch(() => prefetched.delete(url));
                 });
             });
-            function show(step, anim) {
-                pendingAnim = anim || (step ? (step > 0 ? "add" : "remove") : null);
+            function show(kind, step, anim) {
+                pendingAnim = anim || (!step ? null : kind === "heads" ? (step > 0 ? "add-stack" : "remove-stack") : (step > 0 ? "add" : "remove"));
                 clearSpots();
-                // Phones slide the stacked model left to make room for the labels.
-                viewer.parentElement.classList.toggle("has-stack", batteries > 0);
+                // Phones slide a single stack left to make room for its labels, and
+                // hide the labels when several stacks fill the width.
+                slide.classList.toggle("has-stack", stacked());
+                slide.classList.toggle("multi-stack", heads > 1);
                 // Where the camera is now (only on taps, once model-viewer has loaded).
                 pendingCam = step ? { orbit: viewer.getCameraOrbit(), target: viewer.getCameraTarget(), plain: viewer.src.endsWith("/msu4000elite.glb") } : null;
                 // The plain head-unit model is lighter, so it's used until the stack changes.
-                viewer.src = batteries || step ? stackFile(batteries) : "elements/msu4000elite.glb";
-                viewer.alt = batteries ? `3D model of the MSU4000 Elite on ${batteries} B4000 Elite batteries` : "3D model of the MSU4000 Elite";
+                viewer.src = stacked() || step ? stackFile(heads, batteries) : "elements/msu4000elite.glb";
+                const unitsText = heads > 1 ? `${heads} MSU4000 Elite units` : "the MSU4000 Elite";
+                viewer.alt = `3D model of ${unitsText}` + (batteries ? `, each on ${batteries} B4000 Elite batteries` : "");
+                headLabel.textContent = heads;
                 label.textContent = batteries;
-                const kwh = String((4 + batteries * 4));
+                const kwh = String(4 * heads * (batteries + 1));
                 if (totalNum.textContent !== kwh) {
                     totalNum.textContent = kwh;
                     // A quick pulse so the change is noticed.
@@ -1320,9 +1370,11 @@
                 }
                 // Estimated starting price from the "Starting at" prices (the same
                 // figures as the waitlist's data-price); the real price comes in the quote.
-                priceNum.textContent = "₱" + (PRICES.head + batteries * PRICES.batt).toLocaleString("en-PH");
+                priceNum.textContent = "₱" + (heads * (PRICES.head + batteries * PRICES.batt)).toLocaleString("en-PH");
                 minus.disabled = batteries === 0;
                 plus.disabled = batteries === STACK_MAX;
+                headMinus.disabled = heads === 1;
+                headPlus.disabled = heads === HEADS_MAX;
             }
             // Front / Back / Left / Right: glide the camera round to that side (Left
             // and Right as you face the front). Dragging clears the selection.
@@ -1349,7 +1401,7 @@
                 viewer.cameraTarget = ports ? portTarget() : bottom ? bottomTarget() : "auto auto auto";
                 viewer.cameraOrbit = ports ? `90deg 80deg ${PORT_ZOOM.radius}m`
                     : bottom ? `0deg ${btn.dataset.phi}deg ${BOTTOM.radius}m`
-                    : `${btn.dataset.theta}deg 80deg ${batteries ? 150 : 105}%`;
+                    : `${btn.dataset.theta}deg 80deg ${stacked() ? 150 : 105}%`;
             });
             // The "Drag to rotate" hint fades once the visitor has used the slide, which
             // also frees the space under a tall stack.
@@ -1370,14 +1422,20 @@
             viewsBar.addEventListener("click", dismissHint);
             slide.querySelector(".model-stack-group").addEventListener("click", dismissHint);
 
-            ctrl.addEventListener("click", (e) => {
+            group.addEventListener("click", (e) => {
                 const btn = e.target.closest(".model-stack-btn");
                 if (!btn) return;
-                const next = Math.min(STACK_MAX, Math.max(0, batteries + Number(btn.dataset.step)));
-                if (next === batteries) return;
-                const step = next - batteries;
-                batteries = next;
-                show(step);
+                const kind = btn.closest(".model-stack").dataset.kind, step = Number(btn.dataset.step);
+                if (kind === "heads") {
+                    const next = Math.min(HEADS_MAX, Math.max(1, heads + step));
+                    if (next === heads) return;
+                    heads = next;
+                } else {
+                    const next = Math.min(STACK_MAX, Math.max(0, batteries + step));
+                    if (next === batteries) return;
+                    batteries = next;
+                }
+                show(kind, step);
             });
             show();
         });

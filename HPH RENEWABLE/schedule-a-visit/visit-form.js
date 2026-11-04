@@ -15,6 +15,7 @@ import { firebaseConfig } from "../firebase-config.js";
 import { tidyName, tidyAddress, tidyOnBlur } from "../text-format.js";
 import { findReferrer, findReferrerByName, searchReferrers } from "../referral-codes.js";
 import { GOOGLE_MAPS_API_KEY } from "../maps-config.js";
+import { cameraAvailable, openBillCamera } from "./bill-camera.js";
 
 const FIREBASE_VERSION = "12.3.0";
 const COLLECTION = "visitRequests";
@@ -132,7 +133,7 @@ function checkReferral() {
         // A name typed in full becomes the code, which is what's saved.
         if (referralInput.value.trim() !== person.code && document.activeElement !== referralInput) referralInput.value = person.code;
         field.classList.remove("visit-invalid");
-        hint.textContent = `✓ Referred by ${person.name}`;
+        hint.textContent = `Referred by ${person.name}`;
         return true;
     }
     return setFieldError(field, "That is not a real referral code. Please check it, or leave it blank.");
@@ -151,7 +152,7 @@ referralInput.addEventListener("input", () => {
     if (resolveReferrer(referralInput.value) || !referralInput.value.trim() || field.classList.contains("visit-invalid")) {
         checkReferral();
     } else {
-        // Mid-typing: drop an earlier "✓ Referred by …" without an error yet.
+        // Mid-typing: drop an earlier "Referred by …" without an error yet.
         const hint = field.querySelector(".visit-hint");
         hint.textContent = "";
         hint.classList.remove("visit-hint-ok");
@@ -197,11 +198,11 @@ function fileType(file) {
 
 // Large JPEG/PNG/WebP photos -> JPEG at most SHRINK_MAX_EDGE px. Anything
 // else, or anything that fails to shrink, is returned unchanged.
-async function shrinkImage(file) {
-    if (!SHRINKABLE_TYPE.test(fileType(file)) || file.size <= SHRINK_OVER_BYTES) return file;
+async function shrinkImage(file, { over = SHRINK_OVER_BYTES, edge = SHRINK_MAX_EDGE, quality = 0.85 } = {}) {
+    if (!SHRINKABLE_TYPE.test(fileType(file)) || file.size <= over) return file;
     try {
         const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
-        const scale = Math.min(1, SHRINK_MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+        const scale = Math.min(1, edge / Math.max(bitmap.width, bitmap.height));
         const canvas = document.createElement("canvas");
         canvas.width = Math.round(bitmap.width * scale);
         canvas.height = Math.round(bitmap.height * scale);
@@ -210,7 +211,7 @@ async function shrinkImage(file) {
         context.fillRect(0, 0, canvas.width, canvas.height);
         context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
         bitmap.close();
-        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.85));
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
         if (!blob || blob.size >= file.size) return file;
         const name = file.name.replace(/\.[^.]+$/, "") + ".jpg";
         return new File([blob], name, { type: "image/jpeg", lastModified: file.lastModified });
@@ -218,6 +219,14 @@ async function shrinkImage(file) {
         console.warn("Schedule a Visit: couldn't shrink image, uploading as is", err);
         return file;
     }
+}
+
+// Photos taken with the camera are kept exactly as taken, so the bill stays
+// clear. Only one over the 10 MB upload limit is shrunk, as little as it takes.
+async function keepPhoto(file) {
+    if (file.size <= MAX_FILE_BYTES) return file;
+    const lighter = await shrinkImage(file, { over: MAX_FILE_BYTES, edge: 4000, quality: 0.92 });
+    return lighter.size <= MAX_FILE_BYTES ? lighter : shrinkImage(lighter, { over: MAX_FILE_BYTES, edge: 3000, quality: 0.85 });
 }
 
 function fileProblem(files, { max, accept, typeError }) {
@@ -340,10 +349,12 @@ function makeUploader(input, { max, accept, typeError, required = false }) {
             return item;
         }));
         dropZone.hidden = up.files.length >= max;
+        if (up.onRender) up.onRender();
     }
 
-    // Adds picked or dropped files (up to `max` in total), shrinking large photos.
-    async function addFiles(picked) {
+    // Adds picked or dropped files (up to `max` in total), shrinking large
+    // photos, unless `original` (camera photos): those are kept as taken.
+    async function addFiles(picked, { original = false } = {}) {
         if (!picked.length) return;
         const room = max - up.files.length;
         const fresh = picked.filter((f) => !sourceKeys.includes(sourceKey(f)));
@@ -352,7 +363,7 @@ function makeUploader(input, { max, accept, typeError, required = false }) {
         const sub = field.querySelector(".visit-upload-sub");
         const subText = sub.textContent;
         sub.textContent = "Preparing photos…";
-        const prepared = await Promise.all(adding.map(shrinkImage));
+        const prepared = await Promise.all(adding.map(original ? keepPhoto : shrinkImage));
         sub.textContent = subText;
 
         up.files = up.files.concat(prepared);
@@ -397,6 +408,7 @@ function makeUploader(input, { max, accept, typeError, required = false }) {
         addFiles(Array.from(e.dataTransfer.files));
     });
 
+    up.addFiles = addFiles;
     return up;
 }
 
@@ -407,6 +419,40 @@ const billUploader = makeUploader(form.querySelector('[name="files"]'), {
     max: MAX_FILES, accept: ACCEPTED_TYPE, typeError: "Only images or PDF files can be uploaded.", required: true,
 });
 const uploaders = [billUploader];
+
+// "Take a photo with your camera": the camera with a guide frame
+// (bill-camera.js). The photo it takes is added like a picked file.
+// The phone's own camera app (full quality, autofocus): a file input that
+// asks for the camera. Shown on touch devices only (CSS); on a computer the
+// same input would just open the file picker.
+const nativeCameraInput = form.querySelector(".visit-native-camera-input");
+const nativeCameraButton = form.querySelector(".visit-native-camera-btn");
+nativeCameraButton.addEventListener("click", () => nativeCameraInput.click());
+nativeCameraInput.addEventListener("change", () => {
+    const photos = Array.from(nativeCameraInput.files);
+    nativeCameraInput.value = "";
+    billUploader.addFiles(photos, { original: true });
+});
+const cameraButton = form.querySelector(".visit-camera-btn");
+// The camera buttons go away once the 3 files are in.
+billUploader.onRender = () => {
+    const full = billUploader.files.length >= MAX_FILES;
+    nativeCameraButton.hidden = full;
+    if (cameraAvailable()) cameraButton.hidden = full;
+};
+if (cameraAvailable()) {
+    cameraButton.hidden = false;
+    cameraButton.addEventListener("click", async () => {
+        const field = cameraButton.closest(".visit-field");
+        try {
+            const photo = await openBillCamera();
+            if (photo) await billUploader.addFiles([photo], { original: true });
+        } catch (err) {
+            console.warn("Schedule a Visit: the camera couldn't be opened", err);
+            setFieldError(field, "We couldn't open your camera. Please allow camera access, or upload a photo instead.");
+        }
+    });
+}
 
 // A file dropped just outside the box would otherwise make the browser leave
 // the page to open it (losing the form), so ignore drops elsewhere.

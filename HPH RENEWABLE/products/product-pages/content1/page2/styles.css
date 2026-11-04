@@ -831,15 +831,20 @@ body.menu-open{
     }
 }
 
-/* Phones: with batteries stacked, the model slides left so the labels on its
-   right clear the screen edge and the next arrow. */
+/* Phones: a single stack slides left so the labels on its right clear the
+   screen edge and the next arrow. With several stacks there's no room for the
+   labels, so they're hidden (the steppers give the totals). */
 @media (max-width: 750px){
     .mobile-carousel-slide-3d model-viewer{
         transition: transform 0.4s ease;
     }
 
-    .mobile-carousel-slide-3d.has-stack model-viewer{
+    .mobile-carousel-slide-3d.has-stack:not(.multi-stack) model-viewer{
         transform: translateX(-10%);
+    }
+
+    .mobile-carousel-slide-3d.multi-stack .unit-spot{
+        display: none;
     }
 
     /* "Elite" is dropped from the head unit's label to fit. */
@@ -924,7 +929,7 @@ body.menu-open{
 
 /* Steppers on the 3D slide, kept minimal and styled after Apple's controls:
    no card, just columns over the stage, each a small caption above an
-   iOS-style ( − n + ) capsule (B4000 per head unit), then the total
+   iOS-style ( − n + ) capsule (head units and B4000 per unit), then the total
    as a large figure. Apple's system font where it exists (San Francisco on
    Apple devices), Inter elsewhere. */
 .model-stack-group{

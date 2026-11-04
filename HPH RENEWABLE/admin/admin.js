@@ -4229,7 +4229,7 @@ const EDIT_FIELDS = {
         // Saved as `product`; older requests named a specific product, which
         // stays selectable for them (see the extra-option rule above).
         { name: "product", label: "Interested in", options: ["Not sure yet", "Micro Inverter", "Battery", "Micro Inverter + Battery"] },
-        { name: "monthlyBill", label: "Monthly bill", options: ["", "Below ₱3,000", "₱3,000 – ₱6,000", "₱6,000 – ₱10,000", "Above ₱10,000"], blank: "Prefer not to say" },
+        { name: "monthlyBill", label: "Monthly bill", options: ["", "Below ₱3,000", "₱3,000 – ₱6,000", "₱6,000 – ₱10,000", "₱10,000 – ₱15,000", "₱15,000 – ₱20,000", "₱20,000 – ₱25,000", "₱25,000 – ₱30,000", "Above ₱30,000"], blank: "Prefer not to say" },
         { name: "usagePattern", label: "Usage pattern", options: ["", "Balanced", "Mostly Day", "Middle of Day", "Mostly Night"], blank: "Not sure" },
         { name: "preferredDate", label: "Preferred date", type: "date" },
         { name: "preferredTime", label: "Preferred time", options: ["Any time", "Morning (9AM – 12PM)", "Afternoon (1PM – 5PM)"] },
