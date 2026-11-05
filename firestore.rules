@@ -530,8 +530,8 @@ service cloud.firestore {
                && !serial.matches('^Y0+$')
                && serial in install.data.inverterSerials)
             || (data.type == 'panel'
-               && serial.matches('^Z[0-9A-Z]{18}$')
-               && !serial.matches('^Z0+$')
+               && serial.matches('^[A-Z][0-9A-Z]{18}$')
+               && !serial.matches('^[A-Z]0+$')
                && serial in install.data.panelSerials)
             || (data.type == 'battery'
                && serial.matches('^N[0-9A-Z]{15}$')

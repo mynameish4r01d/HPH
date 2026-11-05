@@ -63,9 +63,15 @@ function withChecklists(pages) {
 const MAX_ROWS = 500;
 
 // Serial number formats (same as portfolio-counters.js and the rules'
-// isValidSerial): MX2250 micro inverters "Y" + 15, solar panels "Z" + 18.
+// isValidSerial): MX2250 micro inverters "Y" + 15, solar panels a capital letter + 18 (older ones start with Z, newer batches with other letters such as J).
 const INVERTER_SN = /^Y[0-9A-Z]{15}$/;
-const PANEL_SN = /^Z[0-9A-Z]{18}$/;
+const PANEL_SN = /^[A-Z][0-9A-Z]{18}$/;
+// Panel serials aren't held to that shape when a new batch is added (a new
+// panel model can have a different length): any 8-30 letters and digits are
+// accepted. Only
+// serials in the usual shape (PANEL_SN) get a `serials` document, so they're
+// the ones kept unique across installs, like the battery serials (BATTERY_SN).
+const PANEL_SN_ANY = /^[A-Z0-9]{8,30}$/;
 
 // Stale alert: an open visit request or waitlist sign-up (not marked done /
 // contacted) older than this many hours gets an amber "No contact" tag, and
@@ -2661,7 +2667,7 @@ function formatInstallDate(value) {
 }
 
 // All-zero stand-ins for a serial that wasn't recorded.
-const PLACEHOLDER_SN = /^[YZ]0+$/;
+const PLACEHOLDER_SN = /^[A-Z]0+$/;
 
 // Serial numbers typed or pasted in any layout (one per line, commas,
 // spaces): upper-cased tokens, split into ones matching `pattern` (all of
@@ -3264,7 +3270,7 @@ function installForm(install) {
         return update;
     };
     const readInverters = summary(inverters, INVERTER_SN, ["MX2250 serial", "MX2250 serials"]);
-    const readPanels = summary(panels, PANEL_SN, ["panel serial", "panel serials"]);
+    const readPanels = summary(panels, PANEL_SN_ANY, ["panel serial", "panel serials"]);
     const readBatteries = summary(batteries, null, ["battery serial", "battery serials"]);
 
     // Quick entry: a row per unit with the batch prefix filled in, so only the
@@ -3417,12 +3423,12 @@ async function saveInstall(existing, values) {
         : firestore.doc(firestore.collection(db, "installs"));
     const before = {
         inverter: existing ? serialList(existing.inverterSerials) : [],
-        panel: existing ? serialList(existing.panelSerials) : [],
+        panel: existing ? serialList(existing.panelSerials).filter((sn) => PANEL_SN.test(sn)) : [],
         battery: existing ? serialList(existing.batterySerials).filter((sn) => BATTERY_SN.test(sn)) : [],
     };
     const after = {
         inverter: values.inverterSerials,
-        panel: values.panelSerials,
+        panel: values.panelSerials.filter((sn) => PANEL_SN.test(sn)),
         battery: values.batterySerials.filter((sn) => BATTERY_SN.test(sn)),
     };
     const added = [];
@@ -3522,7 +3528,7 @@ async function fillMissingCapacities() {
 async function deleteInstall(install) {
     const serials = [
         ...serialList(install.inverterSerials),
-        ...serialList(install.panelSerials),
+        ...serialList(install.panelSerials).filter((sn) => PANEL_SN.test(sn)),
         ...serialList(install.batterySerials).filter((sn) => BATTERY_SN.test(sn)),
     ];
     const snaps = await Promise.all(serials.map((sn) => firestore.getDoc(serialDoc(sn))));
