@@ -338,6 +338,36 @@ loginForm.addEventListener("submit", async (e) => {
     }
 });
 
+// "Forgot your password?": Firebase emails a link to choose a new one. The
+// reply is the same whether or not the email has an account, so the page
+// doesn't reveal who has one. Google accounts have no password to reset.
+const loginNotice = loginForm.querySelector(".admin-notice");
+const forgotButton = loginForm.querySelector(".admin-forgot");
+forgotButton.addEventListener("click", async () => {
+    loginError.hidden = true;
+    loginNotice.hidden = true;
+    const email = loginForm.email.value.trim();
+    if (!email) {
+        showLoginError("Type your email above first, then tap “Forgot your password?”.");
+        loginForm.email.focus();
+        return;
+    }
+    forgotButton.disabled = true;
+    try {
+        await authSdk.sendPasswordResetEmail(auth, email);
+        loginNotice.textContent = "If that email has an account, we've sent a link to choose a new password. Check your inbox and spam folder. (If you sign in with Google, use the Google button instead.)";
+        loginNotice.hidden = false;
+    } catch (err) {
+        console.error("Admin: password reset failed", err);
+        if (err.code === "auth/invalid-email") showLoginError("That doesn't look like an email address.");
+        else if (err.code === "auth/too-many-requests") showLoginError("Too many attempts. Please wait a few minutes and try again.");
+        else if (err.code === "auth/network-request-failed") showLoginError("Couldn't reach the server. Check your connection and try again.");
+        else showLoginError("We couldn't send the email. Please try again in a moment.");
+    } finally {
+        forgotButton.disabled = false;
+    }
+});
+
 // "Sign in with Google": a pop-up, or a full-page redirect if the browser
 // blocks pop-ups. Access is then checked in onAuthStateChanged above.
 const googleButton = loginSection.querySelector(".admin-google");
