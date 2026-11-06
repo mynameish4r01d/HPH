@@ -3225,3 +3225,6 @@ body.menu-open{
         color: #FF6961;
     }
 }
+
+/* ===== TEMP: PRICES HIDDEN (2026-11-06) — delete this block to restore ===== */
+.price, .mobile-price, .model-stack-price, .visit-product-price { display: none !important; }
