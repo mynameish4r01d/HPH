@@ -2,14 +2,14 @@
 //
 // Estimates savings from a monthly Meralco bill, using the same figures as
 // the FAQ: ₱16/kWh by default, and each MX2250 kit (micro inverter + 4
-// panels, 2.6 kWp, from ₱120,000) making about 3,100 kWh a year (≈₱49,600).
+// panels, 2.6 kWp, from ₱130,000) making about 3,100 kWh a year (≈₱49,600).
 // Only solar the home actually uses counts: directly in the daytime, or
 // stored in a battery for the evening. Extra power earns nothing (no net
 // metering, as the FAQ recommends). Estimates only (see the page footnote).
 
 (function () {
     const KIT_KWH_YEAR = 3100;
-    const KIT_PRICE = 120000;
+    const KIT_PRICE = 130000;
     const KIT_PANELS = 4, KIT_KWP = 2.6;
     const KIT_WATTS = 2250;           // MX2250 rated output
     const MAX_KITS = 30;              // room for the largest battery setups

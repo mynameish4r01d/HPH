@@ -1,0 +1,14 @@
+{
+  "name": "hph-functions",
+  "private": true,
+  "description": "Cloud Functions for HPH Renewable (new Schedule a Visit email alerts)",
+  "main": "index.js",
+  "engines": { "node": "24" },
+  "scripts": {
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.1.0"
+  }
+}

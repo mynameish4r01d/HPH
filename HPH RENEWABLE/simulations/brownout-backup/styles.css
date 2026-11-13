@@ -2532,7 +2532,7 @@ body.menu-open{
     }
 }
 
-/* "Coming soon" pills, in red, after Power Pack, MAU10000 and MAU16000. */
+/* "Coming soon" pills, in red, after Power Pack and MAU16000. */
 .product-tag-soon{
     background-color: #FDECEC;
     color: #D70015;

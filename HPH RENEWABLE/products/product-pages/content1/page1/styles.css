@@ -478,7 +478,7 @@ a:link{
                         font-family: inter;
                         font-weight: 400;
                         font-size: 10px;
-                        color: #007AFF;
+                        color: #757575;
                     }
 
                     .price{
@@ -1338,11 +1338,117 @@ body.menu-open{
     vertical-align: middle;
 }
 
-/* "Coming soon" pills, in red, after Power Pack, MAU10000 and MAU16000. */
+/* "Coming soon" pills, in red, after Power Pack and MAU16000. */
 .product-tag-soon{
     background-color: #FDECEC;
     color: #D70015;
 }
 
-/* ===== TEMP: PRICES HIDDEN (2026-11-06) — delete this block to restore ===== */
-.price, .mobile-price, .model-stack-price, .visit-product-price { display: none !important; }
+/* Desktop: the page fits the window and doesn't scroll. The carousel and the
+   right column fill the height under the nav; in the right column the title,
+   price and note stay put, only the spec cards scroll, and Join The Waitlist
+   stays pinned at the bottom. Mobile keeps its normal scrolling page. */
+@media (min-width: 751px){
+    html, body{
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .desktop{
+        .content-container{
+            .flex-box{
+                align-items: stretch;
+
+                .box1, .box2{
+                    height: calc(100vh - 115px - 32px);
+                }
+
+                .box2{
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px;
+
+                    .text-container-content{
+                        flex: 1;
+                        min-height: 0;
+                        display: flex;
+                        flex-direction: column;
+
+                        .grid-box, .specs-sheet{
+                            flex: 1;
+                            height: auto;
+                            min-height: 0;
+                            overflow-y: auto;
+                            overscroll-behavior: contain;
+                            scrollbar-width: thin;
+                        }
+                    }
+
+                    .btn-container{
+                        flex: none;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+/* ===== SPECS SHEET (kiosk layout; all rules prefixed specs-) ===== */
+.specs-sheet{
+    --specs-text: #1A1A1A;
+    --specs-muted: #6B6B6B;
+    --specs-line: #E6E6E8;
+    width: 100%;
+    margin-top: 16px;
+    box-sizing: border-box;
+    color: var(--specs-text);
+    font-family: "Inter", sans-serif;
+}
+.specs-sheet *{ font-family: inherit; }
+.specs-sec{ padding: 26px 0; border-bottom: 1px solid var(--specs-line); }
+.specs-sec:last-child{ border-bottom: 0; }
+.specs-sec h2{ margin: 0 0 16px; font-size: 14px; font-weight: 600; letter-spacing: -0.01em; color: var(--specs-text); }
+.specs-grid{ display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px 20px; margin: 0; }
+.specs-grid > div{ min-width: 0; }
+.specs-grid dt{ font-size: 10px; line-height: 1.3; color: var(--specs-muted); }
+.specs-grid dd{ margin: 3px 0 0; font-size: 12.5px; line-height: 1.3; color: var(--specs-text); }
+
+/* Desktop: the sheet scrolls inside the column when the window is too short to show it all */
+.desktop .specs-sheet{
+    scrollbar-color: var(--specs-line) transparent;
+    padding-right: 6px;
+    margin-bottom: 28px;
+}
+.desktop .specs-sheet::-webkit-scrollbar{ width: 6px; }
+.desktop .specs-sheet::-webkit-scrollbar-thumb{ background: var(--specs-line); border-radius: 3px; }
+@media only screen and (max-width: 750px){
+    .mobile .specs-sec h2{ font-size: 15px; }
+    .mobile .specs-grid dt{ font-size: 11px; }
+    .mobile .specs-grid dd{ font-size: 13.5px; }
+}
+
+/* ===== DOWNLOAD PRODUCT DATA SHEET link (small, quiet) ===== */
+.datasheet-btn{
+    --ds-text: #757575;
+    --ds-hover: #1A1A1A;
+    flex: none;
+    align-self: center;
+    width: fit-content;
+    height: 28px;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 4px;
+    margin: 0 auto;
+    color: var(--ds-text);
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+.datasheet-btn:hover{ color: var(--ds-hover); text-decoration: underline; }
+.datasheet-btn .material-symbols-rounded{ font-size: 14px; }
+.mobile .datasheet-btn{ margin-top: 20px; font-size: 12px; }

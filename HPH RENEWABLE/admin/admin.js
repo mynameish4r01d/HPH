@@ -4704,7 +4704,7 @@ async function saveEdit(tab, entry, values, kept, added) {
 // then its battery). Keep in sync with the data-price values in
 // join-waitlist/index.html, and the limits with waitlist-form.js and the rule.
 const WAITLIST_SYSTEMS = {
-    "MSU4000 Elite": { unit: ["MSU4000 Elite", 120000], battery: ["B4000 Elite", 90000] },
+    "MSU4000 Elite": { unit: ["MSU4000 Elite", 250000], battery: ["B4000 Elite", 90000] },
     "MAU5000 Elite": { unit: ["MAU5000 Elite", 150000], battery: ["B5000 Elite", 100000] },
 };
 const WAITLIST_MAX_UNITS = 10;

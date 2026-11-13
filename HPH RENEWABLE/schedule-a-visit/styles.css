@@ -1885,7 +1885,7 @@ body.menu-open{
     }
 }
 
-/* "Coming soon" pills, in red, after Power Pack, MAU10000 and MAU16000. */
+/* "Coming soon" pills, in red, after Power Pack and MAU16000. */
 .product-tag-soon{
     background-color: #FDECEC;
     color: #D70015;
@@ -1896,6 +1896,19 @@ body.menu-open{
         background-color: #3A1416;
         color: #FF6961;
     }
+}
+
+/* The aircon question is a title; the note under it is its detail. --visit-text is
+   near-black on light and near-white on dark, so it follows dark mode. */
+.visit-aircons{
+    margin-top: 28px; /* extra room above the question, on top of the grid gap */
+}
+
+.visit-aircons .visit-label{
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.3;
+    color: var(--visit-text);
 }
 
 /* "I don't use air-conditioning" beside the aircon counter. */

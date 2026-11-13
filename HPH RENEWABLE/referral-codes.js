@@ -15,6 +15,7 @@ export const SALES_TEAM = [
     { code: "HPH-CAS01", name: "Cristina A. Seco" },
     { code: "HPH-GCP01", name: "George C. Pilotin" },
     { code: "HPH-MTP01", name: "Marrian T. Palillo" },
+    { code: "MACEMCO", name: "MACEMCO" },
 ];
 
 // Codes are compared ignoring case, spaces and dashes, so "hph mpm01" and
