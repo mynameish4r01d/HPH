@@ -1,6 +1,6 @@
-// "Schedule a Visit" form, in three screens (steps): the visitor's details,
-// then the electricity bill, then the roof's pinned location, the consent box
-// and sending. Next checks the current screen's fields before moving on.
+// "Schedule a Visit" form, in three screens (steps): the visitor's details
+// (including the property address), then the electricity bill, then the
+// roof's pinned location, the consent box and sending. Next checks the current screen's fields before moving on.
 //
 // Saves each request to Firestore (collection: visitRequests) and any
 // attached bills to Cloud Storage under visitRequests/<request id>/. The roof
@@ -15,7 +15,6 @@ import { firebaseConfig } from "../firebase-config.js";
 import { tidyName, tidyAddress, tidyOnBlur } from "../text-format.js";
 import { findReferrer, findReferrerByName, searchReferrers } from "../referral-codes.js";
 import { GOOGLE_MAPS_API_KEY } from "../maps-config.js";
-import { cameraAvailable, openBillCamera } from "./bill-camera.js";
 
 const FIREBASE_VERSION = "12.3.0";
 const COLLECTION = "visitRequests";
@@ -420,8 +419,6 @@ const billUploader = makeUploader(form.querySelector('[name="files"]'), {
 });
 const uploaders = [billUploader];
 
-// "Take a photo with your camera": the camera with a guide frame
-// (bill-camera.js). The photo it takes is added like a picked file.
 // The phone's own camera app (full quality, autofocus): a file input that
 // asks for the camera. Shown on touch devices only (CSS); on a computer the
 // same input would just open the file picker.
@@ -433,26 +430,10 @@ nativeCameraInput.addEventListener("change", () => {
     nativeCameraInput.value = "";
     billUploader.addFiles(photos, { original: true });
 });
-const cameraButton = form.querySelector(".visit-camera-btn");
-// The camera buttons go away once the 3 files are in.
+// The camera button goes away once the 3 files are in.
 billUploader.onRender = () => {
-    const full = billUploader.files.length >= MAX_FILES;
-    nativeCameraButton.hidden = full;
-    if (cameraAvailable()) cameraButton.hidden = full;
+    nativeCameraButton.hidden = billUploader.files.length >= MAX_FILES;
 };
-if (cameraAvailable()) {
-    cameraButton.hidden = false;
-    cameraButton.addEventListener("click", async () => {
-        const field = cameraButton.closest(".visit-field");
-        try {
-            const photo = await openBillCamera();
-            if (photo) await billUploader.addFiles([photo], { original: true });
-        } catch (err) {
-            console.warn("Schedule a Visit: the camera couldn't be opened", err);
-            setFieldError(field, "We couldn't open your camera. Please allow camera access, or upload a photo instead.");
-        }
-    });
-}
 
 // A file dropped just outside the box would otherwise make the browser leave
 // the page to open it (losing the form), so ignore drops elsewhere.
@@ -471,13 +452,10 @@ const ADDRESS_MIN_CHARS = 3;
 const ADDRESS_DELAY_MS = 250;
 const mapsReady = Boolean(GOOGLE_MAPS_API_KEY) && !GOOGLE_MAPS_API_KEY.startsWith("YOUR_");
 const addressInput = form.querySelector('[name="address"]');
-const addressList = form.querySelector(".visit-address-suggest");
+const addressList = form.querySelector(".visit-address-field .visit-address-suggest");
 let addressPlace = null;
 let mapsPromise = null;
 let placesSession = null;
-let addressTimer = 0;
-let addressQuery = 0;
-let addressActive = -1;
 
 // The Maps JavaScript API, loaded the first time it's needed (for address
 // suggestions or the roof map), then the library asked for.
@@ -502,71 +480,118 @@ function loadMaps(library) {
     return mapsPromise.then((maps) => maps.importLibrary(library));
 }
 
-function closeSuggestions() {
-    addressList.hidden = true;
-    addressList.replaceChildren();
-    addressActive = -1;
-    addressInput.removeAttribute("aria-activedescendant");
-}
+// A Places suggestion list under `input` (address or landmark box): arrow
+// keys and Enter work in it, and `onPick(prediction)` runs when one is picked.
+function placeSuggestions(input, list, onPick) {
+    let timer = 0;
+    let query = 0;
+    let active = -1;
+    let predictions = [];
 
-function markSuggestion(index) {
-    const options = addressList.querySelectorAll(".visit-address-option");
-    addressActive = options.length ? (index + options.length) % options.length : -1;
-    options.forEach((option, i) => option.setAttribute("aria-selected", String(i === addressActive)));
-    if (addressActive >= 0) addressInput.setAttribute("aria-activedescendant", options[addressActive].id);
-}
-
-async function showSuggestions() {
-    const text = addressInput.value.trim();
-    const query = ++addressQuery;
-    if (text.length < ADDRESS_MIN_CHARS) return closeSuggestions();
-    try {
-        const places = await loadMaps("places");
-        placesSession = placesSession || new places.AutocompleteSessionToken();
-        const { suggestions } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
-            input: text,
-            sessionToken: placesSession,
-            includedRegionCodes: ["ph"],
-        });
-        // A newer keystroke has its own request.
-        if (query !== addressQuery || document.activeElement !== addressInput) return;
-        const predictions = suggestions.map((s) => s.placePrediction).filter(Boolean).slice(0, 5);
-        if (!predictions.length) return closeSuggestions();
-        addressList.replaceChildren(...predictions.map((prediction, i) => {
-            const option = document.createElement("li");
-            option.className = "visit-address-option";
-            option.id = `visit-address-option-${i}`;
-            option.setAttribute("role", "option");
-            const main = document.createElement("span");
-            main.className = "visit-address-main";
-            main.textContent = prediction.mainText ? prediction.mainText.toString() : prediction.text.toString();
-            const sub = document.createElement("span");
-            sub.className = "visit-address-sub";
-            sub.textContent = prediction.secondaryText ? prediction.secondaryText.toString() : "";
-            option.append(main, sub);
-            // mousedown, so it's picked before the box loses focus.
-            option.addEventListener("mousedown", (e) => {
-                e.preventDefault();
-                pickSuggestion(prediction);
-            });
-            return option;
-        }), Object.assign(document.createElement("li"), { className: "visit-address-credit", textContent: "Powered by Google" }));
-        addressList.querySelector(".visit-address-credit").setAttribute("aria-hidden", "true");
-        addressList.hidden = false;
-        markSuggestion(-1);
-        addressList.predictions = predictions;
-    } catch (err) {
-        console.warn("Schedule a Visit: address suggestions unavailable", err);
-        closeSuggestions();
+    function close() {
+        list.hidden = true;
+        list.replaceChildren();
+        predictions = [];
+        active = -1;
+        input.removeAttribute("aria-activedescendant");
     }
+
+    // index null: nothing highlighted (the list has just opened).
+    function mark(index) {
+        const options = list.querySelectorAll(".visit-address-option");
+        active = options.length && index !== null ? (index + options.length) % options.length : -1;
+        options.forEach((option, i) => option.setAttribute("aria-selected", String(i === active)));
+        if (active >= 0) input.setAttribute("aria-activedescendant", options[active].id);
+    }
+
+    function pick(prediction) {
+        close();
+        onPick(prediction);
+    }
+
+    async function show() {
+        const text = input.value.trim();
+        const current = ++query;
+        if (text.length < ADDRESS_MIN_CHARS) return close();
+        try {
+            const places = await loadMaps("places");
+            placesSession = placesSession || new places.AutocompleteSessionToken();
+            const { suggestions } = await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+                input: text,
+                sessionToken: placesSession,
+                includedRegionCodes: ["ph"],
+            });
+            // A newer keystroke has its own request.
+            if (current !== query || document.activeElement !== input) return;
+            predictions = suggestions.map((s) => s.placePrediction).filter(Boolean).slice(0, 5);
+            if (!predictions.length) return close();
+            list.replaceChildren(...predictions.map((prediction, i) => {
+                const option = document.createElement("li");
+                option.className = "visit-address-option";
+                option.id = `${list.id}-${i}`;
+                option.setAttribute("role", "option");
+                const main = document.createElement("span");
+                main.className = "visit-address-main";
+                main.textContent = prediction.mainText ? prediction.mainText.toString() : prediction.text.toString();
+                const sub = document.createElement("span");
+                sub.className = "visit-address-sub";
+                sub.textContent = prediction.secondaryText ? prediction.secondaryText.toString() : "";
+                option.append(main, sub);
+                // mousedown, so it's picked before the box loses focus.
+                option.addEventListener("mousedown", (e) => {
+                    e.preventDefault();
+                    pick(prediction);
+                });
+                return option;
+            }), Object.assign(document.createElement("li"), { className: "visit-address-credit", textContent: "Powered by Google" }));
+            list.querySelector(".visit-address-credit").setAttribute("aria-hidden", "true");
+            list.hidden = false;
+            mark(null);
+        } catch (err) {
+            console.warn("Schedule a Visit: place suggestions unavailable", err);
+            close();
+        }
+    }
+
+    input.setAttribute("autocomplete", "off");
+    input.setAttribute("role", "combobox");
+    input.setAttribute("aria-autocomplete", "list");
+    input.addEventListener("input", () => {
+        clearTimeout(timer);
+        timer = setTimeout(show, ADDRESS_DELAY_MS);
+    });
+    input.addEventListener("keydown", (e) => {
+        if (list.hidden) return;
+        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+            const down = e.key === "ArrowDown";
+            mark(active < 0 ? (down ? 0 : -1) : active + (down ? 1 : -1));
+        } else if (e.key === "Enter" && active >= 0) {
+            // Picks the suggestion instead of sending the form.
+            e.preventDefault();
+            pick(predictions[active]);
+        } else if (e.key === "Escape") {
+            close();
+        }
+    });
+    input.addEventListener("blur", () => setTimeout(close, 150));
+    // The first suggestion, for Enter with none highlighted.
+    return { first: () => predictions[0] || null, close };
 }
 
-async function pickSuggestion(prediction) {
-    closeSuggestions();
+// A picked suggestion's place: formatted address and coordinates.
+async function placeOf(prediction) {
+    const place = prediction.toPlace();
+    await place.fetchFields({ fields: ["formattedAddress", "location"] });
+    // The next search starts a new session.
+    placesSession = null;
+    return place;
+}
+
+async function pickAddress(prediction) {
     addressInput.value = prediction.text.toString().slice(0, 300);
     try {
-        const place = prediction.toPlace();
-        await place.fetchFields({ fields: ["formattedAddress", "location"] });
+        const place = await placeOf(prediction);
         if (place.formattedAddress) addressInput.value = place.formattedAddress.slice(0, 300);
         addressPlace = place.location
             ? { id: String(place.id || "").slice(0, 300), lat: place.location.lat(), lng: place.location.lng() }
@@ -575,46 +600,27 @@ async function pickSuggestion(prediction) {
         console.warn("Schedule a Visit: couldn't look up that address", err);
         addressPlace = null;
     }
-    // The next search starts a new session.
-    placesSession = null;
     validateField(addressInput);
 }
 
 if (mapsReady) {
-    addressInput.setAttribute("autocomplete", "off");
-    addressInput.setAttribute("role", "combobox");
-    addressInput.setAttribute("aria-autocomplete", "list");
-    addressInput.addEventListener("input", () => {
-        // Typed over a picked address: it's no longer that place.
-        addressPlace = null;
-        clearTimeout(addressTimer);
-        addressTimer = setTimeout(showSuggestions, ADDRESS_DELAY_MS);
-    });
-    addressInput.addEventListener("keydown", (e) => {
-        if (addressList.hidden) return;
-        if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-            e.preventDefault();
-            markSuggestion(addressActive + (e.key === "ArrowDown" ? 1 : -1));
-        } else if (e.key === "Enter" && addressActive >= 0) {
-            // Picks the suggestion instead of going to the next screen.
-            e.preventDefault();
-            pickSuggestion(addressList.predictions[addressActive]);
-        } else if (e.key === "Escape") {
-            closeSuggestions();
-        }
-    });
-    addressInput.addEventListener("blur", () => setTimeout(closeSuggestions, 150));
+    placeSuggestions(addressInput, addressList, pickAddress);
+    // Typed over a picked address: it's no longer that place.
+    addressInput.addEventListener("input", () => { addressPlace = null; });
 }
+
 
 
 
 // ---------------------------------------------------------------- roof pin
 
-// Step 3 is a live satellite map with a pin fixed in its middle: the visitor
-// moves the map (or taps their roof, or uses their current location) until
-// the pin is on their roof. The map opens on the address from step 1: the
-// picked suggestion's spot, else a search for the typed address, else the
-// whole Philippines. Saved as `roofPin` ({ lat, lng, adjusted }) once they've
+// Step 3 has the property address, then a live satellite map with a pin fixed
+// in its middle: the visitor moves the map (or taps their roof, or uses their
+// current location) until the pin is on their roof. The map goes to the
+// address: the picked suggestion's spot, else a search for the typed address,
+// else the whole Philippines. If Google doesn't suggest their address, the
+// landmark box moves the map to a nearby place they can pan from (it's not
+// saved). Saved as `roofPin` ({ lat, lng, adjusted }) once they've
 // placed it (adjusted: true), or, if they leave it where it opened on their
 // address, that spot (adjusted: false). Without a key, or if Google can't be reached, the step is just
 // its note and can be skipped.
@@ -627,8 +633,25 @@ const roofLoading = roofField.querySelector(".visit-roof-loading");
 const roofLocate = roofField.querySelector(".visit-roof-locate");
 const roofConfirm = roofField.querySelector(".visit-roof-confirm");
 const roofStatus = roofField.querySelector(".visit-roof-status");
+const landmarkField = form.querySelector(".visit-landmark");
+const landmarkInput = landmarkField.querySelector(".visit-landmark-input");
+const landmarkToggle = form.querySelector(".visit-landmark-toggle");
+
+// The landmark search stays folded behind "Can't find your address?" until
+// it's tapped, or a typed address can't be found on the map.
+function openLandmark({ focus = false } = {}) {
+    if (!roofMap) return;
+    landmarkToggle.hidden = true;
+    landmarkToggle.setAttribute("aria-expanded", "true");
+    landmarkField.hidden = false;
+    if (focus) landmarkInput.focus();
+}
+landmarkToggle.addEventListener("click", () => openLandmark({ focus: true }));
+const LANDMARK_ZOOM = 18;
 let roofMap = null;
 let roofPinned = false;
+// The map was moved to a landmark, so a typed address doesn't move it away.
+let roofOnLandmark = false;
 // The map is on the visitor's address (not the whole Philippines).
 let roofFound = false;
 // What the map was last centred on, so going back and changing the address
@@ -652,7 +675,9 @@ const roofFilled = () => roofField.classList.contains("visit-roof-off") || roofP
 
 function roofOff() {
     roofField.classList.add("visit-roof-off");
-    roofField.querySelector(".visit-field-note").textContent = "The map isn't available right now. You can skip this step: we'll find your roof from your address.";
+    landmarkField.hidden = true;
+    landmarkToggle.hidden = true;
+    form.querySelector(".visit-roof-note").textContent = "The map isn't available right now. You can skip this step: we'll find your roof from your address.";
 }
 
 // Where the pin points: the middle of the map.
@@ -667,14 +692,28 @@ function foundAddress() {
     setRoofStatus("The pin is on your address. Move the map if it isn't on your roof.");
 }
 
+// Puts the map on the address from step 1 when step 3 opens. If the address
+// changed since the map was last placed, it starts over on it, even if the
+// old spot was pinned. It only reads the address box, never changes it.
 async function centreRoofMap() {
+    if (!roofMap) return;
     const text = addressInput.value.trim();
     const key = addressPlace ? `place:${addressPlace.id}:${addressPlace.lat},${addressPlace.lng}` : `text:${text}`;
     if (key === roofCentredOn) return;
-    // The address changed since the map was last placed: start over on it,
-    // even if the old spot was pinned.
     roofCentredOn = key;
     roofPinned = false;
+    roofOnLandmark = false;
+    // Back on their address: the landmark box no longer follows the pin.
+    // A new address: the landmark search folds away again.
+    if (landmarkUsed || !landmarkField.hidden) {
+        landmarkInput.value = "";
+        landmarkMode(false);
+        landmarkField.hidden = true;
+        landmarkToggle.setAttribute("aria-expanded", "false");
+        landmarkToggle.hidden = false;
+    }
+    landmarkUsed = false;
+    pinFollowPending = false;
     roofConfirm.hidden = !roofMap;
     setFieldError(roofField, "");
     if (addressPlace) {
@@ -684,7 +723,7 @@ async function centreRoofMap() {
         return;
     }
     roofFound = false;
-    setRoofStatus("Find your home on the map, then put the pin on your roof.");
+    setRoofStatus(text ? "Finding your address on the map…" : "Find your home on the map, then put the pin on your roof.");
     roofMap.setCenter(PH_VIEW.center);
     roofMap.setZoom(PH_VIEW.zoom);
     if (!text) return;
@@ -692,12 +731,18 @@ async function centreRoofMap() {
         const { Place } = await loadMaps("places");
         const { places } = await Place.searchByText({ textQuery: text, fields: ["location"], region: "ph", maxResultCount: 1 });
         // They've moved the map or changed the address in the meantime.
-        if (roofPinned || roofCentredOn !== key || !places.length || !places[0].location) return;
+        if (roofPinned || roofOnLandmark || roofCentredOn !== key) return;
+        if (!places.length || !places[0].location) {
+            openLandmark();
+            setRoofStatus("We couldn't find your address on the map. Search for a landmark near you below, then move the map to your roof.");
+            return;
+        }
         roofMap.setCenter(places[0].location);
         roofMap.setZoom(ROOF_SEARCH_ZOOM);
         foundAddress();
     } catch (err) {
         console.warn("Schedule a Visit: couldn't find the address on the map", err);
+        if (roofCentredOn === key && !roofPinned && !roofOnLandmark) setRoofStatus("Find your home on the map, then put the pin on your roof.");
     }
 }
 
@@ -716,13 +761,24 @@ async function showRoofMap() {
                 // One finger moves the map on phones; this step is all about the map.
                 gestureHandling: "greedy",
             });
-            roofMap.addListener("dragend", () => pinRoof());
+            roofMap.addListener("dragend", () => {
+                pinRoof();
+                followPin();
+            });
             roofMap.addListener("click", (e) => {
                 roofMap.panTo(e.latLng);
                 pinRoof();
+                followPin();
+            });
+            // Once the map has stopped after the visitor moved it.
+            roofMap.addListener("idle", () => {
+                if (!pinFollowPending) return;
+                pinFollowPending = false;
+                showPinLocation();
             });
             roofLoading.hidden = true;
             roofConfirm.hidden = false;
+            if (landmarkField.hidden) landmarkToggle.hidden = false;
         }
         await centreRoofMap();
     } catch (err) {
@@ -733,6 +789,104 @@ async function showRoofMap() {
 
 roofConfirm.addEventListener("click", () => pinRoof("✓ Roof pinned."));
 
+// After a landmark is picked, the landmark box follows the pin: each time the
+// visitor stops moving the map, it shows the address Google gives for the spot
+// under the pin (reverse geocoding), or its coordinates if there's none or the
+// Geocoding API isn't enabled for the key. It's only shown, never saved.
+const landmarkLabel = landmarkField.querySelector(".visit-label");
+const landmarkNote = landmarkField.querySelector(".visit-field-note");
+const LANDMARK_LABEL = landmarkLabel.innerHTML;
+const LANDMARK_NOTE = landmarkNote.textContent;
+let landmarkUsed = false;
+let pinFollowPending = false;
+let pinLookup = 0;
+let geocodeOff = false;
+
+function followPin() {
+    if (landmarkUsed) pinFollowPending = true;
+}
+
+function landmarkMode(following) {
+    if (following) {
+        landmarkLabel.textContent = "Your pin's location";
+        landmarkNote.textContent = "This follows the pin as you move the map. We'll still save the address you entered in Your details.";
+    } else {
+        landmarkLabel.innerHTML = LANDMARK_LABEL;
+        landmarkNote.textContent = LANDMARK_NOTE;
+    }
+}
+
+const coordsText = (lat, lng) => `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+async function showPinLocation() {
+    if (!landmarkUsed || landmarkField.hidden) return;
+    // Don't overwrite a search they're typing.
+    if (document.activeElement === landmarkInput) return;
+    const centre = roofMap.getCenter();
+    const lat = centre.lat();
+    const lng = centre.lng();
+    const lookup = ++pinLookup;
+    landmarkMode(true);
+    landmarkInput.value = coordsText(lat, lng);
+    if (geocodeOff) return;
+    try {
+        const { Geocoder } = await loadMaps("geocoding");
+        const { results } = await new Geocoder().geocode({ location: { lat, lng } });
+        if (lookup !== pinLookup || document.activeElement === landmarkInput) return;
+        // A street address rather than a plus code, when there is one.
+        const best = results.find((r) => !r.types.includes("plus_code")) || results[0];
+        if (best && best.formatted_address) landmarkInput.value = best.formatted_address.slice(0, 200);
+    } catch (err) {
+        // Most likely the Geocoding API isn't enabled for the key: keep the coordinates.
+        console.warn("Schedule a Visit: couldn't look up the pin's address", err);
+        if (err && (err.code === "REQUEST_DENIED" || /REQUEST_DENIED|not authorized|not activated/i.test(String(err.message)))) geocodeOff = true;
+    }
+}
+
+// Typing a new search puts the box back to a landmark search.
+landmarkInput.addEventListener("input", () => {
+    pinLookup++;
+    landmarkMode(false);
+});
+
+// The landmark box: picking a place moves the map there (closer out, so the
+// visitor can see the streets around it) and they pan to their roof.
+async function pickLandmark(prediction) {
+    landmarkInput.value = prediction.text.toString().slice(0, 200);
+    try {
+        const place = await placeOf(prediction);
+        if (!roofMap || !place.location) throw new Error("No location for that place");
+        roofMap.setCenter(place.location);
+        roofMap.setZoom(LANDMARK_ZOOM);
+        roofOnLandmark = true;
+        landmarkUsed = true;
+        pinFollowPending = false;
+        landmarkMode(false);
+        roofPinned = false;
+        roofFound = false;
+        roofConfirm.hidden = false;
+        setRoofStatus("Now move the map from there to your roof, then tap “The pin is on my roof”.");
+        roofMapEl.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (err) {
+        console.warn("Schedule a Visit: couldn't find that landmark", err);
+        setRoofStatus("We couldn't find that place on the map. Try another landmark nearby.");
+    }
+}
+
+if (mapsReady) {
+    const landmarks = placeSuggestions(landmarkInput, form.querySelector(".visit-landmark-suggest"), pickLandmark);
+    // Enter never sends the form here: it picks the first suggestion.
+    landmarkInput.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter" || e.defaultPrevented) return;
+        e.preventDefault();
+        const first = landmarks.first();
+        if (first) {
+            landmarks.close();
+            pickLandmark(first);
+        }
+    });
+}
+
 if (!navigator.geolocation) roofLocate.hidden = true;
 roofLocate.addEventListener("click", () => {
     if (!roofMap) return;
@@ -742,7 +896,9 @@ roofLocate.addEventListener("click", () => {
         roofLocate.disabled = false;
         roofMap.setCenter({ lat: position.coords.latitude, lng: position.coords.longitude });
         roofMap.setZoom(ROOF_ZOOM);
+        roofOnLandmark = false;
         pinRoof("✓ Pinned at your current location. Move the map if the pin isn't on your roof.");
+        followPin();
     }, () => {
         roofLocate.disabled = false;
         setRoofStatus(roofPinned ? "We couldn't get your location. Your pin is where you left it." : "We couldn't get your location. Move the map to your roof instead.", roofPinned);
@@ -852,6 +1008,25 @@ function goNext() {
 }
 
 nextButton.addEventListener("click", goNext);
+
+// The step names at the top go to that screen. Going back is always fine;
+// going forward checks each screen on the way, like Next, and stops at the
+// first one with a problem. The history stays one entry per screen in order
+// (forward adds each screen passed, back goes back through them), so the
+// Back button and the browser's Back still go to the screen before.
+stepItems.forEach((item) => {
+    item.querySelector(".visit-steps-btn").addEventListener("click", () => {
+        const target = Number(item.dataset.step);
+        if (target < step) {
+            history.go(target - step);
+            return;
+        }
+        while (step < target) {
+            if (!validateForm(panels[step - 1])) return;
+            showStep(step + 1, { push: true });
+        }
+    });
+});
 // Same as the browser's Back button, so the history stays in step.
 backButton.addEventListener("click", () => history.back());
 form.addEventListener("change", updateNext);
@@ -982,7 +1157,11 @@ form.addEventListener("submit", async (e) => {
 });
 
 function showSuccess() {
+    // Greet by first name (textContent only: it's visitor-typed).
+    const first = String(form.elements.name?.value || "").trim().split(/\s+/)[0];
+    if (first) success.querySelector(".visit-success-title").textContent = `Thank you, ${first}.`;
     form.hidden = true;
+    document.querySelector(".visit-hero").hidden = true;
     success.hidden = false;
-    success.scrollIntoView({ block: "center" });
+    window.scrollTo({ top: 0 });
 }

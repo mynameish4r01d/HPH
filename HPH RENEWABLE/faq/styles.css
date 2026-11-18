@@ -426,7 +426,7 @@ body.menu-open{
         flex: 0 0 auto;
         box-sizing: border-box;
         padding: 9px 18px;
-        border-radius: 100px;
+        border-radius: 4px;
         border: none;
         background-color: transparent;
         font-family: inter;
@@ -453,7 +453,7 @@ body.menu-open{
     display: flex;
     justify-content: center;
     box-sizing: border-box;
-    padding: 56px 24px 24px;
+    padding: 56px 24px 96px;
 
     .faq-body-inner{
         width: 90%;
@@ -662,7 +662,7 @@ body.menu-open{
     }
 
     .faq-body{
-        padding: 40px 20px 12px;
+        padding: 40px 20px 64px;
 
         .faq-body-inner{
             width: 100%;
@@ -1333,6 +1333,11 @@ body.menu-open{
             color: #0C0C0C;
         }
 
+        /* Hovered categories brighten (the light theme's hover is black). */
+        .faq-tab:not(.active):hover{
+            color: #EBEBEB;
+        }
+
         .faq-item, .faq-item:first-child{
             border-color: #2A2A2A;
         }
@@ -1408,7 +1413,7 @@ body.menu-open{
     }
 }
 
-/* "Coming soon" pills, in red, after Power Pack and MAU16000. */
+/* "Coming soon" pills, in red, after Power Pack. */
 .product-tag-soon{
     background-color: #FDECEC;
     color: #D70015;
@@ -1420,3 +1425,262 @@ body.menu-open{
         color: #FF6961;
     }
 }
+
+/* ===== Landing (like the Download Center's) =====
+   The title and intro fill the first screen below the 80px nav (64px on
+   phones), centred, with a bouncing cue down to the categories
+   (#faq-questions). */
+.faq-page .faq-landing{
+    position: relative;
+    min-height: calc(100vh - 80px);
+    min-height: calc(100svh - 80px);
+    padding: 0 24px 80px;
+    justify-content: center;
+
+    .faq-hero-title{
+        max-width: 1200px;
+        font-size: 80px;
+        line-height: 1.05;
+        letter-spacing: -0.03em;
+    }
+
+    .faq-hero-sub{
+        max-width: 560px;
+        margin-top: 20px;
+        font-size: 18px;
+    }
+}
+
+.faq-scroll-cue{
+    position: absolute;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    color: #757575;
+    animation: faq-cue 2s ease-in-out infinite;
+
+    .material-symbols-rounded{ font-size: 32px; }
+
+    &:hover{ color: #000000; }
+}
+
+@keyframes faq-cue{
+    0%, 100%{ transform: translate(-50%, 0); }
+    50%{ transform: translate(-50%, 8px); }
+}
+
+#faq-questions{
+    scroll-margin-top: 0;
+}
+
+@media (prefers-color-scheme: dark){
+    .faq-scroll-cue{ color: #9E9E9E; }
+    .faq-scroll-cue:hover{ color: #EBEBEB; }
+}
+
+@media only screen and (max-width: 750px){
+    .faq-page .faq-landing{
+        min-height: calc(100vh - 64px - env(safe-area-inset-top));
+        min-height: calc(100svh - 64px - env(safe-area-inset-top));
+        padding: 0 20px 72px;
+
+        .faq-hero-title{ font-size: 44px; }
+        .faq-hero-sub{ font-size: 16px; }
+    }
+
+    #faq-questions{
+        scroll-margin-top: calc(64px + env(safe-area-inset-top));
+    }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .faq-scroll-cue{ animation: none; }
+}
+
+/* ===== FAQ title animation =====
+   Apple-style sequence on the landing:
+   1. "FAQ" comes in out of a soft blur, settling up and into scale.
+   2. After --faq-delay each letter opens into its word: the rest of the word
+      (.faq-rest, a one-column grid animated from 0fr to 1fr) widens with an
+      iOS-style ease that settles slowly, uncovering its letters like a wipe
+      through a soft edge while they sharpen out of a blur. The words start --faq-stagger apart, and the gaps between
+      them open with them, so the title re-centres smoothly as it grows.
+   3. The intro line and the arrow then rise into place.
+   Reduced motion shows the finished landing at once. */
+/* On the whole landing, so the intro line and arrow share the timing. */
+.faq-landing{
+    --faq-delay: 1.5s;
+    --faq-grow: 1.5s;
+    --faq-stagger: 0.12s;
+    --faq-ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --faq-i: 0;
+}
+
+.faq-morph-text{
+    display: inline-block;
+    animation: faq-in 1.1s var(--faq-ease) both;
+}
+
+@keyframes faq-in{
+    from{
+        opacity: 0;
+        filter: blur(14px);
+        transform: translateY(0.12em) scale(0.94);
+    }
+}
+
+.faq-word{
+    display: inline-block;
+    white-space: nowrap;
+
+    /* (Not "+ .faq-word": the <wbr> between words would stop that matching.) */
+    &:not(:first-child){
+        margin-left: 0;
+        animation: faq-gap var(--faq-grow) var(--faq-ease) calc(var(--faq-delay) + var(--faq-i) * var(--faq-stagger)) forwards;
+    }
+
+    &:nth-of-type(2){ --faq-i: 1; }
+    &:nth-of-type(3){ --faq-i: 2; }
+}
+
+.faq-rest{
+    display: inline-grid;
+    grid-template-columns: 0fr;
+    animation: faq-grow var(--faq-grow) var(--faq-ease) calc(var(--faq-delay) + var(--faq-i) * var(--faq-stagger)) forwards;
+
+    /* The letters are uncovered by the widening box like a wipe, through a
+       soft fade at its edge (--faq-edge, which melts to 0 as the word
+       finishes), and sharpen out of a light blur. */
+    > span{
+        min-width: 0;
+        overflow: hidden;
+        /* Room for the blur, so letters aren't clipped while sharpening. */
+        padding-block: 0.1em;
+        margin-block: -0.1em;
+        opacity: 0;
+        filter: blur(5px);
+        -webkit-mask-image: linear-gradient(to right, #000 calc(100% - var(--faq-edge)), transparent);
+        mask-image: linear-gradient(to right, #000 calc(100% - var(--faq-edge)), transparent);
+        animation: faq-reveal var(--faq-grow) var(--faq-ease) calc(var(--faq-delay) + var(--faq-i) * var(--faq-stagger)) forwards;
+    }
+}
+
+@keyframes faq-grow{
+    to{ grid-template-columns: 1fr; }
+}
+
+@keyframes faq-gap{
+    to{ margin-left: 0.25em; }
+}
+
+/* Registered so the soft edge can animate (an unregistered custom property
+   would jump instead). */
+@property --faq-edge{
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+}
+
+@keyframes faq-reveal{
+    0%{
+        opacity: 0.35;
+        filter: blur(5px);
+        --faq-edge: 0.6em;
+    }
+    10%{
+        opacity: 1;
+    }
+    100%{
+        opacity: 1;
+        filter: blur(0);
+        --faq-edge: 0px;
+    }
+}
+
+/* The intro line and the arrow rise in once the title has formed. */
+.faq-landing .faq-hero-sub{
+    animation: faq-rise 1s var(--faq-ease) 2.5s both;
+}
+
+.faq-landing .faq-scroll-cue{
+    animation: faq-cue-in 0.9s ease 3s both, faq-cue 2s ease-in-out 3.9s infinite;
+}
+
+@keyframes faq-rise{
+    from{
+        opacity: 0;
+        filter: blur(6px);
+        transform: translateY(12px);
+    }
+}
+
+@keyframes faq-cue-in{
+    from{ opacity: 0; }
+}
+
+/* The full title for screen readers (the animated one is aria-hidden). */
+.faq-sr{
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce){
+    .faq-morph-text, .faq-landing .faq-hero-sub, .faq-landing .faq-scroll-cue{ animation: none; }
+    .faq-word:not(:first-child){ animation: none; margin-left: 0.25em; }
+    .faq-rest{ animation: none; grid-template-columns: 1fr; }
+    .faq-rest > span{ animation: none; opacity: 1; filter: none; -webkit-mask-image: none; mask-image: none; }
+}
+
+/* ===== TRIAL: categories at the far left (desktop) =====
+   The category tabs stack in a column at the far left, lined up with the
+   nav's logo (5% in, like the nav's 90%-wide .item-container), and stay in
+   view while scrolling; the questions stay centred. Phones keep the sticky
+   sideways row. To revert, delete this whole block. */
+@media (min-width: 751px){
+    .faq-page{
+        display: grid;
+        grid-template-columns: 5% 200px minmax(0, 1fr) 200px 5%;
+        align-items: start;
+
+        .faq-hero{ grid-column: 1 / -1; }
+        .faq-body{ grid-column: 3; padding-left: 48px; padding-right: 48px; }
+        .faq-body .faq-body-inner{ width: 100%; }
+
+        .faq-tabs{
+            grid-column: 2;
+            top: 32px;
+            padding-top: 56px;
+            background-color: transparent;
+            -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+
+            .faq-tabs-inner{
+                width: 100%;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 4px;
+                padding: 0;
+                overflow: visible;
+            }
+
+            .faq-tab{
+                text-align: left;
+                white-space: normal;
+            }
+        }
+    }
+}
+
+@media (min-width: 751px) and (max-width: 1000px){
+    .faq-page{
+        grid-template-columns: 5% 180px minmax(0, 1fr) 0 5%;
+
+        .faq-body{ padding-right: 0; padding-left: 40px; }
+    }
+}
+/* ===== END TRIAL ===== */

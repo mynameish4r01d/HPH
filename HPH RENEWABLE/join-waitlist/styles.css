@@ -1055,6 +1055,23 @@ body.menu-open{
     display: none !important;
 }
 
+/* A coming-soon product's own waitlist (e.g. the SigenStor Neo, opened from
+   its page): only contact details and a note, so a narrower page with one
+   field per row (Mobile number under Full name). */
+.visit-page.visit-page-slim{
+    width: min(560px, 90%);
+
+    .visit-grid{
+        grid-template-columns: 1fr;
+    }
+}
+
+@media only screen and (max-width:750px){
+    .visit-page.visit-page-slim{
+        width: auto;
+    }
+}
+
 @media only screen and (max-width:750px){
     .visit-page{
         width: auto;
@@ -1693,7 +1710,7 @@ body.menu-open{
     }
 }
 
-/* "Coming soon" pills, in red, after Power Pack and MAU16000. */
+/* "Coming soon" pills, in red, after Power Pack. */
 .product-tag-soon{
     background-color: #FDECEC;
     color: #D70015;

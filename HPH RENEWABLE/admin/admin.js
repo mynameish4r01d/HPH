@@ -80,7 +80,7 @@ const STALE_WARN_HOURS = 48;
 const STALE_HOURS = 72;
 
 // Waitlist product filter, in this order.
-const WAITLIST_PRODUCTS = ["MSU4000 Elite", "MAU5000 Elite", "B4000 Elite", "B5000 Elite"];
+const WAITLIST_PRODUCTS = ["MSU4000 Elite", "MAU5000 Elite", "B4000 Elite", "B5000 Elite", "SigenStor Neo"];
 
 const status = document.querySelector(".admin-status");
 
@@ -1073,12 +1073,16 @@ async function fetchCollection(name) {
     return snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 }
 
-async function loadSubmissions() {
+// `quiet` (pull to refresh) keeps the current lists on screen while loading.
+async function loadSubmissions(options) {
+    const quiet = options?.quiet === true;
     loadError.hidden = true;
     refreshButton.disabled = true;
-    document.querySelectorAll(".admin-list").forEach((list) => {
-        list.replaceChildren(el("p", "admin-empty", "Loading…"));
-    });
+    if (!quiet) {
+        document.querySelectorAll(".admin-list").forEach((list) => {
+            list.replaceChildren(el("p", "admin-empty", "Loading…"));
+        });
+    }
 
     try {
         accountsUnavailable = false;
@@ -1141,6 +1145,159 @@ async function loadSubmissions() {
 }
 
 refreshButton.addEventListener("click", loadSubmissions);
+
+// ------------------------------------------------------- pull to refresh
+
+// Ocular Visits list: pulling down past the top of the list reloads the lists
+// (quietly, like the Refresh button but without the "Loading…" placeholder).
+// - Phones: drag the page down from its top. The indicator sits under the
+//   64px top bar.
+// - Desktop: with the list column (.admin-list-scroll) at its top, keep
+//   scrolling up with a trackpad or mouse wheel (or drag it down on a touch
+//   screen). The indicator sits at the top of the list column.
+// The indicator follows the pull and turns blue once letting go (or, for a
+// wheel, pausing) would refresh, past PULL_TRIGGER; then it spins while the
+// lists reload. Off while a form (phones), the menu or a dialog is open, and
+// the page's own pull-to-refresh / bounce is held back while pulling.
+const PULL_TRIGGER = 70;    // px of indicator travel that refreshes
+const PULL_MAX = 110;
+const WHEEL_PAUSE_MS = 250; // a wheel pull ends after this long without wheel events
+const WHEEL_NEW_MS = 200;   // a wheel pull only starts after this long without wheel events,
+                            // so scroll momentum reaching the top doesn't trigger one
+const listScroll = document.querySelector(".admin-list-scroll");
+const pullIndicator = el("div", "admin-pull");
+pullIndicator.setAttribute("aria-hidden", "true");
+pullIndicator.append(el("span", "material-symbols-rounded admin-pull-icon", "arrow_downward"));
+document.body.append(pullIndicator);
+const pullStatus = el("div", "admin-pull-status");
+pullStatus.setAttribute("role", "status");
+document.body.append(pullStatus);
+
+let pullStart = null;       // { x, y } where the touch began, or null
+let pullDistance = 0;
+let pulling = false;
+let pullRefreshing = false;
+let wheelTimer = null;
+let lastWheelAt = 0;
+
+function canPull() {
+    return document.body.dataset.view === "list"
+        && activeTab === "visits"
+        && (desktop.matches || !formOpen)
+        && !document.body.classList.contains("admin-menu-open")
+        && !document.querySelector("dialog[open]")
+        && !refreshButton.disabled
+        && !pullRefreshing;
+}
+
+function atTop() {
+    return desktop.matches ? listScroll.scrollTop <= 0 : window.scrollY <= 0;
+}
+
+// Phones: under the top bar (CSS). Desktop: the top of the list column.
+function placePull() {
+    if (!desktop.matches) {
+        pullIndicator.style.removeProperty("top");
+        pullIndicator.style.removeProperty("left");
+        return;
+    }
+    const box = listScroll.getBoundingClientRect();
+    pullIndicator.style.top = `${box.top}px`;
+    pullIndicator.style.left = `${box.left + box.width / 2}px`;
+}
+
+function drawPull(distance) {
+    pullIndicator.style.setProperty("--pull", `${distance}px`);
+    pullIndicator.style.setProperty("--pull-fade", String(Math.min(distance / 30, 1)));
+    pullIndicator.style.setProperty("--pull-turn", `${Math.min(distance / PULL_TRIGGER, 1) * 180}deg`);
+    pullIndicator.classList.toggle("ready", distance >= PULL_TRIGGER);
+}
+
+function startPull() {
+    pulling = true;
+    placePull();
+    pullIndicator.classList.add("dragging", "shown");
+}
+
+function endPull() {
+    pullStart = null;
+    pulling = false;
+    pullIndicator.classList.remove("dragging");
+}
+
+async function finishPull() {
+    if (!pulling) { endPull(); return; }
+    const refresh = pullDistance >= PULL_TRIGGER;
+    endPull();
+    pullDistance = 0;
+    if (!refresh) {
+        drawPull(0);
+        pullIndicator.classList.remove("shown");
+        return;
+    }
+    pullRefreshing = true;
+    drawPull(PULL_TRIGGER);
+    pullIndicator.classList.add("refreshing");
+    pullStatus.textContent = "Refreshing…";
+    try {
+        await loadSubmissions({ quiet: true });
+        pullStatus.textContent = loadError.hidden ? "Ocular Visits updated" : loadError.textContent;
+    } finally {
+        pullIndicator.classList.remove("refreshing", "ready");
+        drawPull(0);
+        pullIndicator.classList.remove("shown");
+        pullRefreshing = false;
+    }
+}
+
+// Touch: phones anywhere on the page; desktop layouts only on the list column.
+document.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1 || !canPull() || !atTop()) return;
+    if (desktop.matches && !listScroll.contains(e.target)) return;
+    pullStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+}, { passive: true });
+
+document.addEventListener("touchmove", (e) => {
+    if (!pullStart) return;
+    const dx = e.touches[0].clientX - pullStart.x;
+    const dy = e.touches[0].clientY - pullStart.y;
+    if (!pulling) {
+        // Only a downward, mostly vertical drag from the very top counts.
+        if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
+        if (dy <= 0 || Math.abs(dx) > dy || !atTop()) { endPull(); return; }
+        startPull();
+    }
+    e.preventDefault();
+    // Resistance: the indicator moves half as far as the finger, up to PULL_MAX.
+    pullDistance = Math.max(0, Math.min(dy * 0.5, PULL_MAX));
+    drawPull(pullDistance);
+}, { passive: false });
+
+document.addEventListener("touchend", finishPull);
+document.addEventListener("touchcancel", () => {
+    pullDistance = 0;
+    finishPull();
+});
+
+// Wheel / trackpad (desktop): scrolling up while the list is at its top pulls;
+// scrolling back down eases it off; a pause ends the pull.
+listScroll.addEventListener("wheel", (e) => {
+    const now = performance.now();
+    const fresh = now - lastWheelAt > WHEEL_NEW_MS;
+    lastWheelAt = now;
+    if (!desktop.matches) return;
+    const delta = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? listScroll.clientHeight : 1);
+    if (!pulling) {
+        if (delta >= 0 || !fresh || pullStart || !canPull() || !atTop()) return;
+        startPull();
+    }
+    e.preventDefault();
+    pullDistance = Math.max(0, Math.min(pullDistance - delta * 0.35, PULL_MAX));
+    drawPull(pullDistance);
+    clearTimeout(wheelTimer);
+    if (pullDistance <= 0) { finishPull(); return; }
+    wheelTimer = setTimeout(finishPull, WHEEL_PAUSE_MS);
+}, { passive: false });
 
 // Names and addresses typed in ALL CAPS or all lowercase (mostly from before
 // the website forms tidied them) are shown tidied, e.g. "JUAN DELA CRUZ" →
@@ -2158,7 +2315,8 @@ function renderWaitlist(w) {
     const products = waitlistItems(w).join(", ");
     // Sign-ups store a full `address`; early test ones had `location` (city).
     const address = w.address || w.location || "";
-    const estimate = Number.isFinite(w.estimatedTotal) ? `₱${w.estimatedTotal.toLocaleString("en-PH")}` : "";
+    // A 0 estimate means no price yet (the SigenStor Neo, coming soon).
+    const estimate = Number.isFinite(w.estimatedTotal) && w.estimatedTotal > 0 ? `₱${w.estimatedTotal.toLocaleString("en-PH")}` : "";
     const meta = [products, estimate, w.phone].filter(Boolean).join(" · ");
     const details = entryShell(w.name, meta, toDate(w.createdAt), {
         dim: isClosed("waitlist", w), badge: stageBadge("waitlist", w), stale: staleBadge("waitlist", w),
@@ -3700,7 +3858,7 @@ function waitlistHasVisit(w) {
 const linkedFile = (tab, entry, path) => !path.startsWith(`${TABS[tab].collection}/${entry.id}/`);
 
 function waitlistVisit(w, stage) {
-    const estimate = Number.isFinite(w.estimatedTotal) ? ` · est. ₱${w.estimatedTotal.toLocaleString("en-PH")} (starting prices)` : "";
+    const estimate = Number.isFinite(w.estimatedTotal) && w.estimatedTotal > 0 ? ` · est. ₱${w.estimatedTotal.toLocaleString("en-PH")} (starting prices)` : "";
     const order = `Joined the waitlist: ${waitlistItems(w).join(", ") || "no order"}${estimate}.`;
     return {
         name: (w.name || "Unnamed client").slice(0, 100),
@@ -4703,9 +4861,12 @@ async function saveEdit(tab, entry, values, kept, added) {
 // Starting prices for a new waitlist sign-up's estimate, per system (unit,
 // then its battery). Keep in sync with the data-price values in
 // join-waitlist/index.html, and the limits with waitlist-form.js and the rule.
+// The SigenStor Neo is coming soon: units only (battery null) and no price
+// yet (0), so its estimate is 0.
 const WAITLIST_SYSTEMS = {
     "MSU4000 Elite": { unit: ["MSU4000 Elite", 250000], battery: ["B4000 Elite", 90000] },
     "MAU5000 Elite": { unit: ["MAU5000 Elite", 150000], battery: ["B5000 Elite", 100000] },
+    "SigenStor Neo": { unit: ["SigenStor Neo", 0], battery: null },
 };
 const WAITLIST_MAX_UNITS = 10;
 const WAITLIST_BATTERIES_PER_UNIT = 4;
@@ -4746,7 +4907,7 @@ function waitlistOrderFields(grid) {
     function read() {
         const { unit, battery } = WAITLIST_SYSTEMS[system.value];
         const u = Number(units.input.value);
-        const b = Number(batteries.input.value);
+        const b = battery ? Number(batteries.input.value) : 0;
         let problem = "";
         if (!Number.isInteger(u) || u < 0 || u > WAITLIST_MAX_UNITS) problem = `Units must be a whole number from 0 to ${WAITLIST_MAX_UNITS}.`;
         else if (!Number.isInteger(b) || b < 0 || b > WAITLIST_BATTERIES_PER_UNIT * Math.max(1, u)) problem = `Batteries must be a whole number up to ${WAITLIST_BATTERIES_PER_UNIT * Math.max(1, u)} (${WAITLIST_BATTERIES_PER_UNIT} per unit).`;
@@ -4754,14 +4915,17 @@ function waitlistOrderFields(grid) {
         const quantities = {};
         if (u > 0) quantities[unit[0]] = u;
         if (b > 0) quantities[battery[0]] = b;
-        return { problem, system: system.value, quantities, estimatedTotal: (u || 0) * unit[1] + (b || 0) * battery[1] };
+        return { problem, system: system.value, quantities, estimatedTotal: (u || 0) * unit[1] + (battery ? (b || 0) * battery[1] : 0) };
     }
     function update() {
         const { unit, battery } = WAITLIST_SYSTEMS[system.value];
-        units.name.textContent = `${unit[0]} units (${peso(unit[1])} each)`;
-        batteries.name.textContent = `${battery[0]} batteries (${peso(battery[1])} each)`;
+        units.name.textContent = unit[1] ? `${unit[0]} units (${peso(unit[1])} each)` : `${unit[0]} units (price to be announced)`;
+        batteries.wrap.hidden = !battery;
+        if (battery) batteries.name.textContent = `${battery[0]} batteries (${peso(battery[1])} each)`;
         const r = read();
-        estimate.textContent = r.problem || `Estimated total: ${peso(r.estimatedTotal)} (estimate only, not a final quotation)`;
+        estimate.textContent = r.problem || (unit[1]
+            ? `Estimated total: ${peso(r.estimatedTotal)} (estimate only, not a final quotation)`
+            : "Coming soon: no price yet, so there's no estimate.");
         estimate.classList.toggle("bad", Boolean(r.problem));
     }
     for (const node of [system, units.input, batteries.input]) node.addEventListener("input", update);

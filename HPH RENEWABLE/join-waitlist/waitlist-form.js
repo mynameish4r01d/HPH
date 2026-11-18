@@ -6,7 +6,8 @@
 // waitlist/<sign-up id>/. Sign-ups show on the admin page (../admin/).
 // Security rules: /firestore.rules and /storage.rules.
 //
-// There are two systems, each a unit plus its own extension battery (see
+// There are two systems, each a unit plus its own extension battery, and the
+// SigenStor Neo, which is coming soon: units only, with no price yet (see
 // SYSTEMS). People choose how many of each product in one system. Product
 // pages link here with ?product=<name>: that picks the system, hides the
 // system choice (so unrelated products never show) and starts that product
@@ -36,10 +37,16 @@ const SHRINKABLE_TYPE = /^image\/(jpeg|png|webp)$/;
 
 // Keep in step with index.html and isValidWaitlist() in /firestore.rules.
 // Batteries per unit comes from the TSUN data sheets (max. 4 expansion packs).
+// `soon`: not available yet, so no price (no data-price in index.html, an
+// estimate of 0), no quantity or bill to fill in (showSystem()), and, when
+// opened from its page, its own heading (SOON_TITLE).
 const SYSTEMS = {
     "MSU4000 Elite": { unit: "MSU4000 Elite", battery: "B4000 Elite" },
     "MAU5000 Elite": { unit: "MAU5000 Elite", battery: "B5000 Elite" },
+    "SigenStor Neo": { unit: "SigenStor Neo", battery: null, soon: true },
 };
+const SOON_TITLE = (name) => `Join the ${name} Waitlist`;
+const SOON_INTRO = (name) => `The ${name} isn't available yet. Join the waitlist and we'll contact you first with its price and availability. There's no payment or commitment now.`;
 const MAX_UNITS = 10;
 const BATTERIES_PER_UNIT = 4;
 
@@ -58,6 +65,7 @@ const systemField = form.querySelector(".visit-system-field");
 const qtyField = form.querySelector(".visit-qty-field");
 const estimateLines = qtyField.querySelector(".visit-estimate-lines");
 const estimateAmount = qtyField.querySelector(".visit-estimate-amount");
+const billField = form.querySelector(".visit-bill-field");
 const fileInput = form.querySelector('[name="files"]');
 const fileList = form.querySelector(".visit-file-list");
 
@@ -97,7 +105,8 @@ const peso = (amount) => `₱${amount.toLocaleString("en-PH")}`;
 function estimate() {
     const system = chosenSystem();
     if (!system) return 0;
-    return rowsFor(system).reduce((sum, r) => sum + qty(r) * Number(r.dataset.price), 0);
+    // Rows without a data-price (coming soon) add nothing.
+    return rowsFor(system).reduce((sum, r) => sum + qty(r) * (Number(r.dataset.price) || 0), 0);
 }
 
 function renderEstimate() {
@@ -108,7 +117,7 @@ function renderEstimate() {
         const label = document.createElement("span");
         label.textContent = `${qty(r)} × ${r.dataset.product}`;
         const amount = document.createElement("span");
-        amount.textContent = peso(qty(r) * Number(r.dataset.price));
+        amount.textContent = peso(qty(r) * (Number(r.dataset.price) || 0));
         line.append(label, amount);
         return line;
     }));
@@ -136,12 +145,25 @@ function refreshQuantities() {
     renderEstimate();
 }
 
+// Coming-soon systems (the SigenStor Neo) keep it simple: just contact details
+// and a note. There's no quantity to choose (one is saved, as the rule needs an
+// order) and no electricity bill upload (any bill already picked is dropped).
 function showSystem(system) {
-    qtyField.hidden = !system;
+    const soon = Boolean(system && SYSTEMS[system].soon);
+    qtyField.hidden = !system || soon;
+    billField.hidden = soon;
     qtyField.querySelectorAll(".visit-qty-group").forEach((group) => {
         group.hidden = group.dataset.system !== system;
     });
     if (!system) return;
+    if (soon) {
+        row(system, "unit").querySelector("input").value = 1;
+        chosenFiles = [];
+        sourceKeys = [];
+        fileInput.value = "";
+        renderFileList();
+        setFieldError(billField, "");
+    }
     // Start with one unit if nothing is picked yet in this system.
     if (rowsFor(system).every((r) => qty(r) === 0)) row(system, "unit").querySelector("input").value = 1;
     refreshQuantities();
@@ -173,8 +195,17 @@ qtyField.addEventListener("focusout", (e) => {
 
 // Opened from a product page: pick that product's system and hide the choice.
 const product = new URLSearchParams(window.location.search).get("product");
-const linkedSystem = Object.keys(SYSTEMS).find((key) => SYSTEMS[key].unit === product || SYSTEMS[key].battery === product);
+// (`product &&`: without one, a system with no battery (null) would match.)
+const linkedSystem = product && Object.keys(SYSTEMS).find((key) => SYSTEMS[key].unit === product || SYSTEMS[key].battery === product);
 if (linkedSystem) {
+    // A coming-soon product's own waitlist, e.g. "Join the SigenStor Neo Waitlist".
+    if (SYSTEMS[linkedSystem].soon) {
+        document.querySelector(".visit-title").textContent = SOON_TITLE(product);
+        document.querySelector(".visit-intro").textContent = SOON_INTRO(product);
+        document.title = `${SOON_TITLE(product)} | HPH Renewable`;
+        // A slimmer, single-column page (.visit-page-slim in styles.css).
+        document.querySelector(".visit-page").classList.add("visit-page-slim");
+    }
     form.querySelector(`[name="system"][value="${linkedSystem}"]`).checked = true;
     systemField.hidden = true;
     rowsFor(linkedSystem).find((r) => r.dataset.product === product).querySelector("input").value = 1;
@@ -347,7 +378,9 @@ function validateQuantities() {
     if (!system) return true; // reported by validateSystem()
     const { unit, battery } = SYSTEMS[system];
     const units = qty(row(system, "unit"));
-    const batteries = qty(row(system, "battery"));
+    // The SigenStor Neo (coming soon) has no battery row.
+    const batteryRow = row(system, "battery");
+    const batteries = batteryRow ? qty(batteryRow) : 0;
     let message = "";
     if (units + batteries === 0) {
         message = "Please add at least one product.";

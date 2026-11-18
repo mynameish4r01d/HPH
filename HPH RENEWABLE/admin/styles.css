@@ -6796,3 +6796,71 @@ body[data-role="user"] .admin-visit-actions{
     color: #999999;
     text-align: center;
 }
+
+/* ===== Pull to refresh (Ocular Visits; "pull to refresh" in admin.js) =====
+   A round indicator that slides down as the list is pulled (--pull), fading
+   in (--pull-fade), its arrow turning (--pull-turn) and going blue once
+   letting go would refresh, then spinning while the lists reload. Phones:
+   from under the 64px top bar. Desktop: from the top of the list column
+   (admin.js sets top/left from .admin-list-scroll). */
+.admin-pull{
+    position: fixed;
+    top: calc(64px + env(safe-area-inset-top));
+    left: 50%;
+    z-index: 40;
+    width: 40px;
+    height: 40px;
+    margin-left: -20px;
+    margin-top: -48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--admin-field);
+    border: 1px solid var(--admin-border);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    color: var(--admin-muted);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(var(--pull, 0px));
+    transition: transform 0.25s ease, opacity 0.2s ease;
+
+    &.shown{ opacity: var(--pull-fade, 1); }
+    &.dragging{ transition: none; }
+
+    .admin-pull-icon{
+        font-size: 22px;
+        transform: rotate(var(--pull-turn, 0deg));
+    }
+
+    &.ready{
+        color: var(--admin-mark);
+        border-color: var(--admin-mark);
+    }
+
+    &.refreshing .admin-pull-icon{
+        animation: admin-pull-spin 0.8s linear infinite;
+    }
+}
+
+@keyframes admin-pull-spin{
+    to{ transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce){
+    .admin-pull.refreshing .admin-pull-icon{ animation: none; }
+}
+
+/* Announces "Refreshing…" / "Ocular Visits updated" to screen readers only. */
+.admin-pull-status{
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+@media (min-width: 751px){
+    .admin-pull{ margin-top: -32px; }
+}

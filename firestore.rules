@@ -915,7 +915,8 @@ service cloud.firestore {
     }
 
     // A sign-up's order: one system, and how many of its unit and/or its own
-    // battery, e.g. { 'MAU5000 Elite': 1, 'B5000 Elite': 2 }. Zero quantities
+    // battery, e.g. { 'MAU5000 Elite': 1, 'B5000 Elite': 2 }, or for the
+    // SigenStor Neo (coming soon) just { 'SigenStor Neo': 1 }. Zero quantities
     // are left out. Limits match waitlist-form.js (and admin.js): up to 10
     // units, 4 batteries per unit. The estimate (pesos, from starting prices)
     // is what was shown; not a quote.
@@ -927,7 +928,12 @@ service cloud.firestore {
                && isQuantity(data.quantities, 'MSU4000 Elite', 'B4000 Elite'))
             || (data.system == 'MAU5000 Elite'
                && data.quantities.keys().hasOnly(['MAU5000 Elite', 'B5000 Elite'])
-               && isQuantity(data.quantities, 'MAU5000 Elite', 'B5000 Elite')))
+               && isQuantity(data.quantities, 'MAU5000 Elite', 'B5000 Elite'))
+            // Coming soon: units only (no extension battery listed yet), and
+            // no price yet, so its estimate is 0.
+            || (data.system == 'SigenStor Neo'
+               && data.quantities.keys().hasOnly(['SigenStor Neo'])
+               && isQuantity(data.quantities, 'SigenStor Neo', 'SigenStor Neo battery')))
         && data.estimatedTotal is int
         && data.estimatedTotal >= 0 && data.estimatedTotal <= 100000000;
     }

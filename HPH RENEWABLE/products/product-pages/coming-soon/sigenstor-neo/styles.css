@@ -1374,106 +1374,6 @@ body.menu-open{
     }
 }
 
-/* ===== COMING SOON =====
-   Placeholder product pages (products/product-pages/coming-soon/*), built on
-   the Feedback page's shell. Colours come from the .visit-page tokens, so
-   dark mode follows them. */
-.soon-page{
-    min-height: 70vh;
-    display: flex;
-    align-items: center;
-}
-
-.soon-hero{
-    width: 100%;
-    text-align: center;
-
-    /* Product photo above the badge. */
-    .soon-image{
-        display: block;
-        width: min(190px, 50%);
-        height: auto;
-        margin: 0 auto 32px;
-    }
-
-    .soon-badge{
-        display: inline-block;
-        padding: 6px 14px;
-        border-radius: 999px;
-        background-color: var(--visit-surface);
-        border: 1px solid var(--visit-border);
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--visit-muted);
-    }
-
-    .soon-title{
-        margin: 20px 0 0;
-        font-size: 56px;
-        font-weight: 600;
-        line-height: 1.1;
-        letter-spacing: -0.02em;
-    }
-
-    .soon-intro{
-        max-width: 480px;
-        margin: 16px auto 0;
-        font-size: 16px;
-        line-height: 1.55;
-        color: var(--visit-muted);
-    }
-
-    .soon-actions{
-        margin-top: 32px;
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        align-items: center;
-        gap: 12px 24px;
-    }
-
-    .soon-btn{
-        padding: 12px 24px;
-        border-radius: 999px;
-        background-color: var(--visit-accent);
-        color: var(--visit-on-accent);
-        font-size: 15px;
-        font-weight: 500;
-        text-decoration: none;
-        transition: opacity 0.2s ease;
-
-        &:hover{
-            opacity: 0.85;
-        }
-    }
-
-    .soon-link{
-        font-size: 15px;
-        font-weight: 500;
-        color: var(--visit-text);
-        text-decoration: none;
-
-        &:hover{
-            text-decoration: underline;
-        }
-    }
-}
-
-@media only screen and (max-width:750px){
-    /* Fills the first screen (the top padding clears the fixed nav), so the
-       photo, badge, title and buttons sit in its middle. */
-    .soon-page{
-        box-sizing: border-box;
-        min-height: 100vh;
-        min-height: 100svh;
-        padding-bottom: 64px;
-    }
-
-    .soon-hero .soon-title{
-        font-size: 40px;
-    }
-}
-
 /* ===== Product tags (mega panel and phone menu) =====
    "For <head unit>" pills after the extension batteries. */
 /* A tagged link stays on one line, so its tag sits beside the name and the
@@ -1512,7 +1412,7 @@ body.menu-open{
     }
 }
 
-/* "Coming soon" pills, in red, after Power Pack and MAU16000. */
+/* "Coming soon" pills, in red, after Power Pack. */
 .product-tag-soon{
     background-color: #FDECEC;
     color: #D70015;
@@ -1522,5 +1422,127 @@ body.menu-open{
     .product-tag-soon{
         background-color: #3A1416;
         color: #FF6961;
+    }
+}
+
+
+/* ===== Coming soon page (SigenStor Neo) ===== */
+@media only screen and (max-width:750px){
+    .soon-hero{
+        .soon-primary{
+            height: 44px;
+            font-size: 14px;
+        }
+
+        .soon-link{
+            font-size: 14px;
+        }
+
+        /* (.soon-page for weight: the main .soon-hero rules come later.) */
+        &:is(.soon-page .soon-hero) .soon-photo{
+            width: 240px;
+        }
+    }
+}
+
+/* Fills the whole first screen, content centred, so the footer only
+   appears once the visitor scrolls. Its own padding replaces the form
+   pages' 270px top space; the 80px clears the fixed desktop nav (64px on
+   phones). */
+.soon-page{
+    box-sizing: border-box;
+    min-height: 100vh;
+    min-height: 100svh;
+    padding-top: 80px;
+    padding-bottom: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media only screen and (max-width:750px){
+    .soon-page{
+        padding: calc(64px + env(safe-area-inset-top)) 24px 32px;
+    }
+}
+
+.soon-hero{
+    width: 100%;
+    max-width: 520px;
+    margin: 0 auto;
+    text-align: center;
+
+    .soon-badge{
+        display: inline-block;
+        margin-bottom: 8px;
+        padding: 4px 10px;
+        border: 1px solid var(--visit-border);
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--visit-subtle);
+    }
+
+    /* Product photo (white background): blends into the light page; in dark
+       mode it's a rounded light card, like the product pages' photo slides. */
+    .soon-photo{
+        display: block;
+        /* Smaller on short screens, so the badge stays clear of the nav. */
+        width: clamp(200px, 32vh, 320px);
+        max-width: 100%;
+        height: auto;
+        /* The photo has a wide empty strip under the unit's feet: crop it off
+           (keeping the top) so the badge sits close to the unit. */
+        aspect-ratio: 1200 / 1040;
+        object-fit: cover;
+        object-position: center top;
+        margin: 0 auto 28px;
+        border-radius: 12px;
+    }
+
+    .visit-title{
+        margin: 0;
+        font-size: 40px;
+        font-weight: 600;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+    }
+
+    .visit-intro{
+        margin: 12px 0 0;
+        font-size: 15px;
+        line-height: 1.55;
+        color: var(--visit-muted);
+    }
+
+    .soon-actions{
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 12px 24px;
+        margin-top: 32px;
+    }
+
+    /* Sized like the product pages' buttons (e.g. "Join The Waitlist"):
+       40px tall, 12px text, 6px corners; 44px and 14px on phones. */
+    .soon-primary{
+        width: auto;
+        height: 40px;
+        margin-top: 0;
+        display: inline-flex;
+        padding: 0 28px;
+        border-radius: 6px;
+        font-size: 12px;
+        text-decoration: none;
+    }
+
+    .soon-link{
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--visit-text);
+        text-decoration: underline;
+        text-decoration-color: var(--visit-border);
+        text-underline-offset: 4px;
     }
 }
