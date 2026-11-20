@@ -1467,11 +1467,158 @@ body.menu-open{
     font-size: 14px;
     font-weight: 500;
 }
-.carousel-single .carousel-arrow, .carousel-single .carousel-dots{ display: none; }
+/* Power Pack photo: no slideshow. Both photos (Basic and DIY Kit) sit
+   stacked in one frame and crossfade when the switch changes
+   (.pp-photo-shown). Shown whole on desktop, on white (the photos are
+   white-backed); phones crop the empty sides of the wide photos. */
+.pp-photo{
+    position: relative;
+}
+.pp-photo img{
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.45s ease;
+}
+.pp-photo img.pp-photo-shown{
+    opacity: 1;
+}
+@media (prefers-reduced-motion: reduce){
+    .pp-photo img{ transition: none; }
+}
+.desktop .box1 .pp-photo{
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid rgba(0, 0, 0, 0.22);
+    border-radius: 6px;
+    box-sizing: border-box;
+    background-color: #FFFFFF;
+}
+.desktop .box1 .pp-photo img{
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+.mobile .pp-photo-mobile{
+    margin: 0 -24px;
+    aspect-ratio: 5 / 6;
+    overflow: hidden;
+    background-color: #FFFFFF;
+}
+.mobile .pp-photo-mobile .mobile-product-img{
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 
-/* Power Pack photo: shown whole, never cropped. The image is white-backed, so any
-   leftover space around it is white too. */
-.desktop .carousel .carousel-slide{ background-color: #FFFFFF !important; }
-.desktop .carousel .carousel-slide img{ object-fit: contain !important; }
-.mobile .mobile-carousel{ background-color: #FFFFFF !important; }
-.mobile .mobile-carousel .mobile-product-img{ object-fit: contain !important; }
+/* ===== Power Pack: Basic / DIY Kit tabs =====
+   A segmented control under the price; the script at the end of index.html
+   swaps the price, the photo, "What's Included" and the Reserve links. Light only,
+   like the rest of this page. */
+.pp-options{
+    display: inline-grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    margin-top: 14px;
+    padding: 2px;
+    border-radius: 8px;
+    background-color: #EFEFF1;
+    font-family: "Inter", sans-serif;
+}
+.pp-option{
+    min-width: 96px;
+    height: 30px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #6B6B6B;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+.pp-option:hover{ color: #1A1A1A; }
+.pp-option[aria-checked="true"]{
+    background-color: #FFFFFF;
+    color: #1A1A1A;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.pp-option:focus-visible{ outline: 2px solid #1A1A1A; outline-offset: 1px; }
+/* "What's Included", the last section of the specs, follows the tab. */
+.pp-box-list{
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+.pp-box-list li{
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12.5px;
+    line-height: 1.3;
+    color: var(--specs-text);
+}
+.pp-box-list .material-symbols-rounded{
+    flex: none;
+    font-size: 16px;
+    color: var(--specs-muted);
+}
+.mobile .pp-box-list li{ font-size: 13.5px; }
+.pp-options-mobile{
+    display: grid;
+    margin-top: 16px;
+}
+.pp-options-mobile .pp-option{ height: 36px; font-size: 14px; }
+
+/* ===== "More below" button (../../specs-more.js) =====
+   A round down arrow floating just above the main button while some of the
+   specs are out of view (desktop: over the bottom of the specs column;
+   phones: above the pinned button bar). It fades out once the end is
+   reached (.pp-more-on). */
+.pp-more{
+    --more-bg: #FFFFFF;
+    --more-hover: #F5F5F7;
+    --more-border: #E6E6E8;
+    --more-text: #1A1A1A;
+    position: absolute;
+    left: 50%;
+    z-index: 6;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--more-border);
+    border-radius: 50%;
+    background-color: var(--more-bg);
+    color: var(--more-text);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%);
+    transition: opacity 0.3s ease, background-color 0.2s ease;
+}
+.pp-more .material-symbols-rounded{ font-size: 20px; color: inherit; }
+.pp-more.pp-more-on{
+    opacity: 1;
+    pointer-events: auto;
+}
+.pp-more:hover{ background-color: var(--more-hover); }
+.pp-more:focus-visible{ outline: 2px solid var(--more-text); outline-offset: 2px; }
+
+/* Desktop: over the bottom of the specs column, which ends above the data
+   sheet link and the main button (the sheet has a 28px bottom margin). */
+.desktop .pp-more-host{ position: relative; }
+.desktop .pp-more{ bottom: 40px; }
+
+/* Phones: just above the pinned button bar. */
+.mobile .mobile-btn-bar{ position: sticky; }
+.mobile .pp-more-mobile{ top: -52px; }

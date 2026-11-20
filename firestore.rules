@@ -737,9 +737,10 @@ service cloud.firestore {
     function isValidWaitlistEdit() {
       let data = request.resource.data;
       return data.diff(resource.data).affectedKeys()
-               .hasOnly(['name', 'phone', 'email', 'address', 'message', 'attachments', 'editedAt', 'editedBy'])
+               .hasOnly(['name', 'phone', 'email', 'address', 'message', 'attachments', 'referralCode', 'editedAt', 'editedBy'])
         // Bills added or removed while editing (see /storage.rules), max 10.
         && (!('attachments' in data) || (data.attachments is list && data.attachments.size() <= 10))
+        && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
         && isText(data.name, 1, 100)
         && (data.phone == '' || isText(data.phone, 7, 30))
         && isText(data.email, 0, 200)
@@ -812,9 +813,9 @@ service cloud.firestore {
       let fields = ['name', 'phone', 'email', 'address', 'propertyType', 'product',
                     'monthlyBill', 'preferredDate', 'preferredTime', 'message',
                     'attachments', 'consent', 'sourcePage', 'status', 'createdAt'];
-      // referralCode, usagePattern, aircons, roofPhotos (older forms' roof
-      // screenshots), roofPin and addressPlace are optional so requests from a
-      // cached older form still go through.
+      // referralCode, usagePattern, aircons,
+      // roofPhotos (older forms' roof screenshots), roofPin and addressPlace
+      // are optional so requests from a cached older form still go through.
       return data.keys().hasOnly(fields.concat(['referralCode', 'usagePattern', 'aircons', 'roofPhotos', 'roofPin', 'addressPlace']))
         && (!('addressPlace' in data) || isAddressPlace(data.addressPlace))
         && (!('roofPin' in data) || isRoofPin(data.roofPin))
@@ -886,10 +887,12 @@ service cloud.firestore {
       let fields = ['system', 'quantities', 'estimatedTotal', 'name', 'phone', 'email',
                     'address', 'message', 'consent', 'sourcePage', 'status', 'createdAt',
                     'source', 'createdBy'];
-      // attachments (bills added on the admin page, max 10) is optional.
-      return data.keys().hasOnly(fields.concat(['attachments']))
+      // attachments (bills added on the admin page, max 10) and referralCode
+      // are optional.
+      return data.keys().hasOnly(fields.concat(['attachments', 'referralCode']))
         && data.keys().hasAll(fields)
         && (!('attachments' in data) || (data.attachments is list && data.attachments.size() <= 10))
+        && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
         && isWaitlistOrder(data)
         && isText(data.name, 1, 100)
         && (data.phone == '' || isText(data.phone, 7, 30))
@@ -933,9 +936,22 @@ service cloud.firestore {
             // no price yet, so its estimate is 0.
             || (data.system == 'SigenStor Neo'
                && data.quantities.keys().hasOnly(['SigenStor Neo'])
-               && isQuantity(data.quantities, 'SigenStor Neo', 'SigenStor Neo battery')))
+               && isQuantity(data.quantities, 'SigenStor Neo', 'SigenStor Neo battery'))
+            // Power Pack reservations (HPH RENEWABLE/reserve-power-pack/):
+            // 'Power Pack' is the Basic option and 'Power Pack DIY Kit' adds a
+            // panel, mounting and PV cable. 1-10 of each (the public form picks
+            // one; the admin page may record both). Not a battery add-on, so
+            // isQuantity()'s per-unit limit doesn't apply.
+            || (data.system == 'Power Pack'
+               && data.quantities.keys().hasOnly(['Power Pack', 'Power Pack DIY Kit'])
+               && isPowerPackQty(data.quantities, 'Power Pack')
+               && isPowerPackQty(data.quantities, 'Power Pack DIY Kit')))
         && data.estimatedTotal is int
         && data.estimatedTotal >= 0 && data.estimatedTotal <= 100000000;
+    }
+
+    function isPowerPackQty(q, name) {
+      return !(name in q) || (q[name] is int && q[name] >= 1 && q[name] <= 10);
     }
 
     function isValidWaitlist(data) {
@@ -943,10 +959,11 @@ service cloud.firestore {
                     'address', 'message', 'consent', 'sourcePage', 'status', 'createdAt'];
       // attachments (the electricity bill's Cloud Storage paths, see
       // /storage.rules, max 3) is optional so sign-ups from a cached older
-      // form still go through.
-      return data.keys().hasOnly(fields.concat(['attachments']))
+      // form still go through. referralCode (the Power Pack form's) is optional.
+      return data.keys().hasOnly(fields.concat(['attachments', 'referralCode']))
         && data.keys().hasAll(fields)
         && (!('attachments' in data) || (data.attachments is list && data.attachments.size() <= 3))
+        && (!('referralCode' in data) || isText(data.referralCode, 0, 50))
         && isWaitlistOrder(data)
         && isText(data.name, 1, 100)
         && isText(data.phone, 7, 30)

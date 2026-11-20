@@ -27,6 +27,7 @@
 
     <!--JAVA SCRIPT-->
     <script defer src="../../../../app.js"></script>
+    <script defer src="../../specs-more.js"></script>
 
 </head>
 <body>
@@ -173,21 +174,11 @@
             <div class="flex-box">
                 <div class="box1">
 
-                    <div class="carousel carousel-single">
-                        <div class="carousel-track">
-                            <div class="carousel-slide">
-                                <img src="elements/photo/element1.jpg" alt="Power Pack" class="img">
-                            </div>
-                        </div>
-
-                        <button type="button" class="carousel-arrow carousel-arrow-prev" aria-label="Previous photo">
-                            <span class="material-symbols-rounded">chevron_left</span>
-                        </button>
-                        <button type="button" class="carousel-arrow carousel-arrow-next" aria-label="Next photo">
-                            <span class="material-symbols-rounded">chevron_right</span>
-                        </button>
-
-                        <div class="carousel-dots"></div>
+                    <!-- One photo, no slideshow: it only changes with the Basic / DIY Kit
+                         switch (PP_OPTIONS in the script at the end of the page). -->
+                    <div class="pp-photo">
+                        <img src="elements/photo/basic.png" alt="Power Pack" class="img pp-photo-shown" data-pp-photo="basic">
+                        <img src="elements/photo/diy-kit.png" alt="Power Pack DIY Kit" class="img" data-pp-photo="diy-kit" aria-hidden="true">
                     </div>
 
                 </div>
@@ -197,7 +188,13 @@
                     <div class="text-container-content">
                             <div class="sub-title">Portable Energy System</div>
                         <div class="title">Power Pack</div>
-                            <div class="price">Starting at ₱70,000</div>
+                            <div class="price" data-pp-price>Starting at ₱50,000</div>
+                            <!-- Basic / DIY Kit: the script at the end of the page swaps the
+                                 price, photo, "What's Included" and the Reserve links (PP_OPTIONS). -->
+                            <div class="pp-options" role="radiogroup" aria-label="Choose an option">
+                                <button type="button" class="pp-option" role="radio" data-option="basic" aria-checked="true">Basic</button>
+                                <button type="button" class="pp-option" role="radio" data-option="diy-kit" aria-checked="false">DIY Kit</button>
+                            </div>
 
 
                             <div class="specs-sheet">
@@ -228,12 +225,17 @@
                                         <div><dt>Noise</dt><dd>Under 25dB</dd></div>
                                     </dl>
                                 </section>
+                                <section class="specs-sec pp-box">
+                                    <h2>What's Included</h2>
+                                    <!-- Filled in by the script at the end of the page (PP_OPTIONS). -->
+                                    <ul class="pp-box-list" data-pp-box></ul>
+                                </section>
                             </div>
                     </div>
 
                     <a href="../../../../product-data-sheets/Projoy%20Product%20DataSheet%20Power%20Pack.pdf" download="Projoy Product DataSheet Power Pack.pdf" class="datasheet-btn"><span class="material-symbols-rounded">download</span>Download Product Data Sheet</a>
-                    <a href="../../../../schedule-a-visit/index.html?product=Power%20Pack" class="btn-container">
-                        <div class="btn">Schedule a Visit</div>
+                    <a href="../../../../reserve-power-pack/index.html?option=basic" class="btn-container" data-pp-reserve>
+                        <div class="btn">Reserve</div>
                     </a>
                 </div>
             </div>
@@ -342,27 +344,19 @@
         </nav>
 
         <main class="mobile-main mobile-product-page">
-            <div class="mobile-carousel mobile-carousel-single">
-                <div class="mobile-carousel-track">
-                <div class="mobile-carousel-slide">
-                    <img src="elements/photo/element1.jpg" alt="Power Pack" class="mobile-product-img">
-                </div>
-                </div>
-
-                <button type="button" class="mobile-carousel-arrow mobile-carousel-arrow-prev" aria-label="Previous photo">
-                    <span class="material-symbols-rounded">chevron_left</span>
-                </button>
-                <button type="button" class="mobile-carousel-arrow mobile-carousel-arrow-next" aria-label="Next photo">
-                    <span class="material-symbols-rounded">chevron_right</span>
-                </button>
-
-                <div class="mobile-carousel-dots"></div>
+            <div class="pp-photo pp-photo-mobile">
+                <img src="elements/photo/basic.png" alt="Power Pack" class="mobile-product-img pp-photo-shown" data-pp-photo="basic">
+                <img src="elements/photo/diy-kit.png" alt="Power Pack DIY Kit" class="mobile-product-img" data-pp-photo="diy-kit" aria-hidden="true">
             </div>
 
             <div class="mobile-product-head">
                 <div class="mobile-eyebrow">Portable Energy System</div>
                 <h1 class="mobile-page-title">Power Pack</h1>
-                <div class="mobile-price">Starting at ₱70,000</div>
+                <div class="mobile-price" data-pp-price>Starting at ₱50,000</div>
+                <div class="pp-options pp-options-mobile" role="radiogroup" aria-label="Choose an option">
+                                <button type="button" class="pp-option" role="radio" data-option="basic" aria-checked="true">Basic</button>
+                                <button type="button" class="pp-option" role="radio" data-option="diy-kit" aria-checked="false">DIY Kit</button>
+                            </div>
             </div>
 
             <div class="specs-sheet">
@@ -393,12 +387,17 @@
                         <div><dt>Noise</dt><dd>Under 25dB</dd></div>
                     </dl>
                 </section>
+                <section class="specs-sec pp-box">
+                    <h2>What's Included</h2>
+                    <!-- Filled in by the script at the end of the page (PP_OPTIONS). -->
+                    <ul class="pp-box-list" data-pp-box></ul>
+                </section>
             </div>
             <a href="../../../../product-data-sheets/Projoy%20Product%20DataSheet%20Power%20Pack.pdf" download="Projoy Product DataSheet Power Pack.pdf" class="datasheet-btn"><span class="material-symbols-rounded">download</span>Download Product Data Sheet</a>
         </main>
 
         <div class="mobile-btn-bar">
-            <a href="../../../../schedule-a-visit/index.html?product=Power%20Pack" class="mobile-btn-solid">Schedule a Visit</a>
+            <a href="../../../../reserve-power-pack/index.html?option=basic" class="mobile-btn-solid" data-pp-reserve>Reserve</a>
         </div>
     </div>
 
@@ -466,134 +465,6 @@
             }
         });
 
-        function initCarousel(root, slideSelector, trackSelector, dotsSelector, prevSelector, nextSelector, dotClass) {
-            document.querySelectorAll(root).forEach((carousel) => {
-                const track = carousel.querySelector(trackSelector);
-                const dotsContainer = carousel.querySelector(dotsSelector);
-                const prevBtn = carousel.querySelector(prevSelector);
-                const nextBtn = carousel.querySelector(nextSelector);
-
-                const realSlides = Array.from(carousel.querySelectorAll(slideSelector));
-                const count = realSlides.length;
-                if (!count) return;
-
-                // Loop seamlessly by cloning the first/last slide onto each end of the
-                // track, then snapping back to the real slide (no transition) once the
-                // clone has scrolled fully into view.
-                const loop = count > 1;
-                if (loop) {
-                    const firstClone = realSlides[0].cloneNode(true);
-                    const lastClone = realSlides[count - 1].cloneNode(true);
-                    firstClone.setAttribute("aria-hidden", "true");
-                    lastClone.setAttribute("aria-hidden", "true");
-                    track.appendChild(firstClone);
-                    track.insertBefore(lastClone, realSlides[0]);
-                }
-
-                let realIndex = 0;
-                let position = loop ? 1 : 0;
-
-                dotsContainer.innerHTML = "";
-                realSlides.forEach((_, i) => {
-                    const dot = document.createElement("button");
-                    dot.type = "button";
-                    dot.className = dotClass + (i === 0 ? " active" : "");
-                    dot.setAttribute("aria-label", "Go to photo " + (i + 1));
-                    dot.addEventListener("click", () => goTo(i));
-                    dotsContainer.appendChild(dot);
-                });
-                const dots = Array.from(dotsContainer.children);
-                const trackSlides = Array.from(track.children);
-
-                function render(withTransition) {
-                    if (withTransition) {
-                        track.style.transition = "";
-                        track.style.transform = "translateX(-" + (position * 100) + "%)";
-                    } else {
-                        track.style.transition = "none";
-                        track.style.transform = "translateX(-" + (position * 100) + "%)";
-                        void track.offsetHeight;
-                        track.style.transition = "";
-                    }
-                }
-
-                function updateDots() {
-                    dots.forEach((dot, d) => dot.classList.toggle("active", d === realIndex));
-                }
-
-                // Only the slide currently front-and-center should play its video;
-                // every other slide's video (including the loop clones) stays paused.
-                function updateMedia() {
-                    trackSlides.forEach((slide, i) => {
-                        const video = slide.querySelector("video");
-                        if (!video) return;
-                        if (i === position) {
-                            video.play().catch(() => {});
-                        } else {
-                            video.pause();
-                        }
-                    });
-                }
-
-                let animating = false;
-
-                function goTo(targetIndex) {
-                    if (loop && animating) return;
-                    const newRealIndex = (targetIndex + count) % count;
-                    if (newRealIndex === realIndex) return;
-                    realIndex = newRealIndex;
-                    position = loop ? realIndex + 1 : realIndex;
-                    if (loop) animating = true;
-                    render(true);
-                    updateDots();
-                    updateMedia();
-                }
-
-                function step(direction) {
-                    if (loop && animating) return;
-                    realIndex = (realIndex + direction + count) % count;
-                    position += direction;
-                    if (loop) animating = true;
-                    render(true);
-                    updateDots();
-                    updateMedia();
-                }
-
-                if (loop) {
-                    track.addEventListener("transitionend", (e) => {
-                        if (e.propertyName !== "transform") return;
-                        if (position === count + 1) {
-                            position = 1;
-                            render(false);
-                        } else if (position === 0) {
-                            position = count;
-                            render(false);
-                        }
-                        animating = false;
-                        updateMedia();
-                    });
-                }
-
-                render(false);
-                updateMedia();
-
-                // Swipe left/right on touch screens.
-                let touchX = null;
-                carousel.addEventListener("touchstart", (e) => { touchX = e.touches[0].clientX; }, { passive: true });
-                carousel.addEventListener("touchend", (e) => {
-                    if (touchX === null) return;
-                    const dx = e.changedTouches[0].clientX - touchX;
-                    touchX = null;
-                    if (count > 1 && Math.abs(dx) > 40) step(dx < 0 ? 1 : -1);
-                });
-
-                prevBtn.addEventListener("click", () => step(-1));
-                nextBtn.addEventListener("click", () => step(1));
-            });
-        }
-
-        initCarousel(".carousel", ".carousel-slide", ".carousel-track", ".carousel-dots", ".carousel-arrow-prev", ".carousel-arrow-next", "carousel-dot");
-        initCarousel(".mobile-carousel", ".mobile-carousel-slide", ".mobile-carousel-track", ".mobile-carousel-dots", ".mobile-carousel-arrow-prev", ".mobile-carousel-arrow-next", "mobile-carousel-dot");
 
         document.querySelectorAll(".copy-contact").forEach((el) => {
             const originalText = el.textContent;
@@ -628,6 +499,68 @@
             }
         });
         // ===== END MOBILE MENU =====
+    </script>
+
+
+    <script>
+        // Basic / DIY Kit tabs (desktop and phone stay in step). Keep the prices
+        // in step with data-price in reserve-power-pack/index.html and
+        // WAITLIST_SYSTEMS in admin/admin.js.
+        (function () {
+            // Each option has its own photo (both are in the page, stacked, and
+            // crossfade in styles.css); the page opens on Basic.
+            const PP_OPTIONS = {
+                "basic": {
+                    price: "Starting at ₱50,000",
+                    box: ["Power Pack"],
+                },
+                "diy-kit": {
+                    price: "Starting at ₱70,000",
+                    box: ["Power Pack", "1 × Tier 1 650 W solar panel", "Mounting equipment for the solar panel", "PV cable"],
+                },
+            };
+            const RESERVE = "../../../../reserve-power-pack/index.html?option=";
+            function choose(option) {
+                const o = PP_OPTIONS[option];
+                document.querySelectorAll(".pp-option").forEach((b) => b.setAttribute("aria-checked", String(b.dataset.option === option)));
+                document.querySelectorAll("[data-pp-price]").forEach((el) => { el.textContent = o.price; });
+                document.querySelectorAll("[data-pp-box]").forEach((list) => {
+                    list.replaceChildren(...o.box.map((item) => {
+                        const li = document.createElement("li");
+                        const icon = document.createElement("span");
+                        icon.className = "material-symbols-rounded";
+                        icon.setAttribute("aria-hidden", "true");
+                        icon.textContent = "add";
+                        li.append(icon, item);
+                        return li;
+                    }));
+                });
+                document.querySelectorAll("[data-pp-photo]").forEach((img) => {
+                    const shown = img.dataset.ppPhoto === option;
+                    img.classList.toggle("pp-photo-shown", shown);
+                    img.setAttribute("aria-hidden", String(!shown));
+                });
+                document.querySelectorAll("[data-pp-reserve]").forEach((a) => { a.href = RESERVE + option; });
+                history.replaceState(null, "", option === "basic" ? location.pathname : "#" + option);
+            }
+            document.querySelectorAll(".pp-options").forEach((group) => {
+                group.addEventListener("click", (e) => {
+                    const b = e.target.closest(".pp-option");
+                    if (b) choose(b.dataset.option);
+                });
+                // Arrow keys move between the two, like a radio group.
+                group.addEventListener("keydown", (e) => {
+                    if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) return;
+                    e.preventDefault();
+                    const current = group.querySelector('[aria-checked="true"]').dataset.option;
+                    const next = current === "basic" ? "diy-kit" : "basic";
+                    choose(next);
+                    group.querySelector(`[data-option="${next}"]`).focus();
+                });
+            });
+            // #diy-kit opens on the DIY Kit.
+            choose(PP_OPTIONS[location.hash.slice(1)] ? location.hash.slice(1) : "basic");
+        })();
     </script>
 
 </body>

@@ -510,6 +510,11 @@
                 <!-- Waitlist only: filter by product, with per-product totals. -->
                 <div class="admin-product-filter" role="group" aria-label="Filter waitlist by product" hidden></div>
 
+                <!-- The list's tools, laid out as one grid (.admin-list-tools) on every
+                     tab: the tab's main (blue) button across the top, then its other
+                     buttons and "Export CSV" two to a row, then the entry count. Only
+                     the current tab's block shows. -->
+                <div class="admin-list-tools">
                 <!-- Installs only: add one (the form opens on the right). -->
                 <div class="admin-install-actions" hidden>
                     <button type="button" class="admin-action admin-action-primary admin-add-install">
@@ -537,11 +542,11 @@
                     </button>
                     <button type="button" class="admin-action admin-presets" hidden>
                         <span class="material-symbols-rounded">solar_power</span>
-                        System presets
+                        <span class="admin-action-label">System presets</span>
                     </button>
                     <button type="button" class="admin-action admin-low-filter" aria-pressed="false">
                         <span class="material-symbols-rounded">warning</span>
-                        <span class="admin-low-filter-text">Restock needed</span>
+                        <span class="admin-action-label admin-low-filter-text">Restock needed</span>
                     </button>
                 </div>
 
@@ -563,7 +568,6 @@
                     <p class="admin-wish-total" role="status"></p>
                 </div>
 
-                <!-- On phones these two share one row (see .admin-entry-actions-row). -->
                 <div class="admin-entry-actions-row">
                 <!-- Ocular Visits and Waitlist, admins and the team account: add one by
                      hand (e.g. from a phone call); the form opens on the right. -->
@@ -579,7 +583,7 @@
                 <div class="admin-install-actions admin-visit-actions" hidden>
                     <button type="button" class="admin-action admin-opensolar-import" title="Import an OpenSolar project export (CSV). Safe to repeat: projects already imported are updated, not duplicated.">
                         <span class="material-symbols-rounded">upload_file</span>
-                        Import from OpenSolar
+                        <span class="admin-action-label">Import OpenSolar</span>
                     </button>
                     <input type="file" class="admin-opensolar-file" accept=".csv,text/csv" hidden>
                     <p class="admin-import-status admin-opensolar-status" role="status" hidden></p>
@@ -591,8 +595,9 @@
                     <span class="admin-list-count"></span>
                     <button type="button" class="admin-export" title="Download what the list shows as a CSV file">
                         <span class="material-symbols-rounded">download</span>
-                        Export CSV
+                        <span class="admin-action-label">Export CSV</span>
                     </button>
+                </div>
                 </div>
 
                 <!-- Desktop: only this part scrolls; the tabs and filters stay put. -->

@@ -3262,3 +3262,59 @@ body.menu-open{
 @media (prefers-color-scheme: dark){
     .datasheet-btn{ --ds-text: #9E9E9E; --ds-hover: #EBEBEB; }
 }
+
+/* ===== "More below" button (../../specs-more.js) =====
+   A round down arrow floating just above the main button while some of the
+   specs are out of view (desktop: over the bottom of the specs column;
+   phones: above the pinned button bar). It fades out once the end is
+   reached (.pp-more-on). */
+.pp-more{
+    --more-bg: #FFFFFF;
+    --more-hover: #F5F5F7;
+    --more-border: #E6E6E8;
+    --more-text: #1A1A1A;
+    position: absolute;
+    left: 50%;
+    z-index: 6;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid var(--more-border);
+    border-radius: 50%;
+    background-color: var(--more-bg);
+    color: var(--more-text);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateX(-50%);
+    transition: opacity 0.3s ease, background-color 0.2s ease;
+}
+.pp-more .material-symbols-rounded{ font-size: 20px; color: inherit; }
+.pp-more.pp-more-on{
+    opacity: 1;
+    pointer-events: auto;
+}
+.pp-more:hover{ background-color: var(--more-hover); }
+.pp-more:focus-visible{ outline: 2px solid var(--more-text); outline-offset: 2px; }
+
+/* Desktop: over the bottom of the specs column, which ends above the data
+   sheet link and the main button (the sheet has a 28px bottom margin). */
+.desktop .pp-more-host{ position: relative; }
+.desktop .pp-more{ bottom: 40px; }
+
+/* Phones: just above the pinned button bar. */
+.mobile .mobile-btn-bar{ position: sticky; }
+.mobile .pp-more-mobile{ top: -52px; }
+@media (prefers-color-scheme: dark){
+    .pp-more{
+        --more-bg: #1C1C1E;
+        --more-hover: #2A2A2A;
+        --more-border: #2A2A2A;
+        --more-text: #EBEBEB;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+    }
+}

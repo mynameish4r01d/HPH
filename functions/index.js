@@ -26,6 +26,28 @@ const REGION = "us-central1";
 const LOGO_URL = "https://hphtechsolutions.com/HPH%20RENEWABLE/global-elements/HPH%20Renewable%20Black.png";
 const ADMIN_URL = "https://hphtechsolutions.com/hphrenewable/admin/";
 
+// Google Maps directions for the Address link, like directionsUrl() in the
+// admin page (admin/admin.js): to the roof pin if there is one, else the place
+// picked from Google's suggestions, else the typed address. On phones it
+// opens the Maps app.
+function directionsUrl(d) {
+    const url = new URL("https://www.google.com/maps/dir/");
+    url.searchParams.set("api", "1");
+    const pin = d.roofPin;
+    const place = d.addressPlace;
+    if (pin && Number.isFinite(pin.lat) && Number.isFinite(pin.lng)) {
+        url.searchParams.set("destination", `${pin.lat},${pin.lng}`);
+    } else if (place && Number.isFinite(place.lat) && Number.isFinite(place.lng)) {
+        url.searchParams.set("destination", `${place.lat},${place.lng}`);
+        if (place.id) url.searchParams.set("destination_place_id", String(place.id));
+    } else if (oneLine(d.address)) {
+        url.searchParams.set("destination", oneLine(d.address));
+    } else {
+        return "";
+    }
+    return url.toString();
+}
+
 const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const oneLine = (v) => String(v ?? "").replace(/[\r\n]+/g, " ").trim();
 
@@ -43,7 +65,7 @@ exports.notifyNewVisit = onDocumentCreated(
             ["Mobile", oneLine(d.phone), `tel:${oneLine(d.phone).replace(/[^\d+]/g, "")}`],
             ["Email", oneLine(d.email), /^\S+@\S+$/.test(d.email || "") ? `mailto:${oneLine(d.email)}` : ""],
             ["Property", oneLine(d.propertyType)],
-            ["Address", oneLine(d.address), `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(oneLine(d.address))}`],
+            ["Address", oneLine(d.address), directionsUrl(d)],
             ["Interested in", oneLine(d.product)],
             ["Monthly bill", oneLine(d.monthlyBill)],
             ["Usage pattern", oneLine(d.usagePattern) || "Not sure"],
@@ -118,3 +140,6 @@ ${message ? `<tr><td style="padding-top:28px;"><div style="border:1px solid #E5E
         }
     }
 );
+
+// Read-only Claude connector (remote MCP server) over the admin data; see mcp.js.
+exports.claudeMcp = require("./mcp").claudeMcp;

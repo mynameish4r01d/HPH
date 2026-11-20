@@ -80,7 +80,7 @@ const STALE_WARN_HOURS = 48;
 const STALE_HOURS = 72;
 
 // Waitlist product filter, in this order.
-const WAITLIST_PRODUCTS = ["MSU4000 Elite", "MAU5000 Elite", "B4000 Elite", "B5000 Elite", "SigenStor Neo"];
+const WAITLIST_PRODUCTS = ["MSU4000 Elite", "MAU5000 Elite", "B4000 Elite", "B5000 Elite", "SigenStor Neo", "Power Pack", "Power Pack DIY Kit"];
 
 const status = document.querySelector(".admin-status");
 
@@ -1968,7 +1968,10 @@ function renderEntry(tab, entry) {
 }
 
 function detailRow(label, value, { href, wide, newTab } = {}) {
-    const row = el("div", wide ? "admin-detail admin-detail-wide" : "admin-detail");
+    const empty = value === "" || value === undefined || value === null;
+    // Blank details are left out of view (hidden by CSS), so only what the
+    // client gave shows.
+    const row = el("div", `admin-detail${wide ? " admin-detail-wide" : ""}${empty ? " admin-detail-empty" : ""}`);
     row.append(el("dt", "", label));
     const dd = el("dd");
     if (href && value) {
@@ -1985,6 +1988,14 @@ function detailRow(label, value, { href, wide, newTab } = {}) {
     row.append(dd);
     if (value !== "" && value !== undefined && value !== null) makeCopyable(row, label, String(value));
     return row;
+}
+
+// A titled group of detail rows ("Contact", "Home & energy"…). A group with
+// nothing filled in is hidden by CSS.
+function detailGroup(title, ...rows) {
+    const group = el("div", "admin-detail-group");
+    group.append(el("div", "admin-detail-group-title", title), ...rows);
+    return group;
 }
 
 // Click a detail (or its copy icon) to copy its value. Clicking a phone/email
@@ -2020,6 +2031,33 @@ function makeCopyable(row, label, text) {
     });
 }
 
+// Click an entry's name to copy it: in the open entry's pinned header
+// (desktop) and in an entry opened in place (phones), where the name sits in
+// a <summary> that would otherwise close it. It tints blue for a moment once
+// copied. One listener, so the header's cloned name works too. A closed
+// entry's name still opens it.
+document.addEventListener("click", async (e) => {
+    const name = e.target.closest(".admin-entry-title[data-copy]");
+    if (!name) return;
+    const inHeader = name.closest(".admin-detail-title");
+    const openOnPhone = !desktop.matches && name.closest(".admin-entry[open] > summary");
+    if (!inHeader && !openOnPhone) return;
+    // A drag-selection is left alone so part of the name can be copied.
+    if (String(window.getSelection())) return;
+    // Don't toggle the <summary> or open the entry.
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+        await copyText(name.dataset.copy);
+    } catch (err) {
+        console.error("Admin: copy failed", err);
+        return;
+    }
+    name.classList.add("copied");
+    clearTimeout(name.copyTimer);
+    name.copyTimer = setTimeout(() => name.classList.remove("copied"), 1400);
+}, true);
+
 async function copyText(text) {
     if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(text);
@@ -2047,7 +2085,12 @@ function entryShell(title, meta, date, { dim, badge, stale, dateText } = {}) {
     const summary = el("summary");
     const main = el("div", "admin-entry-main");
     const heading = el("span", "admin-entry-heading");
-    heading.append(el("span", "admin-entry-title", title || "(no name)"));
+    const titleEl = el("span", "admin-entry-title", title || "(no name)");
+    if (title) {
+        titleEl.dataset.copy = title;
+        titleEl.title = "Click to copy";
+    }
+    heading.append(titleEl);
     if (badge) heading.append(badge);
     if (stale) heading.append(stale);
     main.append(heading);
@@ -2074,18 +2117,25 @@ function renderVisit(v) {
 
     const list = el("dl", "admin-details");
     list.append(
-        detailRow("Phone", v.phone, { href: v.phone ? `tel:${v.phone.replace(/[^\d+]/g, "")}` : "" }),
-        detailRow("Email", v.email, { href: v.email ? `mailto:${v.email}` : "" }),
-        detailRow("Address", v.address, { href: directionsUrl(v), newTab: true }),
-        detailRow("Property type", v.propertyType),
-        detailRow("Interested in", v.product),
-        detailRow("Monthly bill", v.monthlyBill),
-        detailRow("Usage pattern", v.usagePattern),
-        detailRow("Aircons", airconSummary(v)),
-        detailRow("Preferred date", v.preferredDate),
-        detailRow("Preferred time", v.preferredTime),
-        detailRow("Referred by", referral ? referrerLabel(referral) : ""),
-        detailRow("Message", v.message, { wide: true }),
+        detailGroup("Contact",
+            detailRow("Phone", v.phone, { href: v.phone ? `tel:${v.phone.replace(/[^\d+]/g, "")}` : "" }),
+            detailRow("Email", v.email, { href: v.email ? `mailto:${v.email}` : "" }),
+            detailRow("Address", v.address, { href: directionsUrl(v), newTab: true }),
+        ),
+        detailGroup("Home & energy",
+            detailRow("Property type", v.propertyType),
+            detailRow("Interested in", v.product),
+            detailRow("Monthly bill", v.monthlyBill),
+            detailRow("Usage pattern", v.usagePattern),
+            detailRow("Aircons", airconSummary(v)),
+        ),
+        detailGroup("Visit",
+            detailRow("Preferred date", v.preferredDate),
+            detailRow("Preferred time", v.preferredTime),
+            detailRow("Referred by", referral ? referrerLabel(referral) : ""),
+            detailRow("Message", v.message, { wide: true }),
+        ),
+        // Rows outside a group go into "Record" (entryDetails()).
         detailRow("Submitted", formatDate(toDate(v.createdAt))),
         detailRow("Request ID", v.id),
     );
@@ -2264,7 +2314,7 @@ function renderFeedback(f) {
     const actions = el("div", "admin-actions admin-install-entry-actions");
     const error = el("span", "admin-action-error");
     actions.append(error, ...entryTools("feedback", f, error));
-    details.append(actions, ticket("feedback", f, list));
+    details.append(actions, entryDetails(f, list));
     return details;
 }
 
@@ -2295,7 +2345,7 @@ function renderNda(n) {
     const actions = el("div", "admin-actions admin-install-entry-actions");
     const error = el("span", "admin-action-error");
     actions.append(error, ...entryTools("nda", n, error));
-    details.append(actions, ticket("nda", n, list));
+    details.append(actions, entryDetails(n, list));
     return details;
 }
 
@@ -2317,7 +2367,10 @@ function renderWaitlist(w) {
     const address = w.address || w.location || "";
     // A 0 estimate means no price yet (the SigenStor Neo, coming soon).
     const estimate = Number.isFinite(w.estimatedTotal) && w.estimatedTotal > 0 ? `₱${w.estimatedTotal.toLocaleString("en-PH")}` : "";
-    const meta = [products, estimate, w.phone].filter(Boolean).join(" · ");
+    const referral = (w.referralCode || "").trim();
+    const referrer = referral ? findReferrer(referral) : null;
+    const referredBy = referral ? `${referrer ? referrer.name : "Unknown code"} (${referrer ? referrer.code : referral})` : "";
+    const meta = [products, estimate, w.phone, referral && `Referred by ${referrer ? referrer.name : `${referral} (Unknown code)`}`].filter(Boolean).join(" · ");
     const details = entryShell(w.name, meta, toDate(w.createdAt), {
         dim: isClosed("waitlist", w), badge: stageBadge("waitlist", w), stale: staleBadge("waitlist", w),
     });
@@ -2326,14 +2379,21 @@ function renderWaitlist(w) {
 
     const list = el("dl", "admin-details");
     list.append(
-        // One product per line (the summary line above keeps them comma-separated).
-        detailRow("Order", waitlistItems(w).join("\n")),
-        detailRow("Estimated total", estimate ? `${estimate}\nFrom starting prices; not a quotation` : ""),
-        detailRow("System", w.system ? `${w.system} system` : ""),
-        detailRow("Home / delivery address", address),
-        detailRow("Phone", w.phone, { href: w.phone ? `tel:${w.phone.replace(/[^\d+]/g, "")}` : "" }),
-        detailRow("Email", w.email, { href: w.email ? `mailto:${w.email}` : "" }),
-        detailRow("Note", w.message, { wide: true }),
+        detailGroup("Contact",
+            detailRow("Phone", w.phone, { href: w.phone ? `tel:${w.phone.replace(/[^\d+]/g, "")}` : "" }),
+            detailRow("Email", w.email, { href: w.email ? `mailto:${w.email}` : "" }),
+            detailRow("Address", address),
+        ),
+        detailGroup("Order",
+            // Power Pack reservations (reserve-power-pack/) aren't a system.
+            detailRow("System", w.system ? (w.system === "Power Pack" ? "Power Pack reservation" : `${w.system} system`) : ""),
+            // One product per line (the summary line above keeps them comma-separated).
+            detailRow("Products", waitlistItems(w).join("\n")),
+            detailRow("Estimated total", estimate ? `${estimate}\nFrom starting prices; not a quotation` : ""),
+            detailRow("Referred by", referredBy),
+            detailRow("Note", w.message, { wide: true }),
+        ),
+        // Rows outside a group go into "Record" (entryDetails()).
         detailRow("Submitted", formatDate(toDate(w.createdAt))),
     );
     if (w.source === "admin") list.append(detailRow("Source", `Added on the admin page${w.createdBy ? ` by ${w.createdBy}` : ""}`, { wide: true }));
@@ -2343,27 +2403,25 @@ function renderWaitlist(w) {
     return details;
 }
 
-// An entry's details laid out as a ticket: a stub with the kind of entry and
-// a short ticket number (start of the Firestore id), a perforation with a
-// notch on each side, then the details. The notches are cut by a CSS mask on
-// .admin-ticket-paper; the outline and shadow come from a filter on the outer
-// .admin-ticket, so they follow the notches.
-function ticket(tab, entry, list) {
-    const outer = el("div", "admin-ticket");
-    const paper = el("div", "admin-ticket-paper");
-    const stub = el("div", "admin-ticket-stub");
-    const kind = el("span", "admin-ticket-kind");
-    kind.append(el("span", "material-symbols-rounded", "confirmation_number"), TABS[tab].label);
-    stub.append(kind);
-    if (entry.id) stub.append(el("span", "admin-ticket-no", `No. ${entry.id.slice(0, 6).toUpperCase()}`));
-    paper.append(stub, list);
-    outer.append(paper);
-    return outer;
+// An entry's details, with its ticket number (the first 6 characters of the
+// Firestore id, as in the new-request email and the Claude connector). When
+// the details are grouped, the rows outside a group (ticket number, dates,
+// source, edits) go into a last "Record" group; otherwise the ticket number
+// leads the list.
+function entryDetails(entry, list) {
+    const ticketRow = entry.id ? detailRow("Ticket no.", `#${entry.id.slice(0, 6).toUpperCase()}`) : null;
+    if (list.querySelector(":scope > .admin-detail-group")) {
+        const loose = [...list.children].filter((child) => child.classList.contains("admin-detail"));
+        list.append(detailGroup("Record", ...(ticketRow ? [ticketRow] : []), ...loose));
+    } else if (ticketRow) {
+        list.prepend(ticketRow);
+    }
+    return list;
 }
 
 // Adds the stage stepper (click any stage to set it), a blue "Move to <next
 // stage>" button and, for pipelines with an off-path stage (waitlist:
-// Cancelled), a button to set or undo it; then the ticket, with its "Stage
+// Cancelled), a button to set or undo it; then the details, with their "Stage
 // updated" row.
 function appendStage(tab, entry, list, details) {
     const pipeline = TABS[tab].pipeline;
@@ -2378,7 +2436,7 @@ function appendStage(tab, entry, list, details) {
     }
     // View only: no stepper or buttons (the stage tag shows where it is).
     if (!can(tab, "edit")) {
-        details.append(ticket(tab, entry, list));
+        details.append(entryDetails(entry, list));
         return;
     }
     const actions = el("div", "admin-actions admin-stage-actions");
@@ -2431,7 +2489,7 @@ function appendStage(tab, entry, list, details) {
     // Edit details / Delete, between the error text and the stage buttons.
     error.after(...entryTools(tab, entry, error));
     actions.append(stepper, buttons);
-    details.append(actions, ticket(tab, entry, list));
+    details.append(actions, entryDetails(entry, list));
 }
 
 // Only stage, stageUpdatedAt and stageUpdatedBy may change — see
@@ -2551,6 +2609,8 @@ const CSV_COLUMNS = {
         ["System", (w) => w.system],
         ["Order", (w) => waitlistItems(w).join("; ")],
         ["Estimated total (PHP)", (w) => (Number.isFinite(w.estimatedTotal) ? w.estimatedTotal : "")],
+        ["Referral code", (w) => (w.referralCode || "").trim().toUpperCase()],
+        ["Referred by", (w) => { const p = findReferrer(w.referralCode); return p ? p.name : (w.referralCode || "").trim() ? "Unknown code" : ""; }],
         ["Note", (w) => w.message],
         ["Attachments", (w) => serialList(w.attachments).length],
         ["Stage", (w) => stageInfo("waitlist", stageOf("waitlist", w)).label],
@@ -2911,7 +2971,7 @@ function renderInstall(i) {
     }
     list.append(detailRow("Install ID", i.id));
 
-    // Edit / Delete, above the ticket like the stage stepper, for installs
+    // Edit / Delete, above the details like the stage stepper, for installs
     // this account may change.
     if (canEditInstall()) {
         const actions = el("div", "admin-actions admin-install-entry-actions");
@@ -2944,7 +3004,7 @@ function renderInstall(i) {
         if (canDeleteInstall(i)) actions.append(remove);
         details.append(actions);
     }
-    details.append(ticket("installs", i, list));
+    details.append(entryDetails(i, list));
     return details;
 }
 
@@ -3889,7 +3949,10 @@ function waitlistVisit(w, stage) {
 let syncingWaitlist = false;
 async function syncWaitlistToVisits() {
     if (!role || !can("visits", "edit") || !can("waitlist") || syncingWaitlist) return;
-    const missing = data.waitlist.filter((w) => WAITLIST_TO_VISIT_STAGE[stageOf("waitlist", w)] && !waitlistHasVisit(w));
+    // Power Pack reservations are portable units that need no site visit, so
+    // they stay on the Waitlist tab only.
+    const missing = data.waitlist.filter((w) => w.system !== "Power Pack"
+        && WAITLIST_TO_VISIT_STAGE[stageOf("waitlist", w)] && !waitlistHasVisit(w));
     if (!missing.length) return;
     syncingWaitlist = true;
     let added = 0;
@@ -4435,6 +4498,7 @@ const EDIT_FIELDS = {
         { name: "phone", label: "Phone", type: "tel", min: 7, max: 30 },
         { name: "email", label: "Email", type: "email", max: 200 },
         { name: "address", label: "Home / delivery address", required: true, min: 5, max: 300, wide: true },
+        { name: "referralCode", label: "Referral code", max: 50, upper: true },
         { name: "message", label: "Note", textarea: true, max: 2000, wide: true },
     ],
 };
@@ -4484,7 +4548,7 @@ async function resizeToJpeg(blob, maxEdge, quality) {
 }
 
 // "Edit details" and "Delete" for an entry, next to its stage buttons (or
-// above the ticket for feedback). Feedback can only be deleted, and only
+// above the details for feedback). Feedback can only be deleted, and only
 // admins can delete.
 function entryTools(tab, entry, errorText) {
     const tools = [];
@@ -4867,6 +4931,10 @@ const WAITLIST_SYSTEMS = {
     "MSU4000 Elite": { unit: ["MSU4000 Elite", 250000], battery: ["B4000 Elite", 90000] },
     "MAU5000 Elite": { unit: ["MAU5000 Elite", 150000], battery: ["B5000 Elite", 100000] },
     "SigenStor Neo": { unit: ["SigenStor Neo", 0], battery: null },
+    // Power Pack reservations (reserve-power-pack/): Basic and DIY Kit, each
+    // 1-10 and independent of each other (`kit`: no per-unit battery limit).
+    // Prices: keep in step with that form's data-price and the Power Pack page.
+    "Power Pack": { unit: ["Power Pack", 50000], battery: ["Power Pack DIY Kit", 70000], kit: true },
 };
 const WAITLIST_MAX_UNITS = 10;
 const WAITLIST_BATTERIES_PER_UNIT = 4;
@@ -4876,7 +4944,7 @@ function waitlistOrderFields(grid) {
     const box = el("div", "admin-field admin-install-wide admin-waitlist-order");
     const system = el("select", "admin-select");
     for (const key of Object.keys(WAITLIST_SYSTEMS)) {
-        const option = el("option", "", `${key} system`);
+        const option = el("option", "", WAITLIST_SYSTEMS[key].kit ? `${key} reservation` : `${key} system`);
         option.value = key;
         system.append(option);
     }
@@ -4905,11 +4973,14 @@ function waitlistOrderFields(grid) {
 
     const peso = (n) => `₱${n.toLocaleString()}`;
     function read() {
-        const { unit, battery } = WAITLIST_SYSTEMS[system.value];
+        const { unit, battery, kit } = WAITLIST_SYSTEMS[system.value];
         const u = Number(units.input.value);
         const b = battery ? Number(batteries.input.value) : 0;
         let problem = "";
         if (!Number.isInteger(u) || u < 0 || u > WAITLIST_MAX_UNITS) problem = `Units must be a whole number from 0 to ${WAITLIST_MAX_UNITS}.`;
+        else if (kit && (!Number.isInteger(b) || b < 0 || b > WAITLIST_MAX_UNITS)) problem = `Each option must be a whole number from 0 to ${WAITLIST_MAX_UNITS}.`;
+        else if (kit && !u && !b) problem = "Add at least one Power Pack.";
+        else if (kit) problem = "";
         else if (!Number.isInteger(b) || b < 0 || b > WAITLIST_BATTERIES_PER_UNIT * Math.max(1, u)) problem = `Batteries must be a whole number up to ${WAITLIST_BATTERIES_PER_UNIT * Math.max(1, u)} (${WAITLIST_BATTERIES_PER_UNIT} per unit).`;
         else if (!u && !b) problem = "Add at least one unit or battery.";
         const quantities = {};
@@ -4918,10 +4989,11 @@ function waitlistOrderFields(grid) {
         return { problem, system: system.value, quantities, estimatedTotal: (u || 0) * unit[1] + (battery ? (b || 0) * battery[1] : 0) };
     }
     function update() {
-        const { unit, battery } = WAITLIST_SYSTEMS[system.value];
-        units.name.textContent = unit[1] ? `${unit[0]} units (${peso(unit[1])} each)` : `${unit[0]} units (price to be announced)`;
+        const { unit, battery, kit } = WAITLIST_SYSTEMS[system.value];
+        units.name.textContent = kit ? `Basic: ${unit[0]} (${peso(unit[1])} each)`
+            : unit[1] ? `${unit[0]} units (${peso(unit[1])} each)` : `${unit[0]} units (price to be announced)`;
         batteries.wrap.hidden = !battery;
-        if (battery) batteries.name.textContent = `${battery[0]} batteries (${peso(battery[1])} each)`;
+        if (battery) batteries.name.textContent = kit ? `${battery[0]} (${peso(battery[1])} each)` : `${battery[0]} batteries (${peso(battery[1])} each)`;
         const r = read();
         estimate.textContent = r.problem || (unit[1]
             ? `Estimated total: ${peso(r.estimatedTotal)} (estimate only, not a final quotation)`
@@ -4985,9 +5057,11 @@ function showEntry(tab, id) {
     details.open = true;
     detailPane.querySelector(".admin-detail-kind").textContent = TABS[tab].label;
     // The pinned header shows the summary line (name, tags, details, date);
-    // the entry's own summary is hidden in the pane.
+    // the entry's own summary is hidden in the pane. Inventory items skip it:
+    // their photo, name and category already lead the pane (itemGallery()),
+    // and the stock panel shows the count and status.
     detailPane.querySelector(".admin-detail-title").replaceChildren(
-        ...[...details.querySelector("summary").children]
+        ...[...(tab === "inventory" ? [] : details.querySelector("summary").children)]
             // The quick − / + stays in the list (a copy wouldn't work).
             .filter((child) => !child.classList.contains("admin-chevron") && !child.classList.contains("admin-inv-quick"))
             .map((child) => child.cloneNode(true)),
@@ -5058,15 +5132,100 @@ function markSelected() {
 }
 
 // On desktop a sidebar entry opens in the pane instead of expanding in place.
+// On phones it expands in place, animated, and opening one closes the one
+// already open in that list.
 document.querySelectorAll(".admin-list").forEach((list) => {
     list.addEventListener("click", (e) => {
-        if (!desktop.matches) return;
         const summary = e.target.closest("summary");
         if (!summary || !list.contains(summary)) return;
+        if (desktop.matches) {
+            e.preventDefault();
+            showEntry(list.dataset.list, summary.parentElement.dataset.id);
+            return;
+        }
+        if (e.defaultPrevented) return;
+        const details = summary.parentElement;
+        if (!details.classList.contains("admin-entry")) return;
         e.preventDefault();
-        showEntry(list.dataset.list, summary.parentElement.dataset.id);
+        if (details.open && !details.closing) {
+            animateEntry(details, false);
+            return;
+        }
+        list.querySelectorAll(".admin-entry[open]").forEach((other) => {
+            if (other !== details && !other.closing) animateEntry(other, false);
+        });
+        animateEntry(details, true);
     });
 });
+
+// Opens or closes a phone list entry with a height animation. `closing` marks
+// an entry that's still open but on its way shut. Reduced motion just
+// toggles it. Once open, the entry is scrolled into view if closing the one
+// above pulled its top under the fixed top bar.
+const ENTRY_ANIM_MS = 380;
+const ENTRY_EASE = "cubic-bezier(0.4, 0, 0.2, 1)";
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+
+function entryClosedHeight(details) {
+    const style = getComputedStyle(details);
+    const summary = details.querySelector(":scope > summary");
+    return summary.offsetHeight
+        + parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+        + parseFloat(style.borderTopWidth) + parseFloat(style.borderBottomWidth);
+}
+
+function animateEntry(details, open) {
+    // Start from where it is now, even mid-animation.
+    const from = details.offsetHeight;
+    if (details.entryAnim) {
+        details.entryAnim.cancel();
+        details.entryAnim = null;
+    }
+    (details.contentAnims || []).forEach((a) => a.cancel());
+    details.contentAnims = null;
+    details.closing = false;
+    details.classList.remove("admin-entry-closing");
+    if (open) details.open = true;
+    const to = open ? details.offsetHeight : entryClosedHeight(details);
+    const done = () => {
+        details.entryAnim = null;
+        details.style.overflow = "";
+        if (!open) {
+            details.closing = false;
+            details.classList.remove("admin-entry-closing");
+            details.open = false;
+        } else {
+            revealEntry(details);
+        }
+    };
+    if (reduceMotion.matches || from === to) {
+        done();
+        return;
+    }
+    if (!open) {
+        details.closing = true;
+        details.classList.add("admin-entry-closing");
+    }
+    details.style.overflow = "hidden";
+    const timing = { duration: ENTRY_ANIM_MS, easing: ENTRY_EASE };
+    const anim = details.animate({ height: [`${from}px`, `${to}px`] }, timing);
+    details.entryAnim = anim;
+    anim.onfinish = done;
+    // The details fade and slide in (or out) as the entry grows (or shrinks).
+    const shown = { opacity: 1, transform: "translateY(0)" };
+    const hidden = { opacity: 0, transform: "translateY(-8px)" };
+    details.contentAnims = [...details.children]
+        .filter((child) => child.tagName !== "SUMMARY")
+        .map((child) => child.animate(open ? [hidden, shown] : [shown, hidden], timing));
+}
+
+function revealEntry(details) {
+    const barBottom = 72; // the phone top bar is 64px
+    const top = details.getBoundingClientRect().top;
+    if (top < barBottom) {
+        window.scrollTo({ top: window.scrollY + top - barBottom, behavior: reduceMotion.matches ? "auto" : "smooth" });
+    }
+}
 
 // The open entry in the pane can't be collapsed. The system presets' fold-up
 // cards (also <details>) still open and close.
@@ -6533,7 +6692,8 @@ function itemGallery(item) {
     avatar.type = "button";
     const info = el("figcaption", "admin-inv-profile-info");
     info.append(el("strong", "admin-inv-profile-name", item.name));
-    const sub = [item.category, unitOf(item)].filter(Boolean).join(" · ");
+    // View-only accounts have no stock panel, so the count shows here.
+    const sub = (can("inventory", "edit") ? [item.category, unitOf(item)] : [qtyText(item), item.category]).filter(Boolean).join(" · ");
     if (sub) info.append(el("span", "admin-inv-profile-sub", sub));
     profile.append(avatar, info);
 
@@ -6936,10 +7096,13 @@ function stockPanel(item) {
     cancel.type = "button";
     cancel.textContent = "Cancel";
     status.append(statusText, cancel);
+    // Hidden while empty, so the panel's bottom edge is its padding, like
+    // its sides.
     const say = (text, tone = "", canCancel = false) => {
         statusText.textContent = text;
         status.dataset.tone = tone;
         cancel.hidden = !canCancel;
+        status.hidden = !text;
     };
 
     const read = () => {
@@ -8123,7 +8286,7 @@ function renderAccount(a) {
         list.append(detailRow("Last changed", `${formatDate(toDate(a.updatedAt))}${a.updatedBy ? ` by ${a.updatedBy}` : ""}`, { wide: true }));
     }
     if (hasAccess(a) && a.source !== "owner") list.append(detailRow("Signing in", SIGN_IN_HELP, { wide: true }));
-    details.append(ticket("accounts", { ...a, id: "" }, list));
+    details.append(list);
     return details;
 }
 
@@ -8354,7 +8517,7 @@ function renderWish(w) {
         list.append(detailRow("Last updated", `${formatDate(toDate(w.updatedAt))} by ${w.updatedBy}`, { wide: true }));
     }
     if (done) list.append(detailRow("Completed", `${formatDate(toDate(w.completedAt))}${w.completedBy ? ` by ${w.completedBy}` : ""}`, { wide: true }));
-    details.append(actions, ticket("wishlist", w, list));
+    details.append(actions, entryDetails(w, list));
     return details;
 }
 
