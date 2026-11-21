@@ -1781,3 +1781,34 @@ body.menu-open{
     font-size: 12px;
     color: var(--visit-muted);
 }
+
+/* Basic / DIY Kit boxes: no radio circle, the whole box is the choice. The
+   radio stays in the page (visually hidden) for keyboards and screen
+   readers. The chosen box gets a 2px dark border (an inset shadow on top of
+   the 1px border, so nothing shifts) and a light grey background. */
+.visit-system-field .visit-product{
+    position: relative;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+.visit-system-field .visit-product input{
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+.visit-system-field .visit-product:hover{
+    border-color: var(--visit-subtle);
+}
+.visit-system-field .visit-product:has(input:checked){
+    border-color: var(--visit-accent);
+    box-shadow: inset 0 0 0 1px var(--visit-accent);
+    background-color: var(--visit-surface);
+}
+.visit-system-field .visit-product:has(input:focus-visible){
+    box-shadow: inset 0 0 0 1px var(--visit-accent), 0 0 0 3px rgba(125, 129, 135, 0.28);
+}
+.visit-system-field .visit-product:has(input:checked:focus-visible){
+    box-shadow: inset 0 0 0 1px var(--visit-accent), 0 0 0 3px rgba(125, 129, 135, 0.28);
+}
